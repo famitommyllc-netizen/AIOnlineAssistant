@@ -1,0 +1,96 @@
+{
+  "settings": {
+    "ai": {
+      "enabled": false,
+      "provider": "",
+      "apiKey": "",
+      "model": ""
+    },
+    "notify": {
+      "daysBefore": [
+        1
+      ],
+      "hoursBefore": [
+        1
+      ],
+      "sameDayTimes": [],
+      "atDue": true,
+      "overdueSnoozeMinutes": 60
+    },
+    "icons": {
+      "chat": "/assets/icons/chat.svg",
+      "tasks": "/assets/icons/tasks.svg",
+      "memos": "/assets/icons/memos.svg",
+      "number": "/assets/icons/number.svg",
+      "profit": "/assets/icons/profit.svg",
+      "profitSettings": "/assets/icons/profit-settings.svg",
+      "help": "/assets/icons/help.svg",
+      "settings": "/assets/icons/settings.svg",
+      "iconSettings": "/assets/icons/icon-settings.svg"
+    },
+    "appMenu": {
+      "order": [
+        "task_create",
+        "memo_create",
+        "profit",
+        "number"
+      ],
+      "enabled": [
+        "task_create",
+        "memo_create",
+        "profit",
+        "number"
+      ],
+      "layout": "grid3",
+      "iconSize": 102
+    }
+  },
+  "messages": [],
+  "tasks": [],
+  "reminders": [],
+  "pendingActions": [],
+  "notes": [],
+  "chatMode": "normal",
+  "calculators": {
+    "numberMemo": {
+      "entries": []
+    },
+    "profit": {
+      "shippingOptions": [
+        {
+          "id": "ship_nk_210",
+          "name": "ネコポス",
+          "cost": 210
+        },
+        {
+          "id": "ship_yup_230",
+          "name": "ゆうパケットポスト",
+          "cost": 230
+        },
+        {
+          "id": "ship_tak_750",
+          "name": "宅急便コンパクト",
+          "cost": 750
+        }
+      ],
+      "packingOptions": [
+        {
+          "id": "pack_envelope_50",
+          "name": "封筒/袋",
+          "cost": 50
+        },
+        {
+          "id": "pack_box_120",
+          "name": "小箱",
+          "cost": 120
+        },
+        {
+          "id": "pack_cushion_80",
+          "name": "緩衝材セット",
+          "cost": 80
+        }
+      ],
+      "records": []
+    }
+  }
+}

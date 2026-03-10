@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chatbot Settings</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <nav class="top-nav">
+      <a href="/" class="nav-link">チャット</a>
+      <a href="/tasks.html" class="nav-link">タスク</a>
+      <a href="/memos.html" class="nav-link">メモ一覧</a>
+      <a href="/number-tool.html" class="nav-link">数値集計</a>
+      <a href="/profit-tool.html" class="nav-link">利益計算</a>
+      <a href="/profit-settings.html" class="nav-link">利益設定</a>
+      <a href="/help.html" class="nav-link">使い方</a>
+      <a href="/icon-settings.html" class="nav-link">アイコン設定</a>
+      <a href="/settings.html" class="nav-link active">設定</a>
+      <a href="/notify.html" class="nav-link">通知設定</a>
+    </nav>
+    <button class="nav-toggle" type="button" aria-label="メニュー" aria-expanded="false">MENU</button>
+    <button id="closeToChatBtn" class="close-to-chat" type="button" aria-label="チャットへ戻る">×</button>
+
+    <main class="settings-layout">
+      <section class="card">
+        <div class="title-row">
+          <img id="pageIcon" class="page-icon" src="/assets/icons/settings.svg" alt="" />
+          <h1>AI API 設定</h1>
+        </div>
+        <p class="sub">将来のAI連携に向けた設定画面です。保存後は `data/store.json` に記録されます。</p>
+
+        <form id="settingsForm" class="settings-form">
+          <label class="field-row checkbox-row">
+            <input id="enabled" type="checkbox" />
+            <span>AI連携を有効化</span>
+          </label>
+
+          <label class="field-row">
+            <span>Provider</span>
+            <input id="provider" type="text" placeholder="例: openai" />
+          </label>
+
+          <label class="field-row">
+            <span>Model</span>
+            <input id="model" type="text" placeholder="例: gpt-4.1-mini" />
+          </label>
+
+          <label class="field-row">
+            <span>Base URL</span>
+            <input id="baseUrl" type="text" placeholder="例: https://api.openai.com/v1" />
+          </label>
+
+          <label class="field-row">
+            <span>API Key</span>
+            <input id="apiKey" type="password" autocomplete="off" placeholder="sk-..." />
+          </label>
+
+          <label class="field-row">
+            <span>API Secret</span>
+            <input id="apiSecret" type="password" autocomplete="off" placeholder="必要な場合のみ" />
+          </label>
+
+          <h2>Google検索設定（無料枠）</h2>
+          <p class="sub">無料枠（1日100クエリ）で利用する設定です。後からAPIキーを入力できます。</p>
+
+          <label class="field-row checkbox-row">
+            <input id="webSearchEnabled" type="checkbox" />
+            <span>Google検索機能を有効化</span>
+          </label>
+
+          <label class="field-row">
+            <span>Google API Key</span>
+            <input id="webSearchApiKey" type="password" autocomplete="off" placeholder="AIza..." />
+          </label>
+
+          <label class="field-row">
+            <span>Custom Search Engine ID (CX)</span>
+            <input id="webSearchCx" type="text" autocomplete="off" placeholder="0123456789abcde:xyz" />
+          </label>
+
+          <label class="field-row">
+            <span>既定の取得件数</span>
+            <input id="webSearchDefaultCount" type="number" min="1" max="20" step="1" value="10" />
+          </label>
+
+          <h2>モード運用設定</h2>
+          <p class="sub">モード中に曖昧表現命令を受け付けるかを切り替えます。</p>
+          <label class="field-row checkbox-row">
+            <input id="modeLockIntentsInMode" type="checkbox" />
+            <span>モード終了まで曖昧表現命令を無効化（推奨ON）</span>
+          </label>
+
+          <div class="row">
+            <button type="submit">保存</button>
+          </div>
+        </form>
+
+        <h2>通知設定</h2>
+        <p class="sub">期限に対する通知タイミングを指定します。カンマ区切りで複数入力できます。</p>
+        <form id="notifyForm" class="settings-form">
+          <label class="field-row">
+            <span>何日前に通知</span>
+            <input id="daysBefore" type="text" placeholder="例: 3,1" />
+          </label>
+
+          <label class="field-row">
+            <span>何時間前に通知</span>
+            <input id="hoursBefore" type="text" placeholder="例: 6,1" />
+          </label>
+
+          <label class="field-row">
+            <span>当日の通知時刻（HH:mm）</span>
+            <input id="sameDayTimes" type="text" placeholder="例: 10:00,13:30" />
+          </label>
+
+          <label class="field-row checkbox-row">
+            <input id="atDue" type="checkbox" />
+            <span>期限時刻に通知</span>
+          </label>
+
+          <label class="field-row">
+            <span>期限切れ後スヌーズ（分）</span>
+            <input id="overdueSnoozeMinutes" type="number" min="1" value="60" />
+          </label>
+
+          <div class="row">
+            <button type="submit">通知設定を保存</button>
+          </div>
+        </form>
+
+        <h2>チャット内アプリボタン設定</h2>
+        <p class="sub">表示するアプリと順番をカンマ区切りで設定できます。</p>
+        <form id="appMenuForm" class="settings-form">
+          <label class="field-row">
+            <span>表示するアプリID（enabled）</span>
+            <input id="appMenuEnabled" type="text" placeholder="例: task_create,memo_create,profit,number" />
+          </label>
+          <label class="field-row">
+            <span>表示順（order）</span>
+            <input id="appMenuOrder" type="text" placeholder="例: task_create,memo_create,profit,number" />
+          </label>
+          <label class="field-row">
+            <span>表示レイアウト</span>
+            <select id="appMenuLayout">
+              <option value="grid3">3x3グリッド（正方形）</option>
+              <option value="single">1列表示</option>
+            </select>
+          </label>
+          <label class="field-row">
+            <span>アイコン通常サイズ(px)</span>
+            <input id="appMenuIconSize" type="number" min="40" max="120" step="1" placeholder="例: 68" />
+          </label>
+          <p class="sub">利用可能ID: task_create, memo_create, profit, number, help, settings</p>
+          <div class="row">
+            <button type="submit">アプリボタン設定を保存</button>
+          </div>
+        </form>
+
+        <p id="saveStatus" class="status-text">未保存</p>
+      </section>
+    </main>
+
+    <script src="/nav.js"></script>
+    <script src="/settings.js"></script>
+  </body>
+</html>

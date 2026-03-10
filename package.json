@@ -1,0 +1,10 @@
+{
+  "name": "chatbot-prototype",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Rule-based chat/task/reminder web app prototype",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  }
+}

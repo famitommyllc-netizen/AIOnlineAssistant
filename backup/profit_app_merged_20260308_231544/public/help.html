@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>使い方</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <nav class="top-nav">
+      <a href="/" class="nav-link">チャット</a>
+      <a href="/tasks.html" class="nav-link">タスク</a>
+      <a href="/memos.html" class="nav-link">メモ一覧</a>
+      <a href="/number-tool.html" class="nav-link">数値集計</a>
+      <a href="/profit-tool.html" class="nav-link">利益計算</a>
+      <a href="/profit-settings.html" class="nav-link">利益設定</a>
+      <a href="/help.html" class="nav-link active">使い方</a>
+      <a href="/icon-settings.html" class="nav-link">アイコン設定</a>
+      <a href="/settings.html" class="nav-link">設定</a>
+      <a href="/notify.html" class="nav-link">通知設定</a>
+    </nav>
+    <button class="nav-toggle" type="button" aria-label="メニュー" aria-expanded="false">MENU</button>
+    <button id="closeToChatBtn" class="close-to-chat" type="button" aria-label="チャットへ戻る">×</button>
+
+    <main class="settings-layout">
+      <section class="card">
+        <div class="title-row">
+          <img id="pageIcon" class="page-icon" src="/assets/icons/help.svg" alt="" />
+          <h1>このアプリの使い方</h1>
+        </div>
+        <p class="sub">チャット中心で操作できます。曖昧な表現でも概ね判定します。</p>
+
+        <h2>1. チャットで呼び出し</h2>
+        <div class="normalize-preview">例: 「タスク管理」「使い方」「利益設定」「数値集計」「利益計算」「設定」</div>
+
+        <h2>2. モード切替</h2>
+        <div class="normalize-preview">
+タスク作成モード: 「タスク作成」
+メモモード: 「メモ作成」
+通常モードに戻す: 「通常モード」
+        </div>
+
+        <h2>3. タスク機能</h2>
+        <div class="normalize-preview">自然文からタスク候補を作成し、承認で登録。担当・期限・通知設定を保持します。</div>
+
+        <h2>4. 数値集計</h2>
+        <div class="normalize-preview">数値を連続追加すると、合計・件数・平均を上部に表示します。</div>
+
+        <h2>5. 利益計算</h2>
+        <div class="normalize-preview">原価/手数料/送料/梱包/販売価格などから利益を計算し、履歴を編集できます。</div>
+      </section>
+    </main>
+
+    <script src="/nav.js"></script>
+    <script src="/help.js"></script>
+  </body>
+</html>

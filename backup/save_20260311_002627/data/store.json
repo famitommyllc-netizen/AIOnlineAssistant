@@ -1,0 +1,472 @@
+{
+  "settings": {
+    "ai": {
+      "enabled": false,
+      "provider": "",
+      "model": "",
+      "baseUrl": "",
+      "apiKey": "",
+      "apiSecret": ""
+    },
+    "notify": {
+      "daysBefore": [
+        1
+      ],
+      "hoursBefore": [
+        1
+      ],
+      "sameDayTimes": [],
+      "atDue": true,
+      "overdueSnoozeMinutes": 60
+    },
+    "icons": {
+      "chat": "/assets/icons/chat.svg",
+      "tasks": "/assets/icons/tasks.svg",
+      "memos": "/assets/icons/memos.svg",
+      "number": "/assets/icons/number.svg",
+      "profit": "/assets/icons/profit.svg",
+      "profitSettings": "/assets/icons/profit-settings.svg",
+      "help": "/assets/icons/help.svg",
+      "settings": "/assets/icons/settings.svg",
+      "iconSettings": "/assets/icons/icon-settings.svg"
+    },
+    "appMenu": {
+      "order": [
+        "task_create",
+        "memo_create",
+        "profit",
+        "number"
+      ],
+      "enabled": [
+        "task_create",
+        "memo_create",
+        "profit",
+        "number"
+      ],
+      "layout": "grid3",
+      "iconSize": 102
+    },
+    "webSearch": {
+      "enabled": false,
+      "provider": "google_cse",
+      "apiKey": "",
+      "cx": "",
+      "defaultStart": 1,
+      "defaultCount": 10,
+      "language": "ja",
+      "country": "jp",
+      "safe": "off"
+    },
+    "modeControl": {
+      "lockIntentsInMode": false
+    }
+  },
+  "messages": [],
+  "tasks": [
+    {
+      "id": "task_1772477817630_3xfbyo",
+      "taskNo": 1,
+      "title": "資料提出",
+      "dueInput": "来週の月曜日の夕方にあゆみが資料提出、なるはやで、3日前と1日前と当日の朝10時と提出期限3時間前に通知",
+      "dueAt": "2026-03-09T17:00:00",
+      "assignee": "あゆみ",
+      "remindEveryMinutes": 60,
+      "isCompleted": true,
+      "ambiguityFlags": [
+        "priority_or_timing_ambiguous"
+      ],
+      "notifyConfig": {
+        "daysBefore": [
+          3,
+          1
+        ],
+        "hoursBefore": [
+          3
+        ],
+        "sameDayTimes": [
+          "10:00"
+        ],
+        "atDue": true,
+        "overdueSnoozeMinutes": 60
+      },
+      "sentNotificationKeys": [
+        "d-3",
+        "d-1"
+      ],
+      "lastRemindedAt": "2026-03-08T08:00:09.248Z",
+      "createdAt": "2026-03-02T18:56:57.630Z",
+      "updatedAt": "2026-03-08T08:52:37.051Z"
+    },
+    {
+      "id": "task_1772481449044_fi2an4",
+      "taskNo": 2,
+      "title": "教室の説明の連絡",
+      "dueInput": "3日後のよる20:00までに",
+      "dueAt": null,
+      "assignee": "おれ",
+      "remindEveryMinutes": 60,
+      "isCompleted": true,
+      "ambiguityFlags": [
+        "datetime_missing"
+      ],
+      "notifyConfig": {
+        "daysBefore": [
+          3
+        ],
+        "hoursBefore": [
+          3
+        ],
+        "sameDayTimes": [],
+        "atDue": true,
+        "overdueSnoozeMinutes": 60
+      },
+      "sentNotificationKeys": [],
+      "lastRemindedAt": "2026-03-08T08:29:09.374Z",
+      "createdAt": "2026-03-02T19:57:29.044Z",
+      "updatedAt": "2026-03-08T08:52:36.056Z"
+    }
+  ],
+  "reminders": [],
+  "pendingActions": [],
+  "calculators": {
+    "numberMemo": {
+      "entries": [
+        {
+          "id": "num_1772992439736_6ev69d",
+          "title": "2025年３期売上",
+          "value": 200000,
+          "createdAt": "2026-03-08T17:53:59.736Z",
+          "updatedAt": "2026-03-08T17:54:10.692Z"
+        }
+      ],
+      "ui": {
+        "sectionOrder": [
+          "kpi",
+          "form",
+          "summary",
+          "list"
+        ],
+        "formRowOrder": [
+          "title",
+          "value",
+          "actions"
+        ]
+      }
+    },
+    "profit": {
+      "shippingOptions": [
+        {
+          "id": "opt_1772984335926_sxarty",
+          "name": "ネコポス",
+          "cost": 185
+        },
+        {
+          "id": "opt_1772984335926_szp0g8",
+          "name": "ゆうパケットポスト",
+          "cost": 185
+        },
+        {
+          "id": "opt_1772984335926_opqrhx",
+          "name": "宅急便コンパクト",
+          "cost": 750
+        },
+        {
+          "id": "opt_1772984932686_d2dd7t_shipping",
+          "name": "ヤマト80サイズ",
+          "cost": 500
+        }
+      ],
+      "packingOptions": [
+        {
+          "id": "opt_1772984335926_anxmu9",
+          "name": "封筒/袋",
+          "cost": 50
+        },
+        {
+          "id": "opt_1772984335926_ub2rwc",
+          "name": "小箱",
+          "cost": 120
+        },
+        {
+          "id": "opt_1772984335926_u3v76d",
+          "name": "緩衝材セット",
+          "cost": 80
+        }
+      ],
+      "records": [
+        {
+          "id": "profit_1772988630999_ofrcuz",
+          "itemName": "MGSDガンダムエアリアル",
+          "cost": 4120,
+          "feeRate": 10,
+          "feeAmount": 880,
+          "shippingId": "opt_1772984932686_d2dd7t_shipping",
+          "shippingName": "ヤマト80サイズ",
+          "shippingCost": 500,
+          "packingId": "opt_1772984335926_anxmu9",
+          "packingName": "封筒/袋",
+          "packingCost": 50,
+          "salePrice": 8800,
+          "otherCost": 0,
+          "taxRate": 10,
+          "taxMode": "inclusive",
+          "taxAmount": 0,
+          "taxOutput": 0,
+          "taxInput": 0,
+          "invoiceEnabled": false,
+          "locale": "ja-JP",
+          "currency": "JPY",
+          "totalCost": 5550,
+          "profit": 3250,
+          "marginRate": 36.93,
+          "roiRate": 58.56,
+          "createdAt": "2026-03-08T16:50:30.999Z"
+        },
+        {
+          "id": "profit_1772986918368_bhh2us",
+          "itemName": "メッサーラ",
+          "cost": 3300,
+          "feeRate": 11,
+          "feeAmount": 594,
+          "shippingId": "opt_1772984932686_d2dd7t_shipping",
+          "shippingName": "ヤマト80サイズ",
+          "shippingCost": 500,
+          "packingId": "opt_1772984335926_ub2rwc",
+          "packingName": "小箱",
+          "packingCost": 120,
+          "salePrice": 5400,
+          "otherCost": 0,
+          "taxRate": 10,
+          "taxMode": "inclusive",
+          "taxAmount": 0,
+          "taxOutput": 0,
+          "taxInput": 0,
+          "invoiceEnabled": false,
+          "locale": "ja-JP",
+          "currency": "JPY",
+          "totalCost": 4514,
+          "profit": 886,
+          "marginRate": 16.41,
+          "roiRate": 19.63,
+          "createdAt": "2026-03-08T16:21:58.368Z"
+        },
+        {
+          "id": "profit_1772985585047_bfust7",
+          "itemName": "",
+          "cost": 415,
+          "feeRate": 10,
+          "feeAmount": 179.9,
+          "shippingId": "opt_1772984335926_sxarty",
+          "shippingName": "ネコポス",
+          "shippingCost": 185,
+          "packingId": "opt_1772984335926_anxmu9",
+          "packingName": "封筒/袋",
+          "packingCost": 50,
+          "salePrice": 1799,
+          "otherCost": 0,
+          "taxRate": 10,
+          "taxMode": "inclusive",
+          "taxAmount": 0,
+          "taxOutput": 0,
+          "taxInput": 0,
+          "invoiceEnabled": false,
+          "locale": "ja-JP",
+          "currency": "JPY",
+          "totalCost": 829,
+          "profit": 970,
+          "marginRate": 53.92,
+          "roiRate": 117.01,
+          "createdAt": "2026-03-08T15:59:45.047Z"
+        }
+      ],
+      "ui": {
+        "resultPlacement": "bottom",
+        "sectionOrder": [
+          "form",
+          "result"
+        ],
+        "inputAlign": "right",
+        "resultAlign": "right",
+        "detailAlign": "left",
+        "detailPack": "right",
+        "invoiceEnabled": false,
+        "locale": "ja-JP",
+        "currency": "JPY",
+        "showMarginRate": true,
+        "showRoiRate": true,
+        "formRowOrder": [
+          "heading",
+          "itemName",
+          "cost",
+          "salePrice",
+          "feeRate",
+          "shippingId",
+          "packingId",
+          "otherCost",
+          "actions"
+        ],
+        "resultRowOrder": [
+          "profitValue",
+          "marginRate",
+          "roiRate",
+          "resultText"
+        ]
+      },
+      "folders": [
+        {
+          "id": "folder_inbox",
+          "name": "inbox"
+        }
+      ]
+    }
+  },
+  "notes": [
+    {
+      "id": "note_1772479917167_o4adff",
+      "text": "一覧ボタンもつけるか。各カテゴリの色とか画像も変えられるようにしたいな。各項目の大項目小項目化と、人ごとのアカウント運用も必要だ。メモはパソコンのメモ帳形式にして欲しいね。もしくは自分のメモアプリに蓄積されてく感じ",
+      "title": "個別メモ",
+      "memoKind": "individual",
+      "normalized": {
+        "original": "一覧ボタンもつけるか",
+        "normalizedText": "{\"date\":null,\"time\":null,\"timeRange\":null,\"urgency\":\"normal\",\"ambiguities\":[\"datetime_missing\"],\"tags\":[]}",
+        "parsed": {
+          "date": null,
+          "time": null,
+          "timeRange": null,
+          "urgency": "normal",
+          "tags": []
+        },
+        "ambiguities": [
+          "datetime_missing"
+        ],
+        "needsConfirmation": true
+      },
+      "createdAt": "2026-03-02T19:31:57.167Z",
+      "updatedAt": "2026-03-02T19:36:03.337Z"
+    },
+    {
+      "id": "note_1772480208909_pco7st",
+      "text": "あとは、チャットの履歴をどう残すかだな",
+      "title": "個別メモ",
+      "memoKind": "individual",
+      "normalized": {
+        "original": "あとは、チャットの履歴をどう残すかだな",
+        "normalizedText": "{\"date\":null,\"time\":null,\"timeRange\":null,\"urgency\":\"normal\",\"ambiguities\":[\"datetime_missing\"],\"tags\":[]}",
+        "parsed": {
+          "date": null,
+          "time": null,
+          "timeRange": null,
+          "urgency": "normal",
+          "tags": []
+        },
+        "ambiguities": [
+          "datetime_missing"
+        ],
+        "needsConfirmation": true
+      },
+      "createdAt": "2026-03-02T19:36:48.909Z",
+      "updatedAt": "2026-03-02T19:36:48.909Z"
+    },
+    {
+      "id": "note_1772480340508_uzionn",
+      "text": "全ての項目に通し番号をつける形にして、削除があったら、通し繰上げしていくか、抜け番を埋めるかをせっていできる。",
+      "title": "個別メモ",
+      "memoKind": "individual",
+      "normalized": {
+        "original": "全ての項目に通し番号をつける形にして、削除があったら、通し繰上げしていくか、抜け番を埋めるかをせっていできる。",
+        "normalizedText": "{\"date\":null,\"time\":null,\"timeRange\":null,\"urgency\":\"normal\",\"ambiguities\":[\"datetime_missing\"],\"tags\":[]}",
+        "parsed": {
+          "date": null,
+          "time": null,
+          "timeRange": null,
+          "urgency": "normal",
+          "tags": []
+        },
+        "ambiguities": [
+          "datetime_missing"
+        ],
+        "needsConfirmation": true
+      },
+      "createdAt": "2026-03-02T19:39:00.508Z",
+      "updatedAt": "2026-03-02T19:39:00.508Z"
+    },
+    {
+      "id": "note_1772988798737_tw5xci",
+      "text": "履歴保存商品のフォルダ分け機能",
+      "title": "個別メモ",
+      "memoKind": "individual",
+      "normalized": {
+        "original": "履歴保存商品のフォルダ分け機能",
+        "normalizedText": "{\"date\":null,\"time\":null,\"timeRange\":null,\"urgency\":\"normal\",\"ambiguities\":[\"datetime_missing\"],\"tags\":[]}",
+        "parsed": {
+          "date": null,
+          "time": null,
+          "timeRange": null,
+          "urgency": "normal",
+          "tags": []
+        },
+        "ambiguities": [
+          "datetime_missing"
+        ],
+        "needsConfirmation": true
+      },
+      "createdAt": "2026-03-08T16:53:18.737Z",
+      "updatedAt": "2026-03-08T16:53:18.737Z"
+    },
+    {
+      "id": "note_1772989559375_b6n5c8",
+      "text": "1行目 テスト\n2行目 テスト\nいいね\n名前いい感じ\nまずはメモとリマインダーを作り上げれば、タスクとスケジュール管理ができるようになるよね？\nログメモ\nメモ\nログメモ\nモード中は曖昧表現検知停止\nもはやタイトルだけ出しておく改行したいから確定ボタンで即送信機能をなしに\nモードしゅうりょボタン押した時通知出す\nメモアプリはメモ+付箋（機能的に）アプリにする\n付箋モードを作って、チャット最新のとこに常に貼り付ける明日やることとか",
+      "title": "ログメモ",
+      "memoKind": "append",
+      "normalized": {
+        "original": "付箋モードを作って、チャット最新のとこに常に貼り付ける明日やることとか",
+        "normalizedText": "{\"date\":\"2026-03-11\",\"time\":null,\"timeRange\":null,\"urgency\":\"normal\",\"ambiguities\":[],\"tags\":[\"tomorrow\"]}",
+        "parsed": {
+          "date": "2026-03-11",
+          "time": null,
+          "timeRange": null,
+          "urgency": "normal",
+          "tags": [
+            "tomorrow"
+          ]
+        },
+        "ambiguities": [],
+        "needsConfirmation": false
+      },
+      "createdAt": "2026-03-08T17:05:59.375Z",
+      "updatedAt": "2026-03-09T15:07:42.207Z"
+    },
+    {
+      "id": "note_1772991197110_kgp4t7",
+      "text": "メモメモ\nメモメモメモ\nめ\nもも",
+      "title": "個別メモ 2026/03/09 02:33",
+      "memoKind": "individual",
+      "normalized": {
+        "original": "もも",
+        "normalizedText": "{\"date\":null,\"time\":null,\"timeRange\":null,\"urgency\":\"normal\",\"ambiguities\":[\"datetime_missing\"],\"tags\":[]}",
+        "parsed": {
+          "date": null,
+          "time": null,
+          "timeRange": null,
+          "urgency": "normal",
+          "tags": []
+        },
+        "ambiguities": [
+          "datetime_missing"
+        ],
+        "needsConfirmation": true
+      },
+      "createdAt": "2026-03-08T17:33:17.108Z",
+      "updatedAt": "2026-03-08T17:33:26.798Z"
+    }
+  ],
+  "chatMode": "memo",
+  "taskCounter": 2,
+  "memoSession": {
+    "recording": true,
+    "type": "append",
+    "targetNoteId": "note_1772989559375_b6n5c8",
+    "startedAt": "2026-03-09T15:07:38.725Z",
+    "lineCount": 1
+  }
+}

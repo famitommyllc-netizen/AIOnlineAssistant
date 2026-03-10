@@ -1,0 +1,22 @@
+{
+  "name": "秘書チャット（叩き台）",
+  "short_name": "秘書チャット",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f7fb",
+  "theme_color": "#2457d6",
+  "icons": [
+    {
+      "src": "/assets/icons/chat.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icons/chat.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

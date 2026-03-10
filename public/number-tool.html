@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>数値集計</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body class="number-page">
+    <nav class="top-nav">
+      <a href="/" class="nav-link">チャット</a>
+      <a href="/tasks.html" class="nav-link">タスク</a>
+      <a href="/memos.html" class="nav-link">メモ一覧</a>
+      <a href="/number-tool.html" class="nav-link active">数値集計</a>
+      <a href="/profit-tool.html" class="nav-link">利益計算</a>
+      <a href="/profit-settings.html" class="nav-link">利益設定</a>
+      <a href="/help.html" class="nav-link">使い方</a>
+      <a href="/icon-settings.html" class="nav-link">アイコン設定</a>
+      <a href="/settings.html" class="nav-link">設定</a>
+      <a href="/notify.html" class="nav-link">通知設定</a>
+    </nav>
+    <button class="nav-toggle" type="button" aria-label="メニュー" aria-expanded="false">MENU</button>
+    <button id="headerHistoryBtn" type="button" class="secondary mobile-inline-action">履歴</button>
+    <button id="headerSettingsBtn" type="button" class="secondary mobile-inline-action">設定</button>
+    <button id="headerMoveModeBtn" type="button" class="secondary mobile-inline-action">位置変更</button>
+    <button id="closeToChatBtn" class="close-to-chat" type="button" aria-label="チャットへ戻る" data-close-href="/">×</button>
+
+    <main class="settings-layout">
+      <section class="card" id="numberCard">
+        <div class="title-row">
+          <img id="pageIcon" class="page-icon" src="/assets/icons/number.svg" alt="" />
+          <h1>数値集計</h1>
+        </div>
+        <p class="sub">数字を追加して、合計値と平均値を自動計算します。</p>
+        <details id="numberLayoutSection" class="primary-panel">
+          <summary class="kpi-label">表示レイアウト設定</summary>
+          <div class="row">
+            <label class="field-row"><span>KPI表示</span><select id="orderKpi"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></label>
+            <label class="field-row"><span>入力フォーム</span><select id="orderForm"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></label>
+            <label class="field-row"><span>集計テキスト</span><select id="orderSummary"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></label>
+            <label class="field-row"><span>履歴リスト</span><select id="orderList"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></label>
+          </div>
+          <div class="settings-actions">
+            <button id="saveNumberLayoutBtn" type="button">設定保存</button>
+            <button id="openNumberHelpBtn" type="button" class="secondary">使い方</button>
+          </div>
+        </details>
+
+        <section id="numberKpiSection">
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <div class="kpi-label">合計</div>
+              <div id="sumValue" class="kpi-value">-</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">件数</div>
+              <div id="countValue" class="kpi-value">-</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">平均</div>
+              <div id="avgValue" class="kpi-value">-</div>
+            </div>
+          </div>
+        </section>
+
+        <form id="numberForm" class="primary-input-row number-form-grid" data-layout-section="form">
+          <div class="layout-row-controls" id="numberRowControls"></div>
+          <div class="movable-form-row" data-row-key="title">
+            <input id="numberTitleInput" class="primary-input" type="text" placeholder="タイトル（例: 3月広告費）" />
+          </div>
+          <div class="movable-form-row" data-row-key="value">
+            <input id="numberInput" class="primary-input" type="number" step="any" placeholder="数値を入力してください（例: 1200）" required />
+          </div>
+          <div class="row movable-form-row number-input-actions" data-row-key="actions">
+            <button type="submit">追加</button>
+            <button id="clearBtn" type="button" class="secondary">全消去</button>
+          </div>
+        </form>
+
+        <section id="numberSummarySection">
+          <div id="numberSummary" class="normalize-preview">結果を読み込み中です。</div>
+        </section>
+
+        <section id="numberListSection">
+          <ul id="numberList" class="task-list"></ul>
+        </section>
+      </section>
+    </main>
+
+    <script src="/nav.js"></script>
+    <script src="/app-feedback.js?v=20260308feedback01"></script>
+    <script src="/number-tool.js"></script>
+  </body>
+</html>

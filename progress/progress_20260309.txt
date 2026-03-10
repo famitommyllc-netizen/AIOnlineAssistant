@@ -1,0 +1,35 @@
+# 2026-03-09
+
+## Docs
+- [1] core.txt準拠で再現用docsを最新版へ更新
+  - spec: docs/spec_master_20260309_011819.md
+  - common: docs/common_app_standards_20260309_011819.md
+  - rebuild: docs/rebuild_full_spec_20260309_011819.md
+  - index: docs/docs_index_latest_20260309_011819.md + docs/docs_index_latest.md
+- [2] 変更履歴を更新
+  - docs/change_log_20260309_011819.md
+- [3] 再現性検証用manifestを再生成
+  - target: docs/rebuild_manifest_20260309_011819.sha256
+
+## Product
+- [4] チャット: 固定ヘッダー/固定フッター + 中央スクロール化を確定
+- [5] チャット: 日次アーカイブ痕跡と上スクロール履歴読込を実装
+- [6] 利益履歴: その場編集（PATCH更新）へ変更
+
+## Backup
+- [7] 既存バックアップ先へ全体上書きバックアップを実行済み（program含む）
+  - target: chatbot/backup/profit_app_merged_20260308_231544
+  - marker: chatbot/backup/profit_app_merged_20260308_231544/BACKUP_OVERWRITE_INFO.txt
+
+## 2026-03-09 02:44 JST
+- [P-20260309-11] メモモード意図ロック修正: 記録中 `ログメモ` 入力で初期化されないように変更。
+- [P-20260309-12] 削除UX統一: tasks/memos/number-tool を AppFeedback confirm + notice へ統一。
+- [P-20260309-13] メモ仕様固定: ログメモ1件固定、重複時は個別メモへ補正、一覧最上部強調表示。
+- [P-20260309-14] docs更新: spec_master_20260309_024414 / change_log_20260309_024414 / full_chat_requests_20260309_024414 / next_actions_now_blockers_20260309_024414 / docs_index_latest 更新。
+- [P-20260309-15] 次回再開用: 「明日何やる/何が止まってる」即答資料を追加。
+
+## 2026-03-09 02:52 JST
+- [P-20260309-16] 数値集計UI統一: 利益計算アプリ準拠のヘッダー操作（履歴/設定/位置変更/×）を追加。
+- [P-20260309-17] 数値集計の操作統一: 編集を行内フォーム化、削除/全消去を確認モーダル化、操作通知を中央表示へ統一。
+- [P-20260309-18] 位置変更モード統一: 位置変更保存ボタン化、保存時一括反映、端ボタンdisabled、move lock適用。
+- [P-20260309-19] docs更新: spec_master_20260309_025258 / change_log_20260309_025258 / docs_index_latest更新。

@@ -1,0 +1,11 @@
+[2026-01-04 20:04] core更新: セクション11にプロジェクト雛形へ backup/ を含める旨を追記。編集者: ChatGPT。
+[2026-01-04 20:12:55] core更新: セクション11にconfig/specsを雛形に含める旨と用途・初期ファイル例を追記。編集者: ChatGPT。
+[2026-01-04 20:42:55] core更新: README/LANGUAGE/LISENCE追記（セットアップ・実行手順記載、All Rights Reserved等）。編集者: ChatGPT。
+[2026-01-04 20:46:58] core更新: LICENSE著作権表示例を追記（Copyright (c) 2026 富岡真望）。編集者: ChatGPT。
+[2026-01-04 20:55:43] core更新: 雛形にLICENSE作成を含めるよう明記（All Rights Reservedデフォルト、著作権表示例維持）。編集者: ChatGPT。
+[2026-01-04 21:16:09] core更新: セクション7の役割整理と11に雛形チェックリスト（README/Licence/requirements/.gitignore等）を追記。編集者: ChatGPT。
+[2026-01-04 21:18:33] core追加: folder_guide.md を作成し雛形フォルダの説明を明文化。編集者: ChatGPT。
+2026-01-04T22:00:00 core.txt updated: progress rule clarifying base/progress summarizes project progress.
+2026-01-04T22:20:00 core.txt updated: template checklist clarifies LICENSE must be included even when moving existing data.
+2026-01-05T00:00:00 core.txt updated: added progress log format (date + category headings).
+2026-01-05T00:15:00 core.txt updated: added rule to log daily work to base/progress/progress_YYYYMMDD.txt and keep filename synced to current date.

@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>利益計算設定</title>
+    <link rel="stylesheet" href="/styles.css?v=20260309manual02" />
+  </head>
+  <body>
+    <nav class="top-nav">
+      <a href="/" class="nav-link">チャット</a>
+      <a href="/tasks.html" class="nav-link">タスク</a>
+      <a href="/memos.html" class="nav-link">メモ一覧</a>
+      <a href="/number-tool.html" class="nav-link">数値集計</a>
+      <a href="/profit-tool.html" class="nav-link">利益計算</a>
+      <a href="/profit-settings.html" class="nav-link active">利益設定</a>
+      <a href="/profit-manual.html" class="nav-link">マニュアル</a>
+      <a href="/help.html" class="nav-link">使い方</a>
+      <a href="/icon-settings.html" class="nav-link">アイコン設定</a>
+      <a href="/settings.html" class="nav-link">設定</a>
+      <a href="/notify.html" class="nav-link">通知設定</a>
+    </nav>
+    <button class="nav-toggle" type="button" aria-label="メニュー" aria-expanded="false">MENU</button>
+    <button id="headerHistoryBtn" type="button" class="secondary mobile-inline-action">履歴</button>
+    <button id="headerSettingsBtn" type="button" class="secondary mobile-inline-action active">設定</button>
+    <button
+      id="closeToChatBtn"
+      class="close-to-chat"
+      type="button"
+      aria-label="利益計算へ戻る"
+      data-close-href="/profit-tool.html"
+    >
+      ×
+    </button>
+
+    <main class="settings-layout">
+      <section class="card">
+        <div class="title-row">
+          <img id="pageIcon" class="page-icon" src="/assets/icons/profit-settings.svg" alt="" />
+          <h1>利益計算の設定</h1>
+        </div>
+        <p class="sub">表示設定と送料/梱包材設定を分けて管理します。</p>
+        <div class="settings-actions">
+          <button id="saveSettingsBtn" type="button">設定保存</button>
+          <button id="openManualBtn" type="button" class="secondary">マニュアル</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>表示設定</h2>
+        <form id="optionForm" class="settings-form">
+          <label class="field-row">
+            <span>入力フォームの文字寄せ</span>
+            <select id="inputAlign">
+              <option value="left">左詰め</option>
+              <option value="right">右詰め</option>
+            </select>
+          </label>
+          <label class="field-row">
+            <span>結果表示の文字寄せ</span>
+            <select id="resultAlign">
+              <option value="right">右詰め</option>
+              <option value="left">左詰め</option>
+            </select>
+          </label>
+          <label class="field-row">
+            <span>内訳エリアの文字詰め</span>
+            <select id="detailPack">
+              <option value="right">右詰め</option>
+              <option value="left">左詰め</option>
+            </select>
+          </label>
+          <label class="field-row">
+            <span>内訳エリアの文字揃え</span>
+            <select id="detailAlign">
+              <option value="left">左揃え</option>
+              <option value="right">右揃え</option>
+            </select>
+          </label>
+          <label class="field-row">
+            <span>利益率表示</span>
+            <select id="showMarginRate">
+              <option value="on">表示する</option>
+              <option value="off">表示しない</option>
+            </select>
+          </label>
+          <label class="field-row">
+            <span>ROI表示</span>
+            <select id="showRoiRate">
+              <option value="on">表示する</option>
+              <option value="off">表示しない</option>
+            </select>
+          </label>
+          <label class="field-row">
+            <span>前回計算結果の復元</span>
+            <select id="restoreLastResult">
+              <option value="off">復元しない（推奨）</option>
+              <option value="on">復元する</option>
+            </select>
+          </label>
+          <label class="field-row">
+            <span>ロケール</span>
+            <select id="locale">
+              <option value="ja-JP">日本語（日本）</option>
+              <option value="en-US">English (US)</option>
+              <option value="en-GB">English (UK)</option>
+              <option value="de-DE">Deutsch (DE)</option>
+              <option value="fr-FR">Francais (FR)</option>
+            </select>
+          </label>
+          <label class="field-row">
+            <span>通貨コード</span>
+            <select id="currency">
+              <option value="JPY">JPY</option>
+              <option value="USD">USD</option>
+              <option value="EUR">EUR</option>
+              <option value="GBP">GBP</option>
+            </select>
+          </label>
+        </form>
+      </section>
+
+      <section class="card">
+        <div class="option-section-head">
+          <h2>送料設定</h2>
+          <button id="shippingPlusBtn" type="button" class="secondary option-plus-btn" aria-label="送料追加">＋</button>
+        </div>
+        <div id="shippingAddForm" class="option-add-form" hidden>
+          <input id="shippingNameInput" type="text" placeholder="名前" />
+          <input id="shippingCostInput" type="number" min="0" step="1" placeholder="価格" />
+          <button id="shippingAddBtn" type="button">追加</button>
+        </div>
+        <ul id="shippingList" class="option-list"></ul>
+      </section>
+
+      <section class="card">
+        <div class="option-section-head">
+          <h2>梱包材費設定</h2>
+          <button id="packingPlusBtn" type="button" class="secondary option-plus-btn" aria-label="梱包材追加">＋</button>
+        </div>
+        <div id="packingAddForm" class="option-add-form" hidden>
+          <input id="packingNameInput" type="text" placeholder="名前" />
+          <input id="packingCostInput" type="number" min="0" step="1" placeholder="価格" />
+          <button id="packingAddBtn" type="button">追加</button>
+        </div>
+        <ul id="packingList" class="option-list"></ul>
+        <p id="saveStatus" class="status-text">未保存</p>
+      </section>
+    </main>
+
+    <script src="/nav.js?v=20260309manual02"></script>
+    <script src="/app-feedback.js?v=20260308feedback01"></script>
+    <script src="/profit-settings.js?v=20260309manual02"></script>
+  </body>
+</html>

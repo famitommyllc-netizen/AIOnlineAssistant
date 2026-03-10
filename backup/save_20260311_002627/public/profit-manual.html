@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>利益計算マニュアル</title>
+    <link rel="stylesheet" href="/styles.css?v=20260309manual02" />
+  </head>
+  <body>
+    <nav class="top-nav">
+      <a href="/" class="nav-link">チャット</a>
+      <a href="/profit-tool.html" class="nav-link">利益計算</a>
+      <a href="/profit-history.html" class="nav-link">利益履歴</a>
+      <a href="/profit-settings.html" class="nav-link">利益設定</a>
+      <a href="/profit-manual.html" class="nav-link active">マニュアル</a>
+    </nav>
+    <button class="nav-toggle" type="button" aria-label="メニュー" aria-expanded="false">MENU</button>
+    <button id="headerHistoryBtn" type="button" class="secondary mobile-inline-action">履歴</button>
+    <button id="headerSettingsBtn" type="button" class="secondary mobile-inline-action">設定</button>
+    <button
+      id="closeToChatBtn"
+      class="close-to-chat"
+      type="button"
+      aria-label="利益設定へ戻る"
+      data-close-href="/profit-settings.html"
+    >
+      ×
+    </button>
+
+    <main class="settings-layout">
+      <section class="card">
+        <div class="title-row">
+          <img id="pageIcon" class="page-icon" src="/assets/icons/help.svg" alt="" />
+          <h1>利益計算アプリ マニュアル</h1>
+        </div>
+        <p class="sub">商品Aの実例を使って、入力から保存・履歴編集・設定変更まで丁寧に確認できます。</p>
+
+        <h2>1. 事前準備</h2>
+        <div class="normalize-preview">
+          1) サーバー起動: cd /Users/masamitomioka/workspace/chatbot -> node server.js
+          2) ブラウザで http://localhost:3000/profit-tool.html を開く
+          3) ヘッダーに MENU / 履歴 / 設定 / 位置変更 / × があることを確認
+        </div>
+
+        <h2>2. 商品Aで計算する（実例）</h2>
+        <div class="normalize-preview">
+          入力値:
+          商品名: 商品A
+          原価: 550
+          手数料（%）: 10
+          送料: ネコポス（185円）
+          梱包資材代: 封筒/袋（50円）
+          販売予定価格: 1799
+          その他: 0
+
+          手順:
+          1) 上記を入力
+          2) 「計算」を押す
+          3) 通知「計算しました。」を確認
+          4) 結果エリアを確認
+        </div>
+
+        <h2>3. 商品Aの期待結果</h2>
+        <div class="normalize-preview">
+          手数料額: 1799 x 10% = 179.9（表示上は 180円）
+          総コスト: 550 + 179.9 + 185 + 50 + 0 = 964.9 -> floor 964円
+          利益額: 1799 - 964 = 835円
+          利益率: 835 / 1799 x 100 = 46.41%
+          ROI: 835 / 964 x 100 = 86.62%
+
+          内訳には
+          ・送料（ネコポス）
+          ・梱包材（封筒/袋）
+          が表示されます。
+        </div>
+
+        <h2>4. 保存と履歴編集</h2>
+        <div class="normalize-preview">
+          保存:
+          1) 計算後に出る「保存」を押す
+          2) 通知「保存しました。」を確認
+          3) 履歴ページに自動遷移
+
+          履歴編集:
+          1) 対象行の「編集」を押す
+          2) その行内でフォームが開く
+          3) 値を変更し保存
+          4) 通知で更新結果を確認
+        </div>
+
+        <h2>5. 設定画面の使い方</h2>
+        <div class="normalize-preview">
+          先頭ボタン行:
+          ・設定保存
+          ・マニュアル
+
+          変更できる内容:
+          ・入力フォームの文字寄せ
+          ・結果表示の文字寄せ
+          ・内訳エリアの文字詰め / 文字揃え
+          ・利益率表示 / ROI表示
+          ・ロケール / 通貨
+
+          送料・梱包材:
+          1) 「＋」で入力行を表示
+          2) 名前と価格を入力して「追加」
+          3) 行ごとに「編集」「削除」
+
+          最後に「設定保存」で確定
+        </div>
+
+        <h2>6. 位置変更モード</h2>
+        <div class="normalize-preview">
+          開始: ヘッダーの「位置変更」
+          row移動: 3点ハンドル長押し -> ドラッグ
+          section移動: 上下ボタンで入替
+          終了: 「位置変更保存」で確定
+
+          位置変更中は MENU / 履歴 / 設定 / × は押せません。
+        </div>
+
+        <h2>7. チャットからの呼び出し（曖昧表現可）</h2>
+        <div class="normalize-preview">
+          利益計算: 「利益計算」「メルカリ利益」「フリマの利益」
+          利益設定: 「利益設定」「送料設定」「梱包設定」
+          利益履歴: 「利益履歴」「計算履歴」
+          利益マニュアル: 「利益計算マニュアル」「利益の使い方」
+          マニュアル一覧: 「マニュアル」「取説一覧」
+        </div>
+
+        <h2>8. スクリーンショットについて</h2>
+        <div class="normalize-preview">
+          この環境では自動スクリーンショット取得ができないため、
+          docs の詳細マニュアルに「撮影ポイント」を記載しています。
+          実運用時に以下を撮影すると説明資料として完成度が上がります。
+          ・商品A入力完了画面
+          ・計算後の結果エリア
+          ・保存通知
+          ・履歴の編集フォーム展開
+          ・設定画面（候補追加）
+        </div>
+
+        <div class="row">
+          <button id="toManualIndexBtn" type="button" class="secondary">マニュアル一覧を開く</button>
+          <button id="toProfitToolBtn" type="button">利益計算へ戻る</button>
+        </div>
+      </section>
+    </main>
+
+    <script src="/nav.js?v=20260309manual01"></script>
+    <script>
+      const historyBtn = document.getElementById('headerHistoryBtn');
+      const settingsBtn = document.getElementById('headerSettingsBtn');
+      const toManualIndexBtn = document.getElementById('toManualIndexBtn');
+      const toProfitToolBtn = document.getElementById('toProfitToolBtn');
+      if (historyBtn) historyBtn.addEventListener('click', () => (window.location.href = '/profit-history.html'));
+      if (settingsBtn) settingsBtn.addEventListener('click', () => (window.location.href = '/profit-settings.html'));
+      if (toManualIndexBtn) toManualIndexBtn.addEventListener('click', () => (window.location.href = '/manuals.html'));
+      if (toProfitToolBtn) toProfitToolBtn.addEventListener('click', () => (window.location.href = '/profit-tool.html'));
+    </script>
+  </body>
+</html>

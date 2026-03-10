@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>利益計算履歴</title>
+    <link rel="stylesheet" href="/styles.css?v=20260308align13" />
+  </head>
+  <body>
+    <nav class="top-nav">
+      <a href="/" class="nav-link">チャット</a>
+      <a href="/profit-tool.html" class="nav-link">利益計算</a>
+      <a href="/profit-history.html" class="nav-link active">利益履歴</a>
+      <a href="/profit-settings.html" class="nav-link">利益設定</a>
+    </nav>
+    <button class="nav-toggle" type="button" aria-label="メニュー" aria-expanded="false">MENU</button>
+    <button id="headerHistoryBtn" type="button" class="secondary mobile-inline-action active">履歴</button>
+    <button id="headerSettingsBtn" type="button" class="secondary mobile-inline-action">設定</button>
+    <button
+      id="closeToChatBtn"
+      class="close-to-chat"
+      type="button"
+      aria-label="利益計算へ戻る"
+      data-close-href="/profit-tool.html"
+    >
+      ×
+    </button>
+
+    <main class="settings-layout">
+      <section class="card">
+        <div class="title-row">
+          <img id="pageIcon" class="page-icon" src="/assets/icons/profit.svg" alt="" />
+          <h1>利益計算 履歴</h1>
+        </div>
+        <p class="sub">計算履歴の確認・編集・削除ができます。</p>
+        <section class="primary-panel">
+          <div class="option-section-head">
+            <h2>フォルダ設定</h2>
+            <button id="folderPlusBtn" type="button" class="secondary option-plus-btn" aria-label="フォルダ追加">＋</button>
+          </div>
+          <div id="folderAddForm" class="option-add-form" hidden>
+            <input id="folderNameInput" type="text" placeholder="フォルダ名" />
+            <button id="folderAddBtn" type="button">追加</button>
+          </div>
+          <ul id="folderList" class="option-list"></ul>
+        </section>
+        <section class="primary-panel">
+          <div class="field-row">
+            <span>表示フォルダ</span>
+            <select id="folderFilter"></select>
+          </div>
+        </section>
+        <div class="row">
+          <button id="backProfitBtn" type="button" class="secondary">利益計算へ戻る</button>
+        </div>
+        <ul id="profitHistory" class="task-list"></ul>
+      </section>
+    </main>
+
+    <script src="/nav.js?v=20260308align13"></script>
+    <script src="/app-feedback.js?v=20260308feedback01"></script>
+    <script src="/profit-history.js?v=20260308feedback02"></script>
+  </body>
+</html>

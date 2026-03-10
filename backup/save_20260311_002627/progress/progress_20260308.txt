@@ -1,0 +1,10 @@
+# 2026-03-08
+
+## Docs
+- [1] core.txt準拠で統合仕様書を作成
+  - 保存先: `docs/spec_master_20260308_092116.md`
+  - 収録: 現行UI/機能/API/データモデル/運用制約の総覧
+
+## Next
+- [2] 仕様変更が出たら同様式で docs を更新
+- [3] 必要なら API 一覧を endpoint別に詳細化（request/responseサンプル付）

@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>利益計算</title>
+    <link rel="stylesheet" href="/styles.css?v=20260308align32" />
+  </head>
+  <body class="profit-page profit-result-right">
+    <nav class="top-nav">
+      <a href="/" class="nav-link">チャット</a>
+      <a href="/tasks.html" class="nav-link">タスク</a>
+      <a href="/number-tool.html" class="nav-link">数値集計</a>
+      <a href="/profit-tool.html" class="nav-link active">利益計算</a>
+      <a href="/profit-history.html" class="nav-link">利益履歴</a>
+      <a href="/help.html" class="nav-link">使い方</a>
+      <a href="/settings.html" class="nav-link">設定</a>
+    </nav>
+    <button class="nav-toggle" type="button" aria-label="メニュー" aria-expanded="false">MENU</button>
+    <button id="headerHistoryBtn" type="button" class="secondary mobile-inline-action">履歴</button>
+    <button id="headerSettingsBtn" type="button" class="secondary mobile-inline-action">設定</button>
+    <button id="headerMoveModeBtn" type="button" class="secondary mobile-inline-action">位置変更</button>
+    <button id="closeToChatBtn" class="close-to-chat" type="button" aria-label="チャットへ戻る" data-close-href="/">×</button>
+
+    <main class="settings-layout">
+      <section class="card">
+        <div class="title-row">
+          <img id="pageIcon" class="page-icon" src="/assets/icons/profit.svg" alt="" />
+          <h1>利益計算（フリマ向け）</h1>
+          <button id="profitClearBtn" type="button" class="secondary profit-clear-btn">クリア</button>
+        </div>
+        <p class="sub">原価・手数料・送料・梱包資材代などから利益を算出します。</p>
+        <div id="profitSectionAnchor"></div>
+
+        <form id="profitForm" class="settings-form primary-panel">
+          <div class="layout-row-controls" id="profitRowControls"></div>
+          <div id="profitFormHeading" class="kpi-label movable-form-row" data-row-key="heading"></div>
+          <label class="field-row movable-form-row" data-row-key="itemName">
+            <span>商品名<br />（任意）</span>
+            <input id="itemName" class="primary-input" type="text" />
+          </label>
+          <label class="field-row movable-form-row" data-row-key="cost">
+            <span>原価</span>
+            <div class="input-with-unit">
+              <input id="cost" class="primary-input" type="number" min="0" step="1" required />
+              <span id="costUnit" class="input-unit">円</span>
+            </div>
+          </label>
+          <label class="field-row movable-form-row" data-row-key="feeRate">
+            <span>手数料（%）</span>
+            <div class="input-with-unit">
+              <input id="feeRate" class="primary-input" type="number" min="0" step="0.1" value="10" required />
+              <span class="input-unit">%</span>
+            </div>
+          </label>
+          <label class="field-row movable-form-row" data-row-key="shippingId">
+            <span>送料（選択）</span>
+            <select id="shippingId" class="primary-input"></select>
+          </label>
+          <label class="field-row movable-form-row" data-row-key="packingId">
+            <span>梱包資材代（選択）</span>
+            <select id="packingId" class="primary-input"></select>
+          </label>
+          <label class="field-row movable-form-row" data-row-key="salePrice">
+            <span>販売予定価格</span>
+            <div class="input-with-unit">
+              <input id="salePrice" class="primary-input" type="number" min="0" step="1" required />
+              <span id="saleUnit" class="input-unit">円</span>
+            </div>
+          </label>
+          <label class="field-row movable-form-row" data-row-key="otherCost">
+            <span>その他</span>
+            <div class="input-with-unit">
+              <input id="otherCost" class="primary-input" type="number" min="0" step="1" value="0" />
+              <span id="otherUnit" class="input-unit">円</span>
+            </div>
+          </label>
+          <div class="row movable-form-row" data-row-key="actions">
+            <button id="profitSubmitBtn" type="submit">計算</button>
+          </div>
+        </form>
+
+        <section id="profitResultSection" class="primary-panel">
+          <p class="sub rounding-note">※利益額は小数点以下を切り捨て表示</p>
+          <div id="profitMetrics" class="kpi-grid">
+            <div id="profitValueRow" class="kpi-card movable-result-row" data-row-key="profitValue">
+              <div class="kpi-inline-row">
+                <span class="kpi-label">利益額</span>
+                <span id="profitValue" class="kpi-value">-</span>
+              </div>
+            </div>
+            <div id="marginRateRow" class="kpi-card kpi-mini-card movable-result-row" data-row-key="marginRate">
+              <div class="kpi-inline-row">
+                <span class="kpi-label">利益率</span>
+                <span id="marginRateValue" class="kpi-mini-value">-</span>
+              </div>
+            </div>
+            <div id="roiRateRow" class="kpi-card kpi-mini-card movable-result-row" data-row-key="roiRate">
+              <div class="kpi-inline-row">
+                <span class="kpi-label">ROI</span>
+                <span id="roiRateValue" class="kpi-mini-value">-</span>
+              </div>
+            </div>
+          </div>
+          <div id="profitResult" class="normalize-preview movable-result-row" data-row-key="resultText">
+            <div class="profit-detail-text">内訳（計算後に表示）</div>
+          </div>
+          <div class="row result-action-row">
+            <div id="resultSaveControls" class="result-save-controls" style="display: none">
+              <span class="result-folder-label">保存先</span>
+              <select id="resultFolderId" class="primary-input result-folder-select"></select>
+              <button id="profitSaveBtn" type="button" class="secondary">保存</button>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script src="/nav.js?v=20260308align32"></script>
+    <script src="/app-feedback.js?v=20260308feedback01"></script>
+    <script src="/profit-tool.js?v=20260308feedback04"></script>
+  </body>
+</html>
