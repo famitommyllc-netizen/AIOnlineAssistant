@@ -1,0 +1,68 @@
+{
+  "taskCounter": 2,
+  "tasks": [
+    {
+      "id": "task_1772477817630_3xfbyo",
+      "taskNo": 1,
+      "title": "資料提出",
+      "dueInput": "来週の月曜日の夕方にあゆみが資料提出、なるはやで、3日前と1日前と当日の朝10時と提出期限3時間前に通知",
+      "dueAt": "2026-03-09T17:00:00",
+      "assignee": "あゆみ",
+      "remindEveryMinutes": 60,
+      "isCompleted": true,
+      "ambiguityFlags": [
+        "priority_or_timing_ambiguous"
+      ],
+      "notifyConfig": {
+        "daysBefore": [
+          3,
+          1
+        ],
+        "hoursBefore": [
+          3
+        ],
+        "sameDayTimes": [
+          "10:00"
+        ],
+        "atDue": true,
+        "overdueSnoozeMinutes": 60
+      },
+      "sentNotificationKeys": [
+        "d-3",
+        "d-1"
+      ],
+      "lastRemindedAt": "2026-03-08T08:00:09.248Z",
+      "createdAt": "2026-03-02T18:56:57.630Z",
+      "updatedAt": "2026-03-08T08:52:37.051Z"
+    },
+    {
+      "id": "task_1772481449044_fi2an4",
+      "taskNo": 2,
+      "title": "教室の説明の連絡",
+      "dueInput": "3日後のよる20:00までに",
+      "dueAt": null,
+      "assignee": "おれ",
+      "remindEveryMinutes": 60,
+      "isCompleted": true,
+      "ambiguityFlags": [
+        "datetime_missing"
+      ],
+      "notifyConfig": {
+        "daysBefore": [
+          3
+        ],
+        "hoursBefore": [
+          3
+        ],
+        "sameDayTimes": [],
+        "atDue": true,
+        "overdueSnoozeMinutes": 60
+      },
+      "sentNotificationKeys": [],
+      "lastRemindedAt": "2026-03-08T08:29:09.374Z",
+      "createdAt": "2026-03-02T19:57:29.044Z",
+      "updatedAt": "2026-03-08T08:52:36.056Z"
+    }
+  ],
+  "reminders": []
+}

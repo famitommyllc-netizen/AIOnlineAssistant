@@ -24,10 +24,10 @@ function buildGroupedMenu() {
   const links = mapLinksByHref();
   const groups = [
     { title: 'メイン', items: ['/', '/help.html', '/manuals.html'] },
-    { title: 'タスク', items: ['/tasks.html', '/notify.html'] },
-    { title: 'メモ', items: ['/memos.html'] },
-    { title: '数値集計', items: ['/number-tool.html'] },
-    { title: '利益計算', items: ['/profit-tool.html', '/profit-history.html', '/profit-settings.html', '/profit-manual.html'] },
+    { title: 'タスク', items: ['/apps/tasks/public/tasks.html', '/notify.html'] },
+    { title: 'メモ', items: ['/apps/memos/public/memos.html'] },
+    { title: '数値集計', items: ['/apps/number-tool/public/number-tool.html'] },
+    { title: '利益計算', items: ['/apps/profit/public/profit-tool.html', '/apps/profit/public/profit-history.html', '/apps/profit/public/profit-settings.html', '/apps/profit/public/profit-manual.html'] },
     { title: '共通設定', items: ['/settings.html', '/icon-settings.html'] }
   ];
 
@@ -146,7 +146,10 @@ if ('serviceWorker' in navigator) {
 }
 
 // Profit pages are tuned frequently; clear old SW/cache to avoid stale UI.
-if (window.location.pathname.startsWith('/profit-')) {
+if (
+  window.location.pathname.startsWith('/profit-') ||
+  window.location.pathname.startsWith('/apps/profit/public/profit-')
+) {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations().then((regs) => {
       regs.forEach((reg) => reg.unregister());

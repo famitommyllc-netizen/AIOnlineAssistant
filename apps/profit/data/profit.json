@@ -1,0 +1,168 @@
+{
+  "profit": {
+    "shippingOptions": [
+      {
+        "id": "opt_1772984335926_sxarty",
+        "name": "ネコポス",
+        "cost": 185
+      },
+      {
+        "id": "opt_1772984335926_szp0g8",
+        "name": "ゆうパケットポスト",
+        "cost": 185
+      },
+      {
+        "id": "opt_1772984335926_opqrhx",
+        "name": "宅急便コンパクト",
+        "cost": 750
+      },
+      {
+        "id": "opt_1772984932686_d2dd7t_shipping",
+        "name": "ヤマト80サイズ",
+        "cost": 500
+      }
+    ],
+    "packingOptions": [
+      {
+        "id": "opt_1772984335926_anxmu9",
+        "name": "封筒/袋",
+        "cost": 50
+      },
+      {
+        "id": "opt_1772984335926_ub2rwc",
+        "name": "小箱",
+        "cost": 120
+      },
+      {
+        "id": "opt_1772984335926_u3v76d",
+        "name": "緩衝材セット",
+        "cost": 80
+      }
+    ],
+    "records": [
+      {
+        "id": "profit_1772988630999_ofrcuz",
+        "itemName": "MGSDガンダムエアリアル",
+        "cost": 4120,
+        "feeRate": 10,
+        "feeAmount": 880,
+        "shippingId": "opt_1772984932686_d2dd7t_shipping",
+        "shippingName": "ヤマト80サイズ",
+        "shippingCost": 500,
+        "packingId": "opt_1772984335926_anxmu9",
+        "packingName": "封筒/袋",
+        "packingCost": 50,
+        "salePrice": 8800,
+        "otherCost": 0,
+        "taxRate": 10,
+        "taxMode": "inclusive",
+        "taxAmount": 0,
+        "taxOutput": 0,
+        "taxInput": 0,
+        "invoiceEnabled": false,
+        "locale": "ja-JP",
+        "currency": "JPY",
+        "totalCost": 5550,
+        "profit": 3250,
+        "marginRate": 36.93,
+        "roiRate": 58.56,
+        "createdAt": "2026-03-08T16:50:30.999Z"
+      },
+      {
+        "id": "profit_1772986918368_bhh2us",
+        "itemName": "メッサーラ",
+        "cost": 3300,
+        "feeRate": 11,
+        "feeAmount": 594,
+        "shippingId": "opt_1772984932686_d2dd7t_shipping",
+        "shippingName": "ヤマト80サイズ",
+        "shippingCost": 500,
+        "packingId": "opt_1772984335926_ub2rwc",
+        "packingName": "小箱",
+        "packingCost": 120,
+        "salePrice": 5400,
+        "otherCost": 0,
+        "taxRate": 10,
+        "taxMode": "inclusive",
+        "taxAmount": 0,
+        "taxOutput": 0,
+        "taxInput": 0,
+        "invoiceEnabled": false,
+        "locale": "ja-JP",
+        "currency": "JPY",
+        "totalCost": 4514,
+        "profit": 886,
+        "marginRate": 16.41,
+        "roiRate": 19.63,
+        "createdAt": "2026-03-08T16:21:58.368Z"
+      },
+      {
+        "id": "profit_1772985585047_bfust7",
+        "itemName": "",
+        "cost": 415,
+        "feeRate": 10,
+        "feeAmount": 179.9,
+        "shippingId": "opt_1772984335926_sxarty",
+        "shippingName": "ネコポス",
+        "shippingCost": 185,
+        "packingId": "opt_1772984335926_anxmu9",
+        "packingName": "封筒/袋",
+        "packingCost": 50,
+        "salePrice": 1799,
+        "otherCost": 0,
+        "taxRate": 10,
+        "taxMode": "inclusive",
+        "taxAmount": 0,
+        "taxOutput": 0,
+        "taxInput": 0,
+        "invoiceEnabled": false,
+        "locale": "ja-JP",
+        "currency": "JPY",
+        "totalCost": 829,
+        "profit": 970,
+        "marginRate": 53.92,
+        "roiRate": 117.01,
+        "createdAt": "2026-03-08T15:59:45.047Z"
+      }
+    ],
+    "ui": {
+      "resultPlacement": "bottom",
+      "sectionOrder": [
+        "form",
+        "result"
+      ],
+      "inputAlign": "right",
+      "resultAlign": "right",
+      "detailAlign": "left",
+      "detailPack": "right",
+      "invoiceEnabled": false,
+      "locale": "ja-JP",
+      "currency": "JPY",
+      "showMarginRate": true,
+      "showRoiRate": true,
+      "formRowOrder": [
+        "heading",
+        "itemName",
+        "cost",
+        "salePrice",
+        "feeRate",
+        "shippingId",
+        "packingId",
+        "otherCost",
+        "actions"
+      ],
+      "resultRowOrder": [
+        "profitValue",
+        "marginRate",
+        "roiRate",
+        "resultText"
+      ]
+    },
+    "folders": [
+      {
+        "id": "folder_inbox",
+        "name": "inbox"
+      }
+    ]
+  }
+}

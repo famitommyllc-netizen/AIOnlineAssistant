@@ -39,8 +39,8 @@ let actionIcons = {
 const appMenuDefinitions = {
   task_create: { label: 'タスク作成', iconKey: 'tasks', type: 'chat', command: 'タスク作成' },
   memo_create: { label: 'メモ作成', iconKey: 'memos', type: 'chat', command: 'メモ作成' },
-  profit: { label: '利益計算', iconKey: 'profit', type: 'nav', href: '/profit-tool.html' },
-  number: { label: '数値集計', iconKey: 'number', type: 'nav', href: '/number-tool.html' },
+  profit: { label: '利益計算', iconKey: 'profit', type: 'nav', href: '/apps/profit/public/profit-tool.html' },
+  number: { label: '数値集計', iconKey: 'number', type: 'nav', href: '/apps/number-tool/public/number-tool.html' },
   help: { label: '使い方', iconKey: 'help', type: 'nav', href: '/help.html' },
   settings: { label: '設定', iconKey: 'settings', type: 'nav', href: '/settings.html' }
 };
@@ -313,27 +313,27 @@ function buildActionUI(msg) {
   }
 
   if (msg.action.kind === 'open_tasks') {
-    return createNavAction('タスク管理を開く', '/tasks.html', 'tasks');
+    return createNavAction('タスク管理を開く', '/apps/tasks/public/tasks.html', 'tasks');
   }
 
   if (msg.action.kind === 'open_number_tool') {
-    return createNavAction('数値集計を開く', '/number-tool.html', 'number');
+    return createNavAction('数値集計を開く', '/apps/number-tool/public/number-tool.html', 'number');
   }
 
   if (msg.action.kind === 'open_profit_tool') {
-    return createNavAction('利益計算を開く', '/profit-tool.html', 'profit');
+    return createNavAction('利益計算を開く', '/apps/profit/public/profit-tool.html', 'profit');
   }
 
   if (msg.action.kind === 'open_profit_history') {
-    return createNavAction('利益履歴を開く', '/profit-history.html', 'profit');
+    return createNavAction('利益履歴を開く', '/apps/profit/public/profit-history.html', 'profit');
   }
 
   if (msg.action.kind === 'open_profit_settings') {
-    return createNavAction('利益計算の設定を開く', '/profit-settings.html', 'profitSettings');
+    return createNavAction('利益計算の設定を開く', '/apps/profit/public/profit-settings.html', 'profitSettings');
   }
 
   if (msg.action.kind === 'open_profit_manual') {
-    return createNavAction('利益計算マニュアルを開く', '/profit-manual.html', 'help');
+    return createNavAction('利益計算マニュアルを開く', '/apps/profit/public/profit-manual.html', 'help');
   }
 
   if (msg.action.kind === 'open_manual_index') {
@@ -353,7 +353,7 @@ function buildActionUI(msg) {
   }
 
   if (msg.action.kind === 'open_memos') {
-    return createNavAction('メモ一覧を開く', '/memos.html', 'memos');
+    return createNavAction('メモ一覧を開く', '/apps/memos/public/memos.html', 'memos');
   }
 
   if (msg.action.kind === 'choose_memo_type') {
@@ -439,7 +439,7 @@ function buildActionUI(msg) {
     openBtn.className = 'mini-btn';
     openBtn.textContent = 'メモ一覧を開く';
     openBtn.addEventListener('click', () => {
-      window.location.href = '/memos.html';
+      window.location.href = '/apps/memos/public/memos.html';
     });
     row.appendChild(openBtn);
 
@@ -602,7 +602,7 @@ function buildActionUI(msg) {
     numberIcon.src = actionIcons.number || '/assets/icons/number.svg';
     numberIconBtn.appendChild(numberIcon);
     numberIconBtn.addEventListener('click', () => {
-      window.location.href = '/number-tool.html';
+      window.location.href = '/apps/number-tool/public/number-tool.html';
     });
     row.appendChild(numberIconBtn);
 
@@ -611,7 +611,7 @@ function buildActionUI(msg) {
     numberBtn.className = 'mini-btn';
     numberBtn.textContent = '数値集計を開く';
     numberBtn.addEventListener('click', () => {
-      window.location.href = '/number-tool.html';
+      window.location.href = '/apps/number-tool/public/number-tool.html';
     });
     row.appendChild(numberBtn);
 
@@ -624,7 +624,7 @@ function buildActionUI(msg) {
     profitIcon.src = actionIcons.profit || '/assets/icons/profit.svg';
     profitIconBtn.appendChild(profitIcon);
     profitIconBtn.addEventListener('click', () => {
-      window.location.href = '/profit-tool.html';
+      window.location.href = '/apps/profit/public/profit-tool.html';
     });
     row.appendChild(profitIconBtn);
 
@@ -633,7 +633,7 @@ function buildActionUI(msg) {
     profitBtn.className = 'mini-btn secondary';
     profitBtn.textContent = '利益計算を開く';
     profitBtn.addEventListener('click', () => {
-      window.location.href = '/profit-tool.html';
+      window.location.href = '/apps/profit/public/profit-tool.html';
     });
     row.appendChild(profitBtn);
 

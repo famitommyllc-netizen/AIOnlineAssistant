@@ -8,6 +8,7 @@ const HOST = process.env.HOST || '0.0.0.0';
 const LAN_HOST = process.env.LAN_HOST || '192.168.1.42';
 const ROOT = __dirname;
 const PUBLIC_DIR = path.join(ROOT, 'public');
+const APPS_DIR = path.join(ROOT, 'apps');
 const DATA_FILE = path.join(ROOT, 'data', 'store.json');
 const LOG_DIR = path.join(ROOT, 'logs');
 const LOG_RUNS_DIR = path.join(LOG_DIR, 'runs');
@@ -20,6 +21,27 @@ const MAX_REMINDERS_IN_STATE = 200;
 const MAX_REMINDERS_STORED = 5000;
 const RUN_ID = `run_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 const DEBUG_LOG_FILE = path.join(LOG_RUNS_DIR, `${RUN_ID}.log`);
+const LEGACY_APP_STATIC_MAP = {
+  'tasks.html': 'apps/tasks/public/tasks.html',
+  'tasks.js': 'apps/tasks/public/tasks.js',
+  'memos.html': 'apps/memos/public/memos.html',
+  'memos.js': 'apps/memos/public/memos.js',
+  'number-tool.html': 'apps/number-tool/public/number-tool.html',
+  'number-tool.js': 'apps/number-tool/public/number-tool.js',
+  'profit-tool.html': 'apps/profit/public/profit-tool.html',
+  'profit-tool.js': 'apps/profit/public/profit-tool.js',
+  'profit-history.html': 'apps/profit/public/profit-history.html',
+  'profit-history.js': 'apps/profit/public/profit-history.js',
+  'profit-settings.html': 'apps/profit/public/profit-settings.html',
+  'profit-settings.js': 'apps/profit/public/profit-settings.js',
+  'profit-manual.html': 'apps/profit/public/profit-manual.html'
+};
+const MINI_APP_DATA_FILES = {
+  tasks: path.join(APPS_DIR, 'tasks', 'data', 'tasks.json'),
+  memos: path.join(APPS_DIR, 'memos', 'data', 'memos.json'),
+  numberTool: path.join(APPS_DIR, 'number-tool', 'data', 'number-tool.json'),
+  profit: path.join(APPS_DIR, 'profit', 'data', 'profit.json')
+};
 
 function nowIso() {
   return new Date().toISOString();
@@ -896,6 +918,52 @@ function allocateTaskNo(store) {
   return next;
 }
 
+function ensureMiniAppDataDirs() {
+  for (const filePath of Object.values(MINI_APP_DATA_FILES)) {
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  }
+}
+
+function toPrettyJson(value) {
+  return JSON.stringify(value, null, 2);
+}
+
+function migrateStoreDataToMiniAppFiles(store) {
+  ensureMiniAppDataDirs();
+  const snapshots = {
+    tasks: {
+      taskCounter: Number(store.taskCounter || 0),
+      tasks: Array.isArray(store.tasks) ? store.tasks : [],
+      reminders: Array.isArray(store.reminders) ? store.reminders : []
+    },
+    memos: {
+      notes: Array.isArray(store.notes) ? store.notes : [],
+      memoSession: store.memoSession || defaultMemoSession()
+    },
+    numberTool: {
+      numberMemo: {
+        entries: Array.isArray(store.calculators?.numberMemo?.entries)
+          ? store.calculators.numberMemo.entries
+          : []
+      }
+    },
+    profit: {
+      profit: store.calculators?.profit || {
+        shippingOptions: defaultShippingOptions(),
+        packingOptions: defaultPackingOptions(),
+        folders: defaultProfitFolders(),
+        records: [],
+        ui: normalizeProfitUi({})
+      }
+    }
+  };
+
+  for (const [key, filePath] of Object.entries(MINI_APP_DATA_FILES)) {
+    const payload = toPrettyJson(snapshots[key]);
+    fs.writeFileSync(filePath, payload, 'utf-8');
+  }
+}
+
 function ensureStoreFile() {
   if (!fs.existsSync(DATA_FILE)) {
     const initial = {
@@ -926,6 +994,14 @@ function ensureStoreFile() {
     };
     fs.mkdirSync(path.dirname(DATA_FILE), { recursive: true });
     fs.writeFileSync(DATA_FILE, JSON.stringify(initial, null, 2), 'utf-8');
+    migrateStoreDataToMiniAppFiles(initial);
+    return;
+  }
+  try {
+    const current = JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8'));
+    migrateStoreDataToMiniAppFiles(current);
+  } catch (e) {
+    logEvent('warn', 'miniapp_data_migration_failed', { message: e.message });
   }
 }
 
@@ -954,7 +1030,7 @@ function readStore() {
   ensureCalculatorStore(store);
   const archived = archiveOldItemsByDay(store);
   if (archived) {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(store, null, 2), 'utf-8');
+    writeStore(store);
     logEvent('info', 'daily_archive_compacted', {
       messages: store.messages.length,
       reminders: store.reminders.length
@@ -965,6 +1041,11 @@ function readStore() {
 
 function writeStore(store) {
   fs.writeFileSync(DATA_FILE, JSON.stringify(store, null, 2), 'utf-8');
+  try {
+    migrateStoreDataToMiniAppFiles(store);
+  } catch (e) {
+    logEvent('warn', 'miniapp_data_sync_failed', { message: e.message });
+  }
 }
 
 function json(res, status, data) {
@@ -1658,14 +1739,41 @@ function runReminderTick() {
   }
 }
 
-function serveStatic(req, res, pathname) {
-  let target = pathname === '/' ? '/index.html' : pathname;
-  target = path.normalize(target).replace(/^\.+/, '');
-  const fullPath = path.join(PUBLIC_DIR, target);
+function isUnderAllowedStaticRoot(fullPath) {
+  return fullPath.startsWith(PUBLIC_DIR) || fullPath.startsWith(APPS_DIR);
+}
 
-  if (!fullPath.startsWith(PUBLIC_DIR)) {
-    res.writeHead(403);
-    res.end('forbidden');
+function resolveStaticPath(rawPathname) {
+  const target = rawPathname === '/' ? '/index.html' : rawPathname;
+  const normalized = path.normalize(target).replace(/^[/\\]+/, '');
+  if (!normalized || normalized.split(/[\\/]/).includes('..')) return null;
+
+  const candidates = [];
+  const legacyMapped = LEGACY_APP_STATIC_MAP[normalized];
+  if (legacyMapped) {
+    candidates.push(path.join(ROOT, legacyMapped));
+  }
+  if (normalized.startsWith('apps/')) {
+    candidates.push(path.join(ROOT, normalized));
+  }
+  candidates.push(path.join(PUBLIC_DIR, normalized));
+
+  for (const fullPath of candidates) {
+    if (!isUnderAllowedStaticRoot(fullPath)) continue;
+    try {
+      if (fs.existsSync(fullPath) && fs.statSync(fullPath).isFile()) {
+        return fullPath;
+      }
+    } catch {}
+  }
+  return null;
+}
+
+function serveStatic(req, res, pathname) {
+  const fullPath = resolveStaticPath(pathname);
+  if (!fullPath) {
+    res.writeHead(404);
+    res.end('not found');
     return;
   }
 

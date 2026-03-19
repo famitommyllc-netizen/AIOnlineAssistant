@@ -9,10 +9,10 @@
   <body>
     <nav class="top-nav">
       <a href="/" class="nav-link">チャット</a>
-      <a href="/profit-tool.html" class="nav-link">利益計算</a>
-      <a href="/profit-history.html" class="nav-link">利益履歴</a>
-      <a href="/profit-settings.html" class="nav-link">利益設定</a>
-      <a href="/profit-manual.html" class="nav-link active">マニュアル</a>
+      <a href="/apps/profit/public/profit-tool.html" class="nav-link">利益計算</a>
+      <a href="/apps/profit/public/profit-history.html" class="nav-link">利益履歴</a>
+      <a href="/apps/profit/public/profit-settings.html" class="nav-link">利益設定</a>
+      <a href="/apps/profit/public/profit-manual.html" class="nav-link active">マニュアル</a>
     </nav>
     <button class="nav-toggle" type="button" aria-label="メニュー" aria-expanded="false">MENU</button>
     <button id="headerHistoryBtn" type="button" class="secondary mobile-inline-action">履歴</button>
@@ -22,7 +22,7 @@
       class="close-to-chat"
       type="button"
       aria-label="利益設定へ戻る"
-      data-close-href="/profit-settings.html"
+      data-close-href="/apps/profit/public/profit-settings.html"
     >
       ×
     </button>
@@ -38,7 +38,7 @@
         <h2>1. 事前準備</h2>
         <div class="normalize-preview">
           1) サーバー起動: cd /Users/masamitomioka/workspace/chatbot -> node server.js
-          2) ブラウザで http://localhost:3000/profit-tool.html を開く
+          2) ブラウザで http://localhost:3000/apps/profit/public/profit-tool.html を開く
           3) ヘッダーに MENU / 履歴 / 設定 / 位置変更 / × があることを確認
         </div>
 
@@ -153,10 +153,10 @@
       const settingsBtn = document.getElementById('headerSettingsBtn');
       const toManualIndexBtn = document.getElementById('toManualIndexBtn');
       const toProfitToolBtn = document.getElementById('toProfitToolBtn');
-      if (historyBtn) historyBtn.addEventListener('click', () => (window.location.href = '/profit-history.html'));
-      if (settingsBtn) settingsBtn.addEventListener('click', () => (window.location.href = '/profit-settings.html'));
+      if (historyBtn) historyBtn.addEventListener('click', () => (window.location.href = '/apps/profit/public/profit-history.html'));
+      if (settingsBtn) settingsBtn.addEventListener('click', () => (window.location.href = '/apps/profit/public/profit-settings.html'));
       if (toManualIndexBtn) toManualIndexBtn.addEventListener('click', () => (window.location.href = '/manuals.html'));
-      if (toProfitToolBtn) toProfitToolBtn.addEventListener('click', () => (window.location.href = '/profit-tool.html'));
+      if (toProfitToolBtn) toProfitToolBtn.addEventListener('click', () => (window.location.href = '/apps/profit/public/profit-tool.html'));
     </script>
   </body>
 </html>

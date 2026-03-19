@@ -1,5 +1,5 @@
 # Docs Index (Latest)
-- Updated: 2026-03-11 00:26:27 JST
+- Updated: 2026-03-20 00:55:00 JST
 - Purpose: docs参照だけで現行アプリ再現・再開・運用判断を可能にする
 
 ## A. 同一再現（最優先）
@@ -56,7 +56,13 @@
 - docs/chat_history_*.md
 - docs/google_search_feature_20260309_015530.md
 
-## L. 運用ルール
+## L. 2026-03-20 追加（今回要望対応）
+1. docs/change_log_20260320_002936.md
+2. docs/project_status_summary_20260320_002936.md
+3. docs/miniapp_storage_policy_20260320_002936.md
+
+## M. 運用ルール
 - 実装変更時は `spec_master` と `change_log` を同時更新。
 - 主要要望反映時は `full_chat_requests` を追記更新。
 - 翌日開始前は `next_actions_now_blockers` を最初に確認。
+- フォルダ格納先は `miniapp_storage_policy` を正として遵守する。

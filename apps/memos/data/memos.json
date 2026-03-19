@@ -1,0 +1,149 @@
+{
+  "notes": [
+    {
+      "id": "note_1772479917167_o4adff",
+      "text": "一覧ボタンもつけるか。各カテゴリの色とか画像も変えられるようにしたいな。各項目の大項目小項目化と、人ごとのアカウント運用も必要だ。メモはパソコンのメモ帳形式にして欲しいね。もしくは自分のメモアプリに蓄積されてく感じ",
+      "title": "個別メモ",
+      "memoKind": "individual",
+      "normalized": {
+        "original": "一覧ボタンもつけるか",
+        "normalizedText": "{\"date\":null,\"time\":null,\"timeRange\":null,\"urgency\":\"normal\",\"ambiguities\":[\"datetime_missing\"],\"tags\":[]}",
+        "parsed": {
+          "date": null,
+          "time": null,
+          "timeRange": null,
+          "urgency": "normal",
+          "tags": []
+        },
+        "ambiguities": [
+          "datetime_missing"
+        ],
+        "needsConfirmation": true
+      },
+      "createdAt": "2026-03-02T19:31:57.167Z",
+      "updatedAt": "2026-03-02T19:36:03.337Z"
+    },
+    {
+      "id": "note_1772480208909_pco7st",
+      "text": "あとは、チャットの履歴をどう残すかだな",
+      "title": "個別メモ",
+      "memoKind": "individual",
+      "normalized": {
+        "original": "あとは、チャットの履歴をどう残すかだな",
+        "normalizedText": "{\"date\":null,\"time\":null,\"timeRange\":null,\"urgency\":\"normal\",\"ambiguities\":[\"datetime_missing\"],\"tags\":[]}",
+        "parsed": {
+          "date": null,
+          "time": null,
+          "timeRange": null,
+          "urgency": "normal",
+          "tags": []
+        },
+        "ambiguities": [
+          "datetime_missing"
+        ],
+        "needsConfirmation": true
+      },
+      "createdAt": "2026-03-02T19:36:48.909Z",
+      "updatedAt": "2026-03-02T19:36:48.909Z"
+    },
+    {
+      "id": "note_1772480340508_uzionn",
+      "text": "全ての項目に通し番号をつける形にして、削除があったら、通し繰上げしていくか、抜け番を埋めるかをせっていできる。",
+      "title": "個別メモ",
+      "memoKind": "individual",
+      "normalized": {
+        "original": "全ての項目に通し番号をつける形にして、削除があったら、通し繰上げしていくか、抜け番を埋めるかをせっていできる。",
+        "normalizedText": "{\"date\":null,\"time\":null,\"timeRange\":null,\"urgency\":\"normal\",\"ambiguities\":[\"datetime_missing\"],\"tags\":[]}",
+        "parsed": {
+          "date": null,
+          "time": null,
+          "timeRange": null,
+          "urgency": "normal",
+          "tags": []
+        },
+        "ambiguities": [
+          "datetime_missing"
+        ],
+        "needsConfirmation": true
+      },
+      "createdAt": "2026-03-02T19:39:00.508Z",
+      "updatedAt": "2026-03-02T19:39:00.508Z"
+    },
+    {
+      "id": "note_1772988798737_tw5xci",
+      "text": "履歴保存商品のフォルダ分け機能",
+      "title": "個別メモ",
+      "memoKind": "individual",
+      "normalized": {
+        "original": "履歴保存商品のフォルダ分け機能",
+        "normalizedText": "{\"date\":null,\"time\":null,\"timeRange\":null,\"urgency\":\"normal\",\"ambiguities\":[\"datetime_missing\"],\"tags\":[]}",
+        "parsed": {
+          "date": null,
+          "time": null,
+          "timeRange": null,
+          "urgency": "normal",
+          "tags": []
+        },
+        "ambiguities": [
+          "datetime_missing"
+        ],
+        "needsConfirmation": true
+      },
+      "createdAt": "2026-03-08T16:53:18.737Z",
+      "updatedAt": "2026-03-08T16:53:18.737Z"
+    },
+    {
+      "id": "note_1772989559375_b6n5c8",
+      "text": "1行目 テスト\n2行目 テスト\nいいね\n名前いい感じ\nまずはメモとリマインダーを作り上げれば、タスクとスケジュール管理ができるようになるよね？\nログメモ\nメモ\nログメモ\nモード中は曖昧表現検知停止\nもはやタイトルだけ出しておく改行したいから確定ボタンで即送信機能をなしに\nモードしゅうりょボタン押した時通知出す\nメモアプリはメモ+付箋（機能的に）アプリにする\n付箋モードを作って、チャット最新のとこに常に貼り付ける明日やることとか",
+      "title": "ログメモ",
+      "memoKind": "append",
+      "normalized": {
+        "original": "付箋モードを作って、チャット最新のとこに常に貼り付ける明日やることとか",
+        "normalizedText": "{\"date\":\"2026-03-11\",\"time\":null,\"timeRange\":null,\"urgency\":\"normal\",\"ambiguities\":[],\"tags\":[\"tomorrow\"]}",
+        "parsed": {
+          "date": "2026-03-11",
+          "time": null,
+          "timeRange": null,
+          "urgency": "normal",
+          "tags": [
+            "tomorrow"
+          ]
+        },
+        "ambiguities": [],
+        "needsConfirmation": false
+      },
+      "createdAt": "2026-03-08T17:05:59.375Z",
+      "updatedAt": "2026-03-09T15:07:42.207Z"
+    },
+    {
+      "id": "note_1772991197110_kgp4t7",
+      "text": "メモメモ\nメモメモメモ\nめ\nもも",
+      "title": "個別メモ 2026/03/09 02:33",
+      "memoKind": "individual",
+      "normalized": {
+        "original": "もも",
+        "normalizedText": "{\"date\":null,\"time\":null,\"timeRange\":null,\"urgency\":\"normal\",\"ambiguities\":[\"datetime_missing\"],\"tags\":[]}",
+        "parsed": {
+          "date": null,
+          "time": null,
+          "timeRange": null,
+          "urgency": "normal",
+          "tags": []
+        },
+        "ambiguities": [
+          "datetime_missing"
+        ],
+        "needsConfirmation": true
+      },
+      "createdAt": "2026-03-08T17:33:17.108Z",
+      "updatedAt": "2026-03-08T17:33:26.798Z"
+    }
+  ],
+  "memoSession": {
+    "recording": true,
+    "type": "append",
+    "targetNoteId": "note_1772989559375_b6n5c8",
+    "startedAt": "2026-03-09T15:07:38.725Z",
+    "lineCount": 1
+  }
+}

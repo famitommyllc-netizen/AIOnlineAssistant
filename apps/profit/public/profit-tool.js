@@ -728,7 +728,7 @@ if (profitSaveBtn) {
     sessionStorage.setItem('profitFlashNotice', '保存しました。');
     notify('保存しました。', 'success');
     setTimeout(() => {
-      window.location.href = '/profit-history.html';
+      window.location.href = '/apps/profit/public/profit-history.html';
     }, 260);
   });
 }
@@ -759,7 +759,7 @@ if (headerHistoryBtn) {
       e.preventDefault();
       return;
     }
-    window.location.href = '/profit-history.html';
+    window.location.href = '/apps/profit/public/profit-history.html';
   });
 }
 
@@ -791,7 +791,7 @@ if (headerSettingsBtn) {
       e.preventDefault();
       return;
     }
-    window.location.href = '/profit-settings.html';
+    window.location.href = '/apps/profit/public/profit-settings.html';
   });
 }
 

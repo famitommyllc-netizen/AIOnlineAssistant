@@ -294,7 +294,7 @@ if (saveSettingsBtn) {
 
 if (openManualBtn) {
   openManualBtn.addEventListener('click', () => {
-    window.location.href = '/profit-manual.html';
+    window.location.href = '/apps/profit/public/profit-manual.html';
   });
 }
 
@@ -313,13 +313,13 @@ if (packingAddBtn) {
 
 if (headerHistoryBtn) {
   headerHistoryBtn.addEventListener('click', () => {
-    window.location.href = '/profit-history.html';
+    window.location.href = '/apps/profit/public/profit-history.html';
   });
 }
 
 if (headerSettingsBtn) {
   headerSettingsBtn.addEventListener('click', () => {
-    window.location.href = '/profit-settings.html';
+    window.location.href = '/apps/profit/public/profit-settings.html';
   });
 }
 
