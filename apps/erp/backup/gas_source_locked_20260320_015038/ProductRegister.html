@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    <?!= HtmlService.createHtmlOutputFromFile('style.css').getContent(); ?>
+  </style>
+</head>
+<body>
+  <h2>商品新規登録</h2>
+  <form id="productForm" autocomplete="off">
+    <!-- 商品番号は自動入力なので非表示、JANから下4桁自動生成 -->
+    <div class="form-row">
+      <span class="form-label">JAN</span>
+      <input class="form-input" type="text" id="jan" maxlength="13">
+    </div>
+    <div class="form-row">
+      <span class="form-label">商品名 <span style="color:red">*</span></span>
+      <input class="form-input" type="text" id="name" required>
+    </div>
+    <div class="form-row">
+      <span class="form-label">カテゴリ</span>
+      <input class="form-input" type="text" id="category">
+    </div>
+    <div class="form-row">
+      <span class="form-label">メーカー</span>
+      <input class="form-input" type="text" id="maker">
+    </div>
+    <div class="form-row">
+      <span class="form-label">ブランド</span>
+      <input class="form-input" type="text" id="brand">
+    </div>
+    <div class="form-row">
+      <span class="form-label">サブ</span>
+      <input class="form-input" type="text" id="sub">
+    </div>
+    <div class="form-row">
+      <span class="form-label">希望小売価格</span>
+      <input class="form-input" type="text" id="retailPrice" inputmode="numeric" pattern="\\d*">
+    </div>
+    <div class="form-row">
+      <span class="form-label">備考</span>
+      <input class="form-input" type="text" id="note">
+    </div>
+    <div class="form-row">
+      <span class="form-label">検索名</span>
+      <input class="form-input" type="text" id="searchName">
+    </div>
+    <div class="form-row">
+      <span class="form-label">読み仮名</span>
+      <input class="form-input" type="text" id="yomigana">
+    </div>
+    <div class="form-row">
+      <span class="form-label">想定売価</span>
+      <input class="form-input" type="text" id="assumedPrice" inputmode="numeric" pattern="\\d*">
+    </div>
+    <div class="form-btns">
+      <button type="button" onclick="registerProduct()">登録</button>
+      <span id="status"></span>
+    </div>
+  </form>
+  <script>
+    // 商品番号自動生成（JAN下4桁 or ランダム）
+    function getProductNo(jan) {
+      if (jan && jan.length >= 4) {
+        return jan.slice(-4);
+      }
+      // 4桁乱数 fallback
+      return String(Math.floor(Math.random() * 9000) + 1000);
+    }
+
+    function registerProduct() {
+      const jan = document.getElementById('jan').value.trim();
+      const name = document.getElementById('name').value.trim();
+      if (!name) {
+        alert("商品名は必須です");
+        return;
+      }
+      // 商品番号（JAN下4桁 or ランダム）
+      const productNo = getProductNo(jan);
+
+      // 必須: 商品名, 商品番号（自動生成）
+      const info = {
+        productNo: productNo,
+        jan: jan,
+        name: name,
+        category: document.getElementById('category').value.trim(),
+        maker: document.getElementById('maker').value.trim(),
+        brand: document.getElementById('brand').value.trim(),
+        sub: document.getElementById('sub').value.trim(),
+        retailPrice: document.getElementById('retailPrice').value.trim(),
+        note: document.getElementById('note').value.trim(),
+        searchName: document.getElementById('searchName').value.trim(),
+        yomigana: document.getElementById('yomigana').value.trim(),
+        assumedPrice: document.getElementById('assumedPrice').value.trim()
+      };
+
+      const btns = document.querySelectorAll('button');
+      btns.forEach(btn=>btn.disabled=true);
+      document.getElementById('status').textContent = '登録中...';
+      google.script.run.withSuccessHandler(function(res) {
+        document.getElementById('status').textContent = res.msg;
+        btns.forEach(btn=>btn.disabled=false);
+      }).registerNewProduct(info);
+    }
+  </script>
+</body>
+</html>

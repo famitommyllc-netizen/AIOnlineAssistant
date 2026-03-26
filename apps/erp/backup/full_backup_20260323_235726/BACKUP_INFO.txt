@@ -1,0 +1,18 @@
+Backup Timestamp: 20260323_235726
+Archive: erp_and_docs_20260323_235726.tar.gz
+Archive Path: apps/erp/backup/full_backup_20260323_235726/erp_and_docs_20260323_235726.tar.gz
+Included:
+- apps/erp (except apps/erp/backup and apps/erp/deploy/node_modules)
+- docs
+- README.md
+
+Excluded:
+- apps/erp/backup (to avoid recursive backup)
+- apps/erp/deploy/node_modules (re-installable dependencies)
+
+SHA256:
+127fc015ef529872e5a3859988369b305cf7d787a418ce638ab66b930b4f9629  apps/erp/backup/full_backup_20260323_235726/erp_and_docs_20260323_235726.tar.gz
+
+Restore Example:
+mkdir -p /tmp/restore_erp_20260323_235726
+tar -xzf "erp_and_docs_20260323_235726.tar.gz" -C /tmp/restore_erp_20260323_235726

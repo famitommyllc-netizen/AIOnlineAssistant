@@ -1,0 +1,256 @@
+# ExpenseForm.html
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    <?!= HtmlService.createHtmlOutputFromFile('style.css').getContent(); ?>
+  </style>
+</head>
+<body>
+  <div class="section">
+    <h2 class="section-title">経費登録</h2>
+    <div class="note-text">経費はテーブル行でまとめて入力できます。</div>
+    <datalist id="expense-items"></datalist>
+    <div id="expense-table-area"></div>
+    <div class="button-row">
+      <button type="button" class="btn-main" onclick="registerExpenseRows()">登録</button>
+      <span id="exp-status"></span>
+    </div>
+  </div>
+
+  <script>
+function uiEscapeHtml_(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function uiBuildOpButtons_(idx, opts) {
+  var o = opts || {};
+  if (!o.show) {
+    return '<div class="inline-value">固定</div>';
+  }
+
+  var addLabel = uiEscapeHtml_(o.addLabel || '＋行追加');
+  var removeLabel = uiEscapeHtml_(o.removeLabel || '−削除');
+  var addFn = String(o.onAdd || '');
+  var removeFn = String(o.onRemove || '');
+
+  var addBtn = addFn
+    ? '<button type="button" class="btn-main" onclick="' + addFn + '(' + idx + ')">' + addLabel + '</button>'
+    : '';
+  var removeBtn = removeFn
+    ? '<button type="button" class="btn-sub" onclick="' + removeFn + '(' + idx + ')">' + removeLabel + '</button>'
+    : '';
+
+  return '<div class="inline-actions">' + addBtn + removeBtn + '</div>';
+}
+
+function uiBuildInputTable_(config) {
+  var c = config || {};
+  var title = c.title ? '<div class="entry-line-title">' + uiEscapeHtml_(c.title) + '</div>' : '';
+  var columns = Array.isArray(c.columns) ? c.columns : [];
+  var includeOps = c.includeOps !== false;
+  var bodyHtml = String(c.bodyHtml || '');
+  var note = c.note ? '<div class="note-text" style="margin-top:0.45em;">' + uiEscapeHtml_(c.note) + '</div>' : '';
+
+  var header = '<th class="col-no">No</th>';
+  for (var i = 0; i < columns.length; i++) {
+    var col = columns[i] || {};
+    var cls = col.className ? ' ' + uiEscapeHtml_(col.className) : '';
+    header += '<th class="' + cls.trim() + '">' + uiEscapeHtml_(col.label || '') + '</th>';
+  }
+  if (includeOps) {
+    header += '<th class="col-action">操作</th>';
+  }
+
+  return '' +
+    '<div class="entry-line-card unified-entry-card">' +
+      title +
+      '<div class="inline-scroll">' +
+        '<table class="entry-inline-table unified-input-table">' +
+          '<tr>' + header + '</tr>' +
+          bodyHtml +
+        '</table>' +
+      '</div>' +
+      note +
+    '</div>';
+}
+  </script>
+  <script>
+let expenseRows = [];
+let expenseCandidates = [];
+
+window.onload = function() {
+  expenseRows = [createEmptyExpenseRow()];
+  renderExpenseRows();
+  loadExpenseItems();
+};
+
+function createEmptyExpenseRow() {
+  return {
+    date: '',
+    name: '',
+    amount: '',
+    memo: ''
+  };
+}
+
+function toNumber(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function roundYen(v) {
+  return Math.round(toNumber(v));
+}
+
+function formatDateValue(v) {
+  let s = String(v || '').replace(/[^0-9]/g, '');
+  if (s.length > 8) s = s.slice(0, 8);
+  if (s.length === 8) {
+    return s.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3');
+  }
+  return s;
+}
+
+function cacheExpenseField(idx, key, value) {
+  const row = expenseRows[idx];
+  if (!row) return;
+  row[key] = String(value || '');
+}
+
+function onExpenseDateBlur(idx, value) {
+  const row = expenseRows[idx];
+  if (!row) return;
+  row.date = formatDateValue(value);
+  renderExpenseRows();
+}
+
+function onExpenseAmountBlur(idx, value) {
+  const row = expenseRows[idx];
+  if (!row) return;
+  row.amount = Math.max(0, roundYen(value));
+  renderExpenseRows();
+}
+
+function addExpenseRow(afterIdx) {
+  const pos = Math.max(0, Math.min(afterIdx + 1, expenseRows.length));
+  expenseRows.splice(pos, 0, createEmptyExpenseRow());
+  renderExpenseRows();
+}
+
+function removeExpenseRow(idx) {
+  if (expenseRows.length <= 1) {
+    expenseRows[0] = createEmptyExpenseRow();
+  } else {
+    expenseRows.splice(idx, 1);
+  }
+  renderExpenseRows();
+}
+
+function loadExpenseItems() {
+  google.script.run
+    .withSuccessHandler(function(list) {
+      expenseCandidates = Array.isArray(list) ? list : [];
+      const dl = document.getElementById('expense-items');
+      dl.innerHTML = expenseCandidates.map(function(item) {
+        return '<option value="' + uiEscapeHtml_(item) + '"></option>';
+      }).join('');
+      renderExpenseRows();
+    })
+    .withFailureHandler(showError)
+    .getExpenseItems();
+}
+
+function getActiveExpenseRows() {
+  const active = [];
+  for (let i = 0; i < expenseRows.length; i++) {
+    const row = expenseRows[i];
+    const hasInput = !!String(row.date || '').trim() || !!String(row.name || '').trim() || roundYen(row.amount) > 0 || !!String(row.memo || '').trim();
+    if (!hasInput) continue;
+
+    const date = formatDateValue(row.date);
+    const name = String(row.name || '').trim();
+    const amount = Math.max(0, roundYen(row.amount));
+    const memo = String(row.memo || '').trim();
+
+    if (!date || !name || !amount) {
+      throw new Error('明細' + (i + 1) + ' の日付・内容・金額は必須です');
+    }
+    active.push({ date: date, name: name, amount: amount, memo: memo });
+  }
+  if (!active.length) {
+    throw new Error('経費明細が空です');
+  }
+  return active;
+}
+
+function renderExpenseRows() {
+  let rowsHtml = '';
+  expenseRows.forEach(function(row, idx) {
+    rowsHtml += '' +
+      '<tr>' +
+        '<td class="col-no">' + (idx + 1) + '</td>' +
+        '<td class="col-num"><input type="text" class="inline-number" maxlength="10" inputmode="numeric" placeholder="20260322" value="' + uiEscapeHtml_(row.date || '') + '" oninput="cacheExpenseField(' + idx + ', \'date\', this.value)" onblur="onExpenseDateBlur(' + idx + ', this.value)"></td>' +
+        '<td class="col-item"><input type="text" class="inline-input" list="expense-items" autocomplete="off" value="' + uiEscapeHtml_(row.name || '') + '" oninput="cacheExpenseField(' + idx + ', \'name\', this.value)"></td>' +
+        '<td class="col-num"><input type="text" class="inline-number" inputmode="numeric" pattern="\\d*" value="' + uiEscapeHtml_(row.amount || '') + '" oninput="cacheExpenseField(' + idx + ', \'amount\', this.value)" onblur="onExpenseAmountBlur(' + idx + ', this.value)"></td>' +
+        '<td class="col-item"><input type="text" class="inline-input" value="' + uiEscapeHtml_(row.memo || '') + '" oninput="cacheExpenseField(' + idx + ', \'memo\', this.value)"></td>' +
+        '<td class="col-action">' + uiBuildOpButtons_(idx, { show: true, onAdd: 'addExpenseRow', onRemove: 'removeExpenseRow' }) + '</td>' +
+      '</tr>';
+  });
+
+  document.getElementById('expense-table-area').innerHTML = uiBuildInputTable_({
+    title: '経費明細入力（1行で入力）',
+    columns: [
+      { label: '日付', className: 'col-num' },
+      { label: '内容', className: 'col-item' },
+      { label: '金額', className: 'col-num' },
+      { label: 'メモ', className: 'col-item' }
+    ],
+    includeOps: true,
+    bodyHtml: rowsHtml
+  });
+}
+
+function registerExpenseRows() {
+  let payload = [];
+  const status = document.getElementById('exp-status');
+  try {
+    payload = getActiveExpenseRows();
+  } catch (e) {
+    showError(e);
+    return;
+  }
+
+  status.textContent = '登録中...';
+  google.script.run
+    .withSuccessHandler(function(res) {
+      const msg = (res && res.message) ? res.message : '経費を登録しました';
+      status.textContent = msg;
+      expenseRows = [createEmptyExpenseRow()];
+      renderExpenseRows();
+      loadExpenseItems();
+    })
+    .withFailureHandler(function(err) {
+      status.textContent = '';
+      showError(err);
+    })
+    .registerExpensesBatch(payload);
+}
+
+function showError(err) {
+  const msg = err && err.message ? err.message : String(err);
+  alert('エラー: ' + msg);
+}
+  </script>
+</body>
+</html>
+```

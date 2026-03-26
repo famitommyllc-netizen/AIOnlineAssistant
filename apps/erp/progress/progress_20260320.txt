@@ -1,0 +1,124 @@
+# Progress 2026-03-20
+
+## Core
+- [1] ERPミニアプリ保存先を `chatbot/apps/erp` に確定。
+- [2] 将来の単体販売を見据え、独立可能な初期構成を作成。
+
+## Docs
+- [3] `docs/project_bootstrap_20260320_014717.md` を作成。
+
+## Next
+- [4] ユーザー提供の既存GASコードを編集不可で保全。
+- [5] コード解析を実施し、仕様docsを完成。
+
+## Docs
+- [6] 受領GASコード分析に基づき仕様書叩き台を作成。
+  - product_overview_20260320_020351.md
+  - requirements_20260320_020351.md
+  - architecture_20260320_020351.md
+  - data_sheet_mapping_20260320_020351.md
+  - api_contract_gas_20260320_020351.md
+  - ui_flow_20260320_020351.md
+  - test_plan_20260320_020351.md
+  - operations_runbook_20260320_020351.md
+  - precheck_checklist_20260320_020351.md
+  - scope_memo_20260320_020351.md
+  - docs_index_latest.md
+
+## Data
+- [7] 公開スプレッドシート実測によりシート構造を取得。
+  - data_sheet_mapping_20260320_021537.md
+  - spreadsheet_observation_20260320_021537.md
+  - docs_index_latest.md を更新
+
+## Implementation
+- [8] 仕入採番/伝票採番/経費按分/マスタ検索選択/未登録自動追加を `src/gas` に実装。
+  - src/gas/main.gs
+  - src/gas/search.gs
+  - src/gas/EntryForm.html
+  - src/gas/ProductRegister.html
+  - src/gas/ExpenseForm.html
+  - src/gas/expenseForm.gs
+  - src/gas/style.css.html
+  - docs/change_log_20260320_024956.md
+- [9] 追加要件を実装。
+  - 仕入入力の最終確認画面（戻って編集可）
+  - 伝票印刷（レシート貼付枠付き）
+  - 仕入伝票PDFのDrive自動保存（指定フォルダ）
+  - 日次/月次レポート（集計・一覧・利益率/減価率/経費率・印刷・PDF保存）
+  - スマホ向けUI（1行入力、文字/ボタン大型化、シンプル配色）
+  - T列廃止をdocsへ反映
+- [10] GAS反映・実データ検証手順を作成。
+  - docs/gas_apply_and_test_20260320_034048.md
+- [11] 入力導線と伝票デザインを改修。
+  - 商品入力を候補付き直接入力へ変更（検索/商品登録エリア廃止）
+  - 商品行を `+/-` で増減する方式へ変更
+  - 仕入先/支払い方法候補の編集UIを追加（誤候補削除対応）
+  - 最終確認で入力ページ→確認ページへ切替
+  - 伝票印刷を「左詳細/右レシート貼付欄」レイアウトへ変更
+- [12] 仕入登録時の印刷/バーコード運用を実装。
+  - 仕入登録押下時に「印刷する/しない」選択モーダルを追加
+  - 印刷選択時は伝票とバーコード印刷を連続実行（ポップアップ失敗時ガイド表示）
+  - 在庫表へバーコード列を追加（T:バーコード値, U:バーコード印刷状態）
+  - 登録時にバーコード値を自動生成し、バーコードPDFをDriveへ保存
+  - 仕入伝票の右側は空白レイアウトへ変更
+  - 仕入番号を伝票上部から外し、商品明細表で表示
+- [13] 設定画面と設定シートを追加し、在庫ID方式を切替可能化。
+  - メニューに「設定」を追加（SettingsForm）
+  - シート `設定` に `inventory_id_mode` を保持（明細単位/個体単位）
+  - 仕入登録時のバーコードID生成を設定値で分岐
+    - 明細単位: 1行1ID
+    - 個体単位: 数量ぶんID発行
+  - バーコード印刷/PDFに設定方式を反映
+- [14] 用語表示方式の設定を追加。
+  - `terminology_mode`（日本対応/国際対応）を追加
+  - 在庫ID方式の表示語句を用語表示方式に連動
+  - 既存の `line/unit` 値は後方互換で読込可能
+- [15] 3番号運用へ統合実装。
+  - 仕入No依存を廃止し、`商品個別番号(A)` / `商品マスタ番号(C)` / `仕入伝票番号(S)` に整理
+  - 伝票/バーコード印刷・レポート表示の語句を新番号体系へ統一
+  - 商品候補をJAN対応化（JAN / 商品名 / 商品マスタ番号で選択）
+  - 未登録商品の自動マスタ追加時に商品マスタ番号を自動採番
+- [16] GASでシート側変更を自動反映する関数を追加。
+  - `applyErpSchemaUpdates()` を実装（在庫表/商品情報ヘッダ更新 + 設定初期化）
+  - 手順書: `docs/implementation_three_ids_20260320_111149.md`
+- [17] 売上入力を仕入入力準拠の伝票形式へ再構築。
+  - `SalesForm.html` を新規作成（複数行一括入力 → 最終確認 → 一括登録）
+  - 在庫未売上候補取得 `getSalesInventoryCandidates()` を実装
+  - 売上一括登録 `registerSalesEntries()` を実装
+  - 売上伝票番号採番 `SV-YYYYMMDD-販売場所-連番` と `売上伝票` シート保存を追加
+  - `showSalesForm` ダイアログサイズを広いUI向けに更新
+- [18] 入力UIを全業務画面で1行入力テーブル型へ統一（最小変更）。
+  - 共通コンポーネント `TableComponents.html` を追加（テーブル枠/操作列の共通化）
+  - `ExpenseForm.html` を複数行入力（+/-）テーブルへ変更
+  - `ProductRegister.html` を1行固定テーブルへ変更
+  - `SettingsForm.html` を固定行テーブルへ変更
+  - `EntryForm.html` のポイント/仕入経費/共通項目/候補編集をテーブルへ統一
+  - `SalesForm.html` の共通項目/候補編集をテーブルへ統一
+  - 経費複数行保存 `registerExpensesBatch()` を追加
+- [19] 要件docs更新を実施。
+  - `requirements_latest.md` を新規作成し、更新履歴付きで運用開始
+  - 仕入登録要件に「仕入場所」「仕入方法」を追加明記
+  - `requirements_20260320_020351.md` に追記
+  - `docs_index_latest.md` に更新版要件docsを追加
+- [20] 候補マスタのタブ分離を実装。
+  - `支払い方法候補` シート / `販売場所候補` シートを追加
+  - `マスタ` シートの旧 `payment` / `sales_place` データを専用タブへ移行
+  - 候補取得・追加・削除APIは後方互換を維持したまま専用タブ優先へ変更
+  - `onOpen` と `applyErpSchemaUpdates()` で分離タブを自動整備
+- [21] コンポーネント依存を解除し、各HTMLへ直接埋め込み化。
+  - `TableComponents` の依存を撤廃（`includeHtml_('TableComponents')` を削除）
+  - `EntryForm` / `SalesForm` / `ExpenseForm` / `ProductRegister` / `SettingsForm` へ共通関数を直接記述
+  - 入力フォーム未表示になりやすい初期化失敗リスクを低減
+- [22] 概要提案v1をdocsへ保存。
+  - `docs/overview_proposal_20260322_220500.md` を新規追加
+  - `docs/docs_index_latest.md` を更新
+- [23] 仕入登録UIの運用改善（計算ロジック非変更）を実施。
+  - `EntryForm.html` を入力導線順に再配置（商品→経費→ポイント→税→集計→共通項目）
+  - 経費/ポイントのモード切替をセグメント化し、非選択モードUIを完全非表示化
+  - 候補リスト編集UIを削除
+  - `+/-` 操作をリスト追加（丸型+）/行削除（丸型-）へ統一
+  - 最終確認ページに印刷確認を統合（モーダル廃止）
+  - 仕入登録ボタンを直接登録処理へ接続
+  - 伝票表示を横並び情報+横サマリーへ改善（円表記/原価強調）
+  - 在庫表T列の意味を「バーコード値一覧」に明確化し、列を非表示化（A列主キー運用）

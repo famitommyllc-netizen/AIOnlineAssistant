@@ -1,0 +1,204 @@
+# SettingsForm.html
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    <?!= HtmlService.createHtmlOutputFromFile('style.css').getContent(); ?>
+  </style>
+</head>
+<body>
+  <div class="section">
+    <h2 class="section-title">設定</h2>
+    <div class="note-text">設定画面も統一テーブルUIで管理します（固定行）。</div>
+    <div id="settings-table-area"></div>
+    <div class="button-row">
+      <button type="button" class="btn-main" onclick="saveSettings()">保存</button>
+      <span id="settings-status"></span>
+    </div>
+  </div>
+
+  <script>
+function uiEscapeHtml_(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function uiBuildOpButtons_(idx, opts) {
+  var o = opts || {};
+  if (!o.show) {
+    return '<div class="inline-value">固定</div>';
+  }
+
+  var addLabel = uiEscapeHtml_(o.addLabel || '＋行追加');
+  var removeLabel = uiEscapeHtml_(o.removeLabel || '−削除');
+  var addFn = String(o.onAdd || '');
+  var removeFn = String(o.onRemove || '');
+
+  var addBtn = addFn
+    ? '<button type="button" class="btn-main" onclick="' + addFn + '(' + idx + ')">' + addLabel + '</button>'
+    : '';
+  var removeBtn = removeFn
+    ? '<button type="button" class="btn-sub" onclick="' + removeFn + '(' + idx + ')">' + removeLabel + '</button>'
+    : '';
+
+  return '<div class="inline-actions">' + addBtn + removeBtn + '</div>';
+}
+
+function uiBuildInputTable_(config) {
+  var c = config || {};
+  var title = c.title ? '<div class="entry-line-title">' + uiEscapeHtml_(c.title) + '</div>' : '';
+  var columns = Array.isArray(c.columns) ? c.columns : [];
+  var includeOps = c.includeOps !== false;
+  var bodyHtml = String(c.bodyHtml || '');
+  var note = c.note ? '<div class="note-text" style="margin-top:0.45em;">' + uiEscapeHtml_(c.note) + '</div>' : '';
+
+  var header = '<th class="col-no">No</th>';
+  for (var i = 0; i < columns.length; i++) {
+    var col = columns[i] || {};
+    var cls = col.className ? ' ' + uiEscapeHtml_(col.className) : '';
+    header += '<th class="' + cls.trim() + '">' + uiEscapeHtml_(col.label || '') + '</th>';
+  }
+  if (includeOps) {
+    header += '<th class="col-action">操作</th>';
+  }
+
+  return '' +
+    '<div class="entry-line-card unified-entry-card">' +
+      title +
+      '<div class="inline-scroll">' +
+        '<table class="entry-inline-table unified-input-table">' +
+          '<tr>' + header + '</tr>' +
+          bodyHtml +
+        '</table>' +
+      '</div>' +
+      note +
+    '</div>';
+}
+  </script>
+  <script>
+const INVENTORY_MODE_DETAIL = '明細単位';
+const INVENTORY_MODE_UNIT = '個体単位';
+const TERMINOLOGY_MODE_JP = '日本対応';
+const TERMINOLOGY_MODE_GLOBAL = '国際対応';
+
+let currentSettings = {
+  terminologyMode: TERMINOLOGY_MODE_JP,
+  inventoryIdMode: INVENTORY_MODE_DETAIL,
+  terminologyOptions: []
+};
+
+window.onload = function() {
+  loadSettings();
+};
+
+function getInventoryOptionsByTerminology(terminologyMode) {
+  if (String(terminologyMode || '') === TERMINOLOGY_MODE_GLOBAL) {
+    return [
+      { value: INVENTORY_MODE_DETAIL, label: 'line（1 line = 1 inventory ID）' },
+      { value: INVENTORY_MODE_UNIT, label: 'unit（1 quantity = 1 inventory ID）' }
+    ];
+  }
+  return [
+    { value: INVENTORY_MODE_DETAIL, label: '明細単位（1行 = 1在庫ID）' },
+    { value: INVENTORY_MODE_UNIT, label: '個体単位（数量1つ = 1在庫ID）' }
+  ];
+}
+
+function loadSettings() {
+  google.script.run
+    .withSuccessHandler(function(res) {
+      const settings = res || {};
+      currentSettings.terminologyMode = String(settings.terminologyMode || TERMINOLOGY_MODE_JP);
+      currentSettings.inventoryIdMode = String(settings.inventoryIdMode || INVENTORY_MODE_DETAIL);
+      currentSettings.terminologyOptions = Array.isArray(settings.terminologyOptions) ? settings.terminologyOptions : [];
+      renderSettingsTable();
+    })
+    .withFailureHandler(showError)
+    .getErpSettingsForUi();
+}
+
+function onTerminologyChanged(value) {
+  currentSettings.terminologyMode = String(value || TERMINOLOGY_MODE_JP);
+  const available = getInventoryOptionsByTerminology(currentSettings.terminologyMode).map(function(v) { return v.value; });
+  if (available.indexOf(currentSettings.inventoryIdMode) === -1) {
+    currentSettings.inventoryIdMode = INVENTORY_MODE_DETAIL;
+  }
+  renderSettingsTable();
+}
+
+function onInventoryModeChanged(value) {
+  currentSettings.inventoryIdMode = String(value || INVENTORY_MODE_DETAIL);
+}
+
+function renderSettingsTable() {
+  const terminologyOptions = currentSettings.terminologyOptions.map(function(opt) {
+    const selected = String(opt.value || '') === currentSettings.terminologyMode ? ' selected' : '';
+    return '<option value="' + uiEscapeHtml_(opt.value || '') + '"' + selected + '>' + uiEscapeHtml_(opt.label || '') + '</option>';
+  }).join('');
+
+  const inventoryOptions = getInventoryOptionsByTerminology(currentSettings.terminologyMode).map(function(opt) {
+    const selected = String(opt.value || '') === currentSettings.inventoryIdMode ? ' selected' : '';
+    return '<option value="' + uiEscapeHtml_(opt.value || '') + '"' + selected + '>' + uiEscapeHtml_(opt.label || '') + '</option>';
+  }).join('');
+
+  const rowsHtml = '' +
+    '<tr>' +
+      '<td class="col-no">1</td>' +
+      '<td class="col-item"><div class="inline-value">用語表示方式</div></td>' +
+      '<td class="col-item"><select id="terminology-mode" class="inline-input" onchange="onTerminologyChanged(this.value)">' + terminologyOptions + '</select></td>' +
+      '<td class="col-action"><div class="inline-value">固定</div></td>' +
+    '</tr>' +
+    '<tr>' +
+      '<td class="col-no">2</td>' +
+      '<td class="col-item"><div class="inline-value">在庫ID方式</div></td>' +
+      '<td class="col-item"><select id="inventory-id-mode" class="inline-input" onchange="onInventoryModeChanged(this.value)">' + inventoryOptions + '</select></td>' +
+      '<td class="col-action"><div class="inline-value">固定</div></td>' +
+    '</tr>';
+
+  document.getElementById('settings-table-area').innerHTML = uiBuildInputTable_({
+    title: '設定入力（1行入力型UI）',
+    columns: [
+      { label: '項目名', className: 'col-item' },
+      { label: '値', className: 'col-item' }
+    ],
+    includeOps: true,
+    bodyHtml: rowsHtml
+  });
+}
+
+function saveSettings() {
+  const status = document.getElementById('settings-status');
+  status.textContent = '保存中...';
+
+  google.script.run
+    .withSuccessHandler(function() {
+      status.textContent = '保存しました';
+      setTimeout(function() { status.textContent = ''; }, 1200);
+    })
+    .withFailureHandler(function(err) {
+      status.textContent = '';
+      showError(err);
+    })
+    .saveErpSettings({
+      inventoryIdMode: currentSettings.inventoryIdMode,
+      terminologyMode: currentSettings.terminologyMode
+    });
+}
+
+function showError(err) {
+  const msg = err && err.message ? err.message : String(err);
+  alert('エラー: ' + msg);
+}
+  </script>
+</body>
+</html>
+
+```
