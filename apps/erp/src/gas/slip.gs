@@ -1,4 +1,86 @@
 var ERP_OUTPUT_FOLDER_ID = '1he6UfP9Nm7FGMEVxvIukkI831-5b8CY6';
+var ERP_PURCHASE_OUTPUT_DEFAULTS_ = {
+  // 現在は登録時に自動生成しない。将来設定値で切り替え可能にする。
+  generateOnRegister: false,
+  generateSlipPdf: true,
+  generateBarcodePdf: true
+};
+
+function getPurchaseRegisterOutputOptions_() {
+  // 将来は設定シートから読み込む想定
+  return {
+    generateOnRegister: !!ERP_PURCHASE_OUTPUT_DEFAULTS_.generateOnRegister,
+    generateSlipPdf: !!ERP_PURCHASE_OUTPUT_DEFAULTS_.generateSlipPdf,
+    generateBarcodePdf: !!ERP_PURCHASE_OUTPUT_DEFAULTS_.generateBarcodePdf
+  };
+}
+
+function normalizePurchaseOutputOptions_(options) {
+  var base = getPurchaseRegisterOutputOptions_();
+  var raw = options || {};
+  return {
+    generateOnRegister: (raw.generateOnRegister === undefined) ? base.generateOnRegister : !!raw.generateOnRegister,
+    generateSlipPdf: (raw.generateSlipPdf === undefined) ? base.generateSlipPdf : !!raw.generateSlipPdf,
+    generateBarcodePdf: (raw.generateBarcodePdf === undefined) ? base.generateBarcodePdf : !!raw.generateBarcodePdf
+  };
+}
+
+// 仕入伝票データから出力をまとめて生成（登録処理/レポート画面どちらからでも再利用可能）
+function generatePurchaseOutputBundle_(slipData, options) {
+  var data = slipData || {};
+  if (!data.slipNo) {
+    throw new Error('出力対象の伝票データが不足しています');
+  }
+  var opts = normalizePurchaseOutputOptions_(options);
+  if (!opts.generateOnRegister) {
+    return {
+      executed: false,
+      skipped: true,
+      reason: 'disabled',
+      options: opts,
+      pdf: null,
+      barcodePdf: null
+    };
+  }
+
+  var pdfInfo = null;
+  var barcodePdfInfo = null;
+
+  if (opts.generateSlipPdf) {
+    try {
+      pdfInfo = savePurchaseSlipPdf_(data);
+    } catch (err) {
+      pdfInfo = {
+        success: false,
+        error: err && err.message ? err.message : String(err)
+      };
+    }
+  }
+
+  if (opts.generateBarcodePdf) {
+    try {
+      barcodePdfInfo = savePurchaseBarcodePdf_(data);
+    } catch (err2) {
+      barcodePdfInfo = {
+        success: false,
+        error: err2 && err2.message ? err2.message : String(err2)
+      };
+    }
+  }
+
+  return {
+    executed: true,
+    skipped: false,
+    options: opts,
+    pdf: pdfInfo,
+    barcodePdf: barcodePdfInfo
+  };
+}
+
+// 外部呼び出し用ラッパー（登録完了後/レポート画面の双方から再利用する）
+function generatePurchaseOutputs(slipData, options) {
+  return generatePurchaseOutputBundle_(slipData, options);
+}
 
 function buildPurchaseSlipData_(params) {
   var p = params || {};

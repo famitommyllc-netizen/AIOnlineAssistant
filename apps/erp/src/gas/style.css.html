@@ -1139,7 +1139,7 @@ th {
   color: #64748b;
   z-index: 2;
   line-height: 1;
-  cursor: pointer;
+  pointer-events: none;
 }
 
 .entry-input-stage-date-icon {
@@ -1150,6 +1150,7 @@ th {
   justify-content: center;
   color: currentColor;
   opacity: 1;
+  pointer-events: none;
 }
 
 .entry-input-stage-date-icon svg {
@@ -1177,18 +1178,17 @@ th {
 
 .entry-input-stage-date-native {
   position: absolute;
-  left: 0;
-  top: 0;
+  top: 50%;
+  right: 12px;
   display: block;
-  width: 1px;
-  height: 1px;
-  min-width: 1px;
-  min-height: 1px;
+  width: 72px;
+  height: 72px;
+  min-width: 72px;
+  min-height: 72px;
+  transform: translateY(-50%);
   opacity: 0;
-  pointer-events: none;
-  z-index: -1;
-  -webkit-appearance: none;
-  appearance: none;
+  pointer-events: auto;
+  z-index: 3;
   background: transparent;
   box-shadow: none;
   border: 0;
@@ -2175,6 +2175,14 @@ body.entry-app-layout.entry-stage-mobile #entry-input-stage {
     padding: 0;
   }
 
+  .entry-input-stage-date-native {
+    min-height: 66px;
+    min-width: 66px;
+    width: 66px;
+    height: 66px;
+    right: 8px;
+  }
+
   .entry-input-stage-date-icon {
     width: 36px;
     height: 36px;
@@ -2860,7 +2868,7 @@ body.entry-app-layout.entry-stage-mobile #entry-input-stage {
     }
 
     body.entry-b-layout .inline-value {
-      min-height: 75px;
+      min-height: 120px;
       padding: 15px 11px;
       border-radius: 18px;
       justify-content: flex-end;
@@ -3029,11 +3037,11 @@ body.entry-app-layout.entry-stage-mobile #entry-input-stage {
     }
 
     body.entry-b-layout .btn-main,
-    body.entry-b-layout .btn-sub,
+    body.entry-b-layout .btn-sub, 
     body.entry-b-layout .btn-link,
     body.entry-b-layout button {
       min-height: 120px !important;
-      font-size: 30px !important;
+      font-size: 50px !important;
       border-radius: 18px !important;
       padding: 15px 18px !important;
     }
@@ -3051,6 +3059,14 @@ body.entry-app-layout.entry-stage-mobile #entry-input-stage {
       padding: 0;
       border-radius: 0;
       font-size: 18px !important;
+    }
+
+    body.entry-b-layout .entry-input-stage-date-native {
+      min-height: 80px;
+      min-width: 80px;
+      width: 80px;
+      height: 80px;
+      right: 12px;
     }
 
     body.entry-b-layout .entry-input-stage-date-icon {
@@ -3318,6 +3334,14 @@ body.entry-app-layout.entry-stage-mobile #entry-input-stage {
         padding: 0;
         border-radius: 18px;
         font-size: 24px !important;
+      }
+
+      body.entry-b-layout .entry-input-stage-date-native {
+        min-height: 104px;
+        min-width: 104px;
+        width: 104px;
+        height: 104px;
+        right: 12px;
       }
 
       body.entry-b-layout .entry-input-stage-date-icon {

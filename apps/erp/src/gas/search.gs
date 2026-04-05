@@ -277,9 +277,6 @@ function registerEntries(entryList, commonInfo, expenseList) {
     entries: normalizedEntries,
     expenses: normalizedExpenses
   });
-
-  var pdfInfo = null;
-  var barcodePdfInfo = null;
   var firstDataRow = inventorySheet.getLastRow() + 1;
 
   // 検索せず入力された値もマスタへ追加
@@ -328,25 +325,17 @@ function registerEntries(entryList, commonInfo, expenseList) {
     supplier: supplier,
     inventoryIds: normalizedEntries.map(function(item) { return item.inventoryId; })
   });
-
-  try {
-    pdfInfo = savePurchaseSlipPdf_(slipData);
-  } catch (err) {
-    pdfInfo = {
-      success: false,
-      error: err && err.message ? err.message : String(err)
-    };
-  }
-
-  try {
-    barcodePdfInfo = savePurchaseBarcodePdf_(slipData);
-    markBarcodePrintStatus_(inventorySheet, firstDataRow, normalizedEntries.length, 'PDF作成');
-  } catch (err2) {
-    barcodePdfInfo = {
-      success: false,
-      error: err2 && err2.message ? err2.message : String(err2)
-    };
-    markBarcodePrintStatus_(inventorySheet, firstDataRow, normalizedEntries.length, '作成失敗');
+  // 出力処理は共通サービスへ分離（現時点では登録時自動実行しない設定）
+  var outputOptions = getPurchaseRegisterOutputOptions_();
+  var outputResult = generatePurchaseOutputBundle_(slipData, outputOptions);
+  var pdfInfo = outputResult ? outputResult.pdf : null;
+  var barcodePdfInfo = outputResult ? outputResult.barcodePdf : null;
+  if (outputResult && outputResult.executed) {
+    if (barcodePdfInfo && barcodePdfInfo.success) {
+      markBarcodePrintStatus_(inventorySheet, firstDataRow, normalizedEntries.length, 'PDF作成');
+    } else if (barcodePdfInfo && barcodePdfInfo.success === false) {
+      markBarcodePrintStatus_(inventorySheet, firstDataRow, normalizedEntries.length, '作成失敗');
+    }
   }
 
   var firstInventoryId = normalizedEntries.length ? normalizedEntries[0].inventoryId : '';
@@ -354,10 +343,10 @@ function registerEntries(entryList, commonInfo, expenseList) {
   if (firstInventoryId) {
     message += ' / 商品個別番号(先頭)=' + firstInventoryId;
   }
-  if (pdfInfo && pdfInfo.success === false) {
+  if (outputResult && outputResult.executed && pdfInfo && pdfInfo.success === false) {
     message += ' / PDF保存失敗:' + pdfInfo.error;
   }
-  if (barcodePdfInfo && barcodePdfInfo.success === false) {
+  if (outputResult && outputResult.executed && barcodePdfInfo && barcodePdfInfo.success === false) {
     message += ' / バーコードPDF保存失敗:' + barcodePdfInfo.error;
   }
 
@@ -370,6 +359,7 @@ function registerEntries(entryList, commonInfo, expenseList) {
     inventoryIdMode: inventoryIdMode,
     inventoryIdModeLabel: inventoryIdModeLabel,
     slipData: slipData,
+    output: outputResult,
     pdf: pdfInfo,
     barcodePdf: barcodePdfInfo
   };

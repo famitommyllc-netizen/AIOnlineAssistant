@@ -510,7 +510,7 @@ function applyEntryInputStagePosition_(stageEl) {
     width: Math.max(0, window.innerWidth - 16),
     height: 0
   };
-  const panelWidth = Math.min(window.innerWidth * 0.96, 1200);
+  const panelWidth = Math.min(window.innerWidth * 0.98, layoutWidth - 16);
   const rootStyles = window.getComputedStyle(document.documentElement);
   const topOffsetRaw = parseFloat(String(rootStyles.getPropertyValue('--entry-top-offset') || '').trim());
   const topOffset = Number.isFinite(topOffsetRaw) ? topOffsetRaw : 0;
@@ -889,7 +889,8 @@ function buildEntryInputStageFieldHtml_(scope, step, inputClass, inputAttrs, val
   return `
     <div class="entry-input-stage-input-wrap is-date">
       ${inputHtml}
-      <button type="button" class="entry-input-stage-date-button" aria-label="日付を選択" onclick="openEntryInputStageDatePicker_(); return false;">
+      <!-- 見た目アイコン（クリック判定は date input 側で受ける） -->
+      <span class="entry-input-stage-date-button" aria-hidden="true">
         <span class="entry-input-stage-date-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
             <rect x="4" y="5" width="16" height="15" rx="2" ry="2"></rect>
@@ -898,8 +899,9 @@ function buildEntryInputStageFieldHtml_(scope, step, inputClass, inputAttrs, val
             <line x1="4" y1="9" x2="20" y2="9"></line>
           </svg>
         </span>
-      </button>
-      <input type="date" id="entry-input-stage-date-picker" class="date-picker-helper entry-input-stage-date-native" aria-label="日付を選択" onclick="syncEntryInputStageDatePicker_()" onfocus="syncEntryInputStageDatePicker_()" oninput="onEntryInputStageDatePickerChange_()" onchange="onEntryInputStageDatePickerChange_()">
+      </span>
+      <!-- 実クリック対象の date input -->
+      <input type="date" id="entry-input-stage-date-picker" class="entry-input-stage-date-native" aria-label="日付を選択" onclick="syncEntryInputStageDatePicker_()" onfocus="syncEntryInputStageDatePicker_()" oninput="onEntryInputStageDatePickerChange_()" onchange="onEntryInputStageDatePickerChange_()">
     </div>
   `;
 }
@@ -920,33 +922,19 @@ function onEntryInputStageDatePickerChange_() {
 }
 
 function openEntryInputStageDatePicker_() {
-  const inputEl = document.getElementById('entry-input-stage-field');
   const pickerEl = document.getElementById('entry-input-stage-date-picker');
-  if (!inputEl || !pickerEl) return false;
+  if (!pickerEl) return false;
   syncEntryInputStageDatePicker_();
-  if (typeof pickerEl.showPicker === 'function') {
-    try {
-      pickerEl.showPicker();
-      return true;
-    } catch (err) {
-      // showPicker非対応またはユーザー操作条件を満たさない場合は下へフォールバック
-    }
-  }
   try {
     pickerEl.focus({ preventScroll: true });
-  } catch (err2) {
+  } catch (err) {
     try {
       pickerEl.focus();
-    } catch (err3) {
+    } catch (err2) {
       return false;
     }
   }
-  try {
-    pickerEl.click();
-    return true;
-  } catch (err4) {
-    return false;
-  }
+  return true;
 }
 
 function focusEntryInputStage_() {
