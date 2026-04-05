@@ -41,11 +41,11 @@ function doGet(e) {
 
 var WEB_APP_PAGES_ = {
   home: { file: 'Home', title: 'ERP ホーム' },
-  // 旧URL (?page=entry) でアクセスしても、ホーム起点に統一する。
-  entry: { file: 'Home', title: 'ERP ホーム' },
-  entry_a: { file: 'EntryFormA', title: '仕入入力 (A)' },
-  entry_b: { file: 'EntryFormB', title: '仕入入力 (B)' },
-  entry_confirm: { file: 'EntryFormA', title: '仕入入力 (A)' },
+  entry: { file: 'EntryForm', title: '仕入入力' },
+  // 互換ルートは単一ページへ集約
+  entry_a: { file: 'EntryForm', title: '仕入入力' },
+  entry_b: { file: 'EntryForm', title: '仕入入力' },
+  entry_confirm: { file: 'EntryForm', title: '仕入入力' },
   product: { file: 'ProductRegister', title: '商品登録' },
   sales: { file: 'SalesForm', title: '売上登録' },
   expense: { file: 'ExpenseForm', title: '経費登録' },
@@ -164,7 +164,7 @@ function entryDraftCacheKey_(token) {
 }
 
 function showEntryForm() {
-  var html = HtmlService.createHtmlOutputFromFile('EntryFormA')
+  var html = HtmlService.createHtmlOutputFromFile('EntryForm')
     .setWidth(900)
     .setHeight(760);
   SpreadsheetApp.getUi().showModalDialog(html, '仕入登録');

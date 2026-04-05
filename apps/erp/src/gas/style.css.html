@@ -49,6 +49,14 @@
   --app-nav-gap: 5px;
   --entry-swipe-delete-width: 84px;
   --entry-delete-button-size: 48px;
+
+  /* 表示設定（将来拡張用） */
+  --app-font-size: 20px;
+  --app-text-color: #1f2933;
+  --app-bg-color: #f4f6f8;
+  --app-accent-color: #10b981;
+  --app-button-radius: 12px;
+  --app-density: 1;
 }
 
 html {
@@ -71,10 +79,10 @@ body {
 }
 
 body {
-  font-size: 20px;
-  line-height: 1.5;
-  background: #f4f6f8;
-  color: #1f2933;
+  font-size: var(--app-font-size);
+  line-height: calc(1.5 * var(--app-density));
+  background: var(--app-bg-color);
+  color: var(--app-text-color);
   margin: 0;
   padding: 0;
   height: 100dvh;
@@ -87,7 +95,7 @@ body {
   width: 100%;
   height: 100dvh;
   min-height: 100dvh;
-  background: #f4f6f8;
+  background: var(--app-bg-color);
 }
 
 .entry-fixed-header {
@@ -234,7 +242,8 @@ body {
   white-space: nowrap;
 }
 
-body.entry-b-layout .entry-bottom-nav-btn.is-active {
+body.entry-b-layout .entry-bottom-nav-btn.is-active,
+body.entry-app-layout .entry-bottom-nav-btn.is-active {
   background: #e0f2fe;
   color: #0c4a6e;
 }
@@ -247,7 +256,8 @@ body.entry-b-layout .entry-bottom-nav-btn.is-active {
   }
 }
 
-body.entry-b-layout {
+body.entry-b-layout,
+body.entry-app-layout {
   --entry-panel-min-height: 420px;
   --entry-input-padding-y: 20px;
   --entry-actions-margin-top: 20px;
@@ -256,13 +266,15 @@ body.entry-b-layout {
   --entry-top-offset: -56px;
 }
 
-body.entry-b-layout .entry-input-stage-panel {
+body.entry-b-layout .entry-input-stage-panel,
+body.entry-app-layout .entry-input-stage-panel {
   border-color: #0284c7;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
 }
 
-body.entry-b-layout .entry-input-stage-label {
+body.entry-b-layout .entry-input-stage-label,
+body.entry-app-layout .entry-input-stage-label {
   color: #0c4a6e;
 }
 
@@ -401,10 +413,10 @@ textarea:focus {
 
 .btn-main,
 button {
-  background: #10b981;
+  background: var(--app-accent-color);
   color: #fff;
   border: none;
-  border-radius: 12px;
+  border-radius: var(--app-button-radius);
   min-height: 58px;
   padding: 0.8em 1.2em;
   font-size: 0.95em;
@@ -1243,13 +1255,32 @@ body.entry-stage-mobile-b {
   overflow: hidden;
 }
 
+body.entry-stage-mobile {
+  overflow: hidden;
+}
+
 body.entry-stage-mobile-b .entry-fixed-header,
 body.entry-stage-mobile-b .entry-fixed-footer {
   visibility: hidden;
   pointer-events: none;
 }
 
+body.entry-stage-mobile .entry-fixed-header,
+body.entry-stage-mobile .entry-fixed-footer {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 body.entry-stage-mobile-b #entry-scroll-body {
+  position: static;
+  top: auto;
+  bottom: auto;
+  height: 100dvh;
+  overflow: hidden;
+  padding: 0;
+}
+
+body.entry-stage-mobile #entry-scroll-body {
   position: static;
   top: auto;
   bottom: auto;
@@ -1264,7 +1295,17 @@ body.entry-stage-mobile-b #result-page {
   visibility: hidden;
 }
 
+body.entry-stage-mobile #entry-page,
+body.entry-stage-mobile #confirm-page,
+body.entry-stage-mobile #result-page {
+  visibility: hidden;
+}
+
 body.entry-b-layout.entry-stage-mobile-b #entry-input-stage {
+  background: rgba(15, 23, 42, 0.18);
+}
+
+body.entry-app-layout.entry-stage-mobile #entry-input-stage {
   background: rgba(15, 23, 42, 0.18);
 }
 
