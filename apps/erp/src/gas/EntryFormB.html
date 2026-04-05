@@ -15,7 +15,7 @@
           <div class="entry-fixed-header-title">仕入入力</div>
           <div class="entry-fixed-header-file">EntryFormB.html</div>
         </div>
-        <div id="entry-fixed-header-state" class="entry-fixed-header-state">Bモード</div>
+        <div id="entry-fixed-header-state" class="entry-fixed-header-state">入力</div>
       </div>
     </header>
 
@@ -170,7 +170,6 @@ let paymentCandidates = [];
 let commonPaymentCache = '';
 let pendingPayload = null;
 let postSubmitSlipData = null;
-let entryViewVariant = 'A';
 let pointInputMode = 'allocation';   // allocation | individual
 let expenseInputMode = 'allocation'; // allocation | individual
 let detailPanelState = {
@@ -197,9 +196,6 @@ let entryInputStageState_ = {
 let entryInputStageSuggestions_ = [];
 let entryInputStageSuggestionActiveIndex_ = -1;
 let entryInputStageSuggestionVisible_ = false;
-const ENTRY_VIEW_VARIANT_STORAGE_KEY_ = 'erp.entryForm.viewVariant';
-const ENTRY_PAGE_DEFAULT_VARIANT_ = 'B';
-const ENTRY_PAGE_ROUTE_ = 'entry_b';
 const ENTRY_ALT_PAGE_ROUTE_ = 'entry_a';
 let entryInputStageViewportRaf_ = 0;
 let entryStageBodyLockScrollY_ = 0;
@@ -222,7 +218,6 @@ window.onload = function() {
       throw new Error('共通UI関数が読み込まれていません');
     }
 
-    initializeEntryViewVariant_();
     entryRows = [createEmptyEntryRow()];
     expenseList = [createEmptyExpenseRow()];
     initializeDetailPanels_();
@@ -524,114 +519,18 @@ function handleSwipeDeleteDocumentClick_(event) {
   closeSwipeDeleteRows_(null);
 }
 
-function isIOSMobile_() {
-  const ua = String((window.navigator && window.navigator.userAgent) || '').toLowerCase();
-  const platform = String((window.navigator && window.navigator.platform) || '').toLowerCase();
-  const touchPoints = Number((window.navigator && window.navigator.maxTouchPoints) || 0);
-  const isAppleMobileUa = /iphone|ipad|ipod/.test(ua);
-  const isIPadDesktopMode = platform === 'macintel' && touchPoints > 1;
-  return (isAppleMobileUa || isIPadDesktopMode) && window.innerWidth <= 1024;
-}
-
-function normalizeEntryViewVariant_(value) {
-  const variant = String(value || '').trim().toUpperCase();
-  return variant === 'B' ? 'B' : 'A';
-}
-
-function persistEntryViewVariant_(variant) {
-  try {
-    window.localStorage.setItem(ENTRY_VIEW_VARIANT_STORAGE_KEY_, normalizeEntryViewVariant_(variant));
-  } catch (err) {
-    // no-op
-  }
-}
-
-function applyEntryViewVariant_(variant, options) {
-  const normalized = normalizeEntryViewVariant_(variant);
-  const opts = options || {};
-  entryViewVariant = normalized;
-  document.body.setAttribute('data-ui-variant', normalized.toLowerCase());
-  document.body.setAttribute('data-footer-mode', 'consolidated');
-  const headerStateEl = document.getElementById('entry-fixed-header-state');
-  if (headerStateEl) {
-    headerStateEl.textContent = normalized === 'B' ? 'Bモード' : 'Aモード';
-  }
-  if (!opts.skipPersist) {
-    persistEntryViewVariant_(normalized);
-  }
-  renderTopHelperButtons_();
-  updateTopHelperButtons_();
-}
-
-function initializeEntryViewVariant_() {
-  const queryParamVariant = String(getQueryParam_('ab') || getQueryParam_('variant')).trim();
-  const queryVariant = normalizeEntryViewVariant_(queryParamVariant);
-  if (queryParamVariant) {
-    applyEntryViewVariant_(queryVariant);
-    return;
-  }
-  const pageDefaultRaw = String(ENTRY_PAGE_DEFAULT_VARIANT_ || '').trim().toUpperCase();
-  if (pageDefaultRaw === 'A' || pageDefaultRaw === 'B') {
-    applyEntryViewVariant_(pageDefaultRaw, { skipPersist: true });
-    return;
-  }
-  if (isIOSMobile_()) {
-    applyEntryViewVariant_('B', { skipPersist: true });
-    return;
-  }
-  let storedRaw = '';
-  try {
-    storedRaw = String(window.localStorage.getItem(ENTRY_VIEW_VARIANT_STORAGE_KEY_) || '').trim();
-  } catch (err) {
-    storedRaw = '';
-  }
-  if (storedRaw) {
-    applyEntryViewVariant_(normalizeEntryViewVariant_(storedRaw), { skipPersist: true });
-    return;
-  }
-  const defaultVariant = 'A';
-  applyEntryViewVariant_(defaultVariant, { skipPersist: true });
-}
-
 function handleUiVariantToggleClick() {
-  if (ENTRY_PAGE_ROUTE_ && ENTRY_ALT_PAGE_ROUTE_) {
-    navigateToWebAppPage_(ENTRY_ALT_PAGE_ROUTE_, {});
-    return;
-  }
-  const nextVariant = normalizeEntryViewVariant_(entryViewVariant) === 'A' ? 'B' : 'A';
-  applyEntryViewVariant_(nextVariant);
-  renderExpenseArea();
-  renderPointArea();
-  applyDetailPanelVisibility_();
-  if (entryInputStageState_.active) {
-    renderEntryInputStage_();
-  }
-  updateTopHelperButtons_();
-}
-
-function isUiVariantB_() {
-  return normalizeEntryViewVariant_(entryViewVariant) === 'B';
+  navigateToWebAppPage_(ENTRY_ALT_PAGE_ROUTE_, {});
 }
 
 function isInputStabilityVariantB_() {
-  return isUiVariantB_();
-}
-
-function isFooterConsolidatedMode_() {
   return true;
 }
 
 function renderTopHelperButtons_() {
   const helperBar = document.getElementById('entry-top-helper-bar');
   if (!helperBar) return;
-  if (isFooterConsolidatedMode_()) {
-    helperBar.innerHTML = '';
-    return;
-  }
-  helperBar.innerHTML = '' +
-    '<button type="button" id="helper-variant-btn" class="header-toggle-btn" onclick="handleUiVariantToggleClick()"></button>' +
-    '<button type="button" id="helper-individual-btn" class="header-toggle-btn" onclick="handleIndividualModeToggleClick()"></button>' +
-    '<button type="button" id="helper-tax-btn" class="header-toggle-btn" onclick="handleTaxToggleClick()"></button>';
+  helperBar.innerHTML = '';
 }
 
 function setEntryScreenState_(screen) {
@@ -1864,13 +1763,8 @@ function applyDetailPanelVisibility_() {
   const expenseEl = document.getElementById('expense-area');
   const pointEl = document.getElementById('point-area');
   if (!expenseEl || !pointEl) return;
-  if (isFooterConsolidatedMode_()) {
-    expenseEl.style.display = detailPanelState.expense ? 'block' : 'none';
-    pointEl.style.display = detailPanelState.point ? 'block' : 'none';
-    return;
-  }
-  expenseEl.style.display = 'block';
-  pointEl.style.display = 'block';
+  expenseEl.style.display = detailPanelState.expense ? 'block' : 'none';
+  pointEl.style.display = detailPanelState.point ? 'block' : 'none';
 }
 
 function toggleExpensePanelVisibility_() {
@@ -1884,7 +1778,6 @@ function togglePointPanelVisibility_() {
 }
 
 function updateTopHelperButtons_() {
-  const variantBtn = document.getElementById('helper-variant-btn');
   const individualBtn = document.getElementById('helper-individual-btn');
   const taxBtn = document.getElementById('helper-tax-btn');
   const footerHomeBtn = document.getElementById('footer-home-btn');
@@ -1892,17 +1785,10 @@ function updateTopHelperButtons_() {
   const footerDetailBtn = document.getElementById('footer-detail-btn');
   const footerTaxBtn = document.getElementById('footer-tax-btn');
   const footerIndividualBtn = document.getElementById('footer-individual-btn');
-  const isVariantB = normalizeEntryViewVariant_(entryViewVariant) === 'B';
   const isIndividual = isLineItemIndividualMode_();
   const detailsOpen = !!detailPanelState.expense || !!detailPanelState.point;
   const currentScreen = String(document.body.getAttribute('data-entry-screen') || 'entry').trim() || 'entry';
 
-  if (variantBtn) {
-    variantBtn.textContent = '表示：' + (isVariantB ? 'B' : 'A');
-    variantBtn.classList.toggle('is-open', isVariantB);
-    variantBtn.setAttribute('aria-pressed', isVariantB ? 'true' : 'false');
-    variantBtn.title = isVariantB ? 'A表示に切り替え' : 'B表示に切り替え';
-  }
   if (individualBtn) {
     individualBtn.textContent = '個別モード：' + (isIndividual ? 'ON' : 'OFF');
     individualBtn.classList.toggle('is-open', isIndividual);
@@ -1920,9 +1806,10 @@ function updateTopHelperButtons_() {
     footerHomeBtn.setAttribute('aria-pressed', currentScreen === 'entry' ? 'true' : 'false');
   }
   if (footerVariantBtn) {
-    footerVariantBtn.classList.toggle('is-active', isVariantB);
-    footerVariantBtn.setAttribute('aria-pressed', isVariantB ? 'true' : 'false');
-    footerVariantBtn.setAttribute('title', isVariantB ? 'Aに切替' : 'Bに切替');
+    const variantTargetLabel = ENTRY_ALT_PAGE_ROUTE_ === 'entry_a' ? 'Aに切替' : 'Bに切替';
+    footerVariantBtn.classList.remove('is-active');
+    footerVariantBtn.setAttribute('aria-pressed', 'false');
+    footerVariantBtn.setAttribute('title', variantTargetLabel);
   }
   if (footerDetailBtn) {
     footerDetailBtn.classList.toggle('is-active', detailsOpen);
@@ -2520,7 +2407,6 @@ function removeTaxFromAll_() {
 }
 
 function renderPointArea() {
-  const isVariantB = isFooterConsolidatedMode_();
   const pointTotalFromRows = entryRows.reduce((sum, row) => {
     if (!String(row.name || '').trim() || roundYen(row.price) <= 0) return sum;
     return sum + Math.max(0, roundYen(row.point || 0));
@@ -2557,9 +2443,7 @@ function renderPointArea() {
     modeContent = '';
   }
 
-  const headerHtml = isVariantB
-    ? '<h3 class="mid-title panel-head-title">ポイント/割引</h3>'
-    : `<div class="panel-head-row"><h3 class="mid-title panel-head-title">ポイント/割引</h3><button type="button" class="${pointToggleBtnClass}" onclick="togglePointPanelVisibility_()" aria-label="${pointToggleLabel}">${pointPanelOpen ? '−' : '＋'}</button></div>`;
+  const headerHtml = '<h3 class="mid-title panel-head-title">ポイント/割引</h3>';
 
   document.getElementById('point-area').innerHTML = headerHtml + modeContent;
   applyDetailPanelVisibility_();
@@ -2579,7 +2463,6 @@ function onPointModeChange(mode) {
 }
 
 function renderExpenseArea() {
-  const isVariantB = isFooterConsolidatedMode_();
   if (!expenseList.length) {
     expenseList = [createEmptyExpenseRow()];
   }
@@ -2669,9 +2552,7 @@ function renderExpenseArea() {
     modeContent = '';
   }
 
-  const headerHtml = isVariantB
-    ? `<div class="entry-lines-title-row"><h3 class="mid-title">経費</h3>${expenseTitleActionsHtml}</div>`
-    : `<div class="panel-head-row"><h3 class="mid-title panel-head-title">経費</h3><button type="button" class="${expenseToggleBtnClass}" onclick="toggleExpensePanelVisibility_()" aria-label="${expenseToggleLabel}">${expensePanelOpen ? '−' : '＋'}</button></div>`;
+  const headerHtml = `<div class="entry-lines-title-row"><h3 class="mid-title">経費</h3>${expenseTitleActionsHtml}</div>`;
 
   document.getElementById('expense-area').innerHTML = headerHtml + modeContent;
   applyDetailPanelVisibility_();

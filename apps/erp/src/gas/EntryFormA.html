@@ -7,7 +7,7 @@
     <?!= HtmlService.createHtmlOutputFromFile('style.css').getContent(); ?>
   </style>
 </head>
-<body>
+<body class="entry-b-layout">
   <div id="entry-app-shell" class="entry-app-shell">
     <header id="entry-fixed-header" class="entry-fixed-header">
       <div class="entry-fixed-header-inner">
@@ -15,7 +15,7 @@
           <div class="entry-fixed-header-title">仕入入力</div>
           <div class="entry-fixed-header-file">EntryFormA.html</div>
         </div>
-        <div id="entry-fixed-header-state" class="entry-fixed-header-state">Aモード</div>
+        <div id="entry-fixed-header-state" class="entry-fixed-header-state">入力</div>
       </div>
     </header>
 
@@ -23,7 +23,6 @@
       <div id="entry-page">
         <div class="section">
           <div class="section-header-row">
-            <h2 class="section-title">仕入入力</h2>
             <div id="entry-top-helper-bar" class="header-toggle-bar"></div>
           </div>
           <datalist id="product-options"></datalist>
@@ -81,7 +80,7 @@
         </button>
         <button type="button" id="footer-detail-btn" class="entry-bottom-nav-btn" onclick="handleFooterDetailToggleClick()">
           <span class="entry-bottom-nav-icon">DP</span>
-          <span class="entry-bottom-nav-label">経費/点</span>
+          <span class="entry-bottom-nav-label">経費/P</span>
         </button>
         <button type="button" id="footer-tax-btn" class="entry-bottom-nav-btn" onclick="handleTaxToggleClick()">
           <span class="entry-bottom-nav-icon">TX</span>
@@ -171,7 +170,6 @@ let paymentCandidates = [];
 let commonPaymentCache = '';
 let pendingPayload = null;
 let postSubmitSlipData = null;
-let entryViewVariant = 'A';
 let pointInputMode = 'allocation';   // allocation | individual
 let expenseInputMode = 'allocation'; // allocation | individual
 let detailPanelState = {
@@ -195,12 +193,24 @@ let entryInputStageState_ = {
   tempData: null,
   originRect: null
 };
-const ENTRY_VIEW_VARIANT_STORAGE_KEY_ = 'erp.entryForm.viewVariant';
-const ENTRY_PAGE_DEFAULT_VARIANT_ = 'A';
-const ENTRY_PAGE_ROUTE_ = 'entry_a';
+let entryInputStageSuggestions_ = [];
+let entryInputStageSuggestionActiveIndex_ = -1;
+let entryInputStageSuggestionVisible_ = false;
 const ENTRY_ALT_PAGE_ROUTE_ = 'entry_b';
 let entryInputStageViewportRaf_ = 0;
 let entryStageBodyLockScrollY_ = 0;
+let entrySwipeDeleteTouchState_ = {
+  touchId: null,
+  rowEl: null,
+  startX: 0,
+  startY: 0,
+  deltaX: 0,
+  moved: false
+};
+let entryListDeleteModeState_ = {
+  product: false,
+  expense: false
+};
 
 window.onload = function() {
   try {
@@ -208,7 +218,6 @@ window.onload = function() {
       throw new Error('共通UI関数が読み込まれていません');
     }
 
-    initializeEntryViewVariant_();
     entryRows = [createEmptyEntryRow()];
     expenseList = [createEmptyExpenseRow()];
     initializeDetailPanels_();
@@ -234,6 +243,7 @@ window.onload = function() {
     }
     document.addEventListener('pointerdown', handleStageTriggerPointerDown_, true);
     document.addEventListener('touchstart', handleStageTriggerTouchStart_, { passive: false, capture: true });
+    initializeSwipeDeleteActions_();
   } catch (err) {
     const msg = err && err.message ? err.message : String(err);
     const target = document.getElementById('entry-status');
@@ -249,6 +259,7 @@ window.addEventListener('scroll', handleEntryInputStageViewportChange_, true);
 
 function getStageTriggerElementFromEventTarget_(target) {
   if (!target || typeof target.closest !== 'function') return null;
+  if (target.closest('.entry-swipe-delete-row')) return null;
   const triggerEl = target.closest('.entry-stage-trigger');
   if (!triggerEl) return null;
   if (!triggerEl.hasAttribute('readonly')) return null;
@@ -280,6 +291,7 @@ function openStageTriggerWithoutFocus_(triggerEl) {
 
 function handleStageTriggerPointerDown_(event) {
   if (!isInputStabilityVariantB_()) return;
+  if (shouldDeferStageTriggerForSwipe_(event && event.target)) return;
   const triggerEl = getStageTriggerElementFromEventTarget_(event && event.target);
   if (!triggerEl) return;
   if (event && typeof event.preventDefault === 'function') {
@@ -290,6 +302,7 @@ function handleStageTriggerPointerDown_(event) {
 
 function handleStageTriggerTouchStart_(event) {
   if (!isInputStabilityVariantB_()) return;
+  if (shouldDeferStageTriggerForSwipe_(event && event.target)) return;
   const triggerEl = getStageTriggerElementFromEventTarget_(event && event.target);
   if (!triggerEl) return;
   if (event && typeof event.preventDefault === 'function') {
@@ -298,114 +311,226 @@ function handleStageTriggerTouchStart_(event) {
   openStageTriggerWithoutFocus_(triggerEl);
 }
 
-function isIOSMobile_() {
-  const ua = String((window.navigator && window.navigator.userAgent) || '').toLowerCase();
-  const platform = String((window.navigator && window.navigator.platform) || '').toLowerCase();
-  const touchPoints = Number((window.navigator && window.navigator.maxTouchPoints) || 0);
-  const isAppleMobileUa = /iphone|ipad|ipod/.test(ua);
-  const isIPadDesktopMode = platform === 'macintel' && touchPoints > 1;
-  return (isAppleMobileUa || isIPadDesktopMode) && window.innerWidth <= 1024;
+function shouldDeferStageTriggerForSwipe_(target) {
+  if (!target || typeof target.closest !== 'function') return false;
+  const triggerEl = target.closest('.entry-stage-trigger');
+  if (!triggerEl) return false;
+  const swipeTableEl = triggerEl.closest('.entry-inline-table.entry-swipe-table');
+  if (!swipeTableEl) return false;
+  return !!swipeTableEl.querySelector('.entry-swipe-delete-row');
 }
 
-function normalizeEntryViewVariant_(value) {
-  const variant = String(value || '').trim().toUpperCase();
-  return variant === 'B' ? 'B' : 'A';
+function initializeSwipeDeleteActions_() {
+  document.addEventListener('touchstart', handleSwipeDeleteTouchStart_, { passive: true });
+  document.addEventListener('touchmove', handleSwipeDeleteTouchMove_, { passive: false });
+  document.addEventListener('touchend', handleSwipeDeleteTouchEnd_, true);
+  document.addEventListener('touchcancel', handleSwipeDeleteTouchCancel_, true);
+  document.addEventListener('click', handleSwipeDeleteDocumentClick_, true);
 }
 
-function persistEntryViewVariant_(variant) {
-  try {
-    window.localStorage.setItem(ENTRY_VIEW_VARIANT_STORAGE_KEY_, normalizeEntryViewVariant_(variant));
-  } catch (err) {
-    // no-op
+function isEntryListDeleteAvailable_(scope) {
+  const targetScope = scope === 'expense' ? 'expense' : 'product';
+  return targetScope === 'expense'
+    ? expenseList.length > 1
+    : entryRows.length > 1;
+}
+
+function setEntryListDeleteMode_(scope, enabled) {
+  const targetScope = scope === 'expense' ? 'expense' : 'product';
+  entryListDeleteModeState_[targetScope] = !!enabled;
+}
+
+function toggleEntryListDeleteMode_(scope) {
+  const targetScope = scope === 'expense' ? 'expense' : 'product';
+  const canEnable = isEntryListDeleteAvailable_(targetScope);
+  if (!canEnable) {
+    setEntryListDeleteMode_(targetScope, false);
+  } else {
+    setEntryListDeleteMode_(targetScope, !entryListDeleteModeState_[targetScope]);
+  }
+  if (targetScope === 'expense') {
+    renderExpenseArea();
+    return;
+  }
+  renderEntryRows();
+}
+
+function getSwipeDeleteRowFromTarget_(target) {
+  if (!target || typeof target.closest !== 'function') return null;
+  const rowEl = target.closest('.entry-swipe-delete-row');
+  if (!rowEl) return null;
+  if (!rowEl.closest('.entry-inline-table.entry-swipe-table')) return null;
+  return rowEl;
+}
+
+function findTouchById_(touchList, touchId) {
+  if (!touchList || touchId === null || touchId === undefined) return null;
+  for (let i = 0; i < touchList.length; i++) {
+    const touch = touchList[i];
+    if (touch && touch.identifier === touchId) {
+      return touch;
+    }
+  }
+  return null;
+}
+
+function closeSwipeDeleteRows_(exceptRowEl) {
+  const openRows = document.querySelectorAll('.entry-swipe-delete-row.is-swipe-open');
+  openRows.forEach(function(rowEl) {
+    if (exceptRowEl && rowEl === exceptRowEl) return;
+    const tableEl = rowEl.closest('.entry-inline-table.entry-swipe-table');
+    if (tableEl && tableEl.classList.contains('is-delete-mode')) return;
+    rowEl.classList.remove('is-swipe-open');
+    if (rowEl.dataset) {
+      delete rowEl.dataset.swipeSuppressClick;
+    }
+  });
+}
+
+function setSwipeDeleteRowOpen_(rowEl, shouldOpen) {
+  if (!rowEl) return;
+  const tableEl = rowEl.closest('.entry-inline-table.entry-swipe-table');
+  if (tableEl && tableEl.classList.contains('is-delete-mode')) {
+    if (shouldOpen) {
+      rowEl.classList.add('is-swipe-open');
+    }
+    return;
+  }
+  if (shouldOpen) {
+    closeSwipeDeleteRows_(rowEl);
+    rowEl.classList.add('is-swipe-open');
+    return;
+  }
+  rowEl.classList.remove('is-swipe-open');
+}
+
+function resetSwipeDeleteTouchState_() {
+  entrySwipeDeleteTouchState_.touchId = null;
+  entrySwipeDeleteTouchState_.rowEl = null;
+  entrySwipeDeleteTouchState_.startX = 0;
+  entrySwipeDeleteTouchState_.startY = 0;
+  entrySwipeDeleteTouchState_.deltaX = 0;
+  entrySwipeDeleteTouchState_.moved = false;
+}
+
+function handleSwipeDeleteTouchStart_(event) {
+  const touch = event && event.changedTouches && event.changedTouches[0];
+  if (!touch) return;
+  const rowEl = getSwipeDeleteRowFromTarget_(event.target);
+  if (!rowEl) {
+    resetSwipeDeleteTouchState_();
+    return;
+  }
+  const tableEl = rowEl.closest('.entry-inline-table.entry-swipe-table');
+  if (tableEl && tableEl.classList.contains('is-delete-mode')) {
+    resetSwipeDeleteTouchState_();
+    return;
+  }
+  const isDeleteButtonTap = event.target && event.target.closest && event.target.closest('.entry-row-remove');
+  if (isDeleteButtonTap) {
+    resetSwipeDeleteTouchState_();
+    return;
+  }
+  entrySwipeDeleteTouchState_.touchId = touch.identifier;
+  entrySwipeDeleteTouchState_.rowEl = rowEl;
+  entrySwipeDeleteTouchState_.startX = touch.clientX;
+  entrySwipeDeleteTouchState_.startY = touch.clientY;
+  entrySwipeDeleteTouchState_.deltaX = 0;
+  entrySwipeDeleteTouchState_.moved = false;
+}
+
+function handleSwipeDeleteTouchMove_(event) {
+  const state = entrySwipeDeleteTouchState_;
+  if (!state.rowEl) return;
+  const touch = findTouchById_(event.changedTouches, state.touchId) || findTouchById_(event.touches, state.touchId);
+  if (!touch) return;
+  const deltaX = touch.clientX - state.startX;
+  const deltaY = touch.clientY - state.startY;
+  if (!state.moved) {
+    if (Math.abs(deltaX) < 10 && Math.abs(deltaY) < 10) {
+      return;
+    }
+    if (Math.abs(deltaY) > Math.abs(deltaX)) {
+      resetSwipeDeleteTouchState_();
+      return;
+    }
+    state.moved = true;
+  }
+  state.deltaX = deltaX;
+  if (event && event.cancelable) {
+    event.preventDefault();
+  }
+  if (deltaX <= -18) {
+    setSwipeDeleteRowOpen_(state.rowEl, true);
+  } else if (deltaX >= 18) {
+    setSwipeDeleteRowOpen_(state.rowEl, false);
   }
 }
 
-function applyEntryViewVariant_(variant, options) {
-  const normalized = normalizeEntryViewVariant_(variant);
-  const opts = options || {};
-  entryViewVariant = normalized;
-  document.body.setAttribute('data-ui-variant', normalized.toLowerCase());
-  document.body.setAttribute('data-footer-mode', 'consolidated');
-  const headerStateEl = document.getElementById('entry-fixed-header-state');
-  if (headerStateEl) {
-    headerStateEl.textContent = normalized === 'B' ? 'Bモード' : 'Aモード';
+function handleSwipeDeleteTouchEnd_(event) {
+  const state = entrySwipeDeleteTouchState_;
+  if (!state.rowEl) return;
+  const touch = findTouchById_(event.changedTouches, state.touchId);
+  if (!touch) return;
+  const rowEl = state.rowEl;
+  if (state.moved) {
+    if (state.deltaX <= -28) {
+      setSwipeDeleteRowOpen_(rowEl, true);
+    } else if (state.deltaX >= 20) {
+      setSwipeDeleteRowOpen_(rowEl, false);
+    }
+    if (rowEl.dataset) {
+      rowEl.dataset.swipeSuppressClick = '1';
+      window.setTimeout(function() {
+        if (rowEl && rowEl.dataset) {
+          delete rowEl.dataset.swipeSuppressClick;
+        }
+      }, 220);
+    }
   }
-  if (!opts.skipPersist) {
-    persistEntryViewVariant_(normalized);
-  }
-  renderTopHelperButtons_();
-  updateTopHelperButtons_();
+  resetSwipeDeleteTouchState_();
 }
 
-function initializeEntryViewVariant_() {
-  const queryParamVariant = String(getQueryParam_('ab') || getQueryParam_('variant')).trim();
-  const queryVariant = normalizeEntryViewVariant_(queryParamVariant);
-  if (queryParamVariant) {
-    applyEntryViewVariant_(queryVariant);
+function handleSwipeDeleteTouchCancel_() {
+  resetSwipeDeleteTouchState_();
+}
+
+function handleSwipeDeleteDocumentClick_(event) {
+  const target = event && event.target;
+  if (!target || typeof target.closest !== 'function') return;
+  const deleteBtn = target.closest('.entry-swipe-delete-row .entry-row-remove');
+  if (deleteBtn) return;
+  const deleteModeTableEl = target.closest('.entry-inline-table.entry-swipe-table.is-delete-mode');
+  if (deleteModeTableEl) return;
+
+  const openRowEl = target.closest('.entry-swipe-delete-row.is-swipe-open');
+  if (openRowEl) {
+    if (openRowEl.dataset && openRowEl.dataset.swipeSuppressClick === '1') {
+      if (event && event.cancelable) event.preventDefault();
+      if (typeof event.stopPropagation === 'function') event.stopPropagation();
+      return;
+    }
+    setSwipeDeleteRowOpen_(openRowEl, false);
+    if (event && event.cancelable) event.preventDefault();
+    if (typeof event.stopPropagation === 'function') event.stopPropagation();
     return;
   }
-  const pageDefaultRaw = String(ENTRY_PAGE_DEFAULT_VARIANT_ || '').trim().toUpperCase();
-  if (pageDefaultRaw === 'A' || pageDefaultRaw === 'B') {
-    applyEntryViewVariant_(pageDefaultRaw, { skipPersist: true });
-    return;
-  }
-  if (isIOSMobile_()) {
-    applyEntryViewVariant_('B', { skipPersist: true });
-    return;
-  }
-  let storedRaw = '';
-  try {
-    storedRaw = String(window.localStorage.getItem(ENTRY_VIEW_VARIANT_STORAGE_KEY_) || '').trim();
-  } catch (err) {
-    storedRaw = '';
-  }
-  if (storedRaw) {
-    applyEntryViewVariant_(normalizeEntryViewVariant_(storedRaw), { skipPersist: true });
-    return;
-  }
-  const defaultVariant = 'A';
-  applyEntryViewVariant_(defaultVariant, { skipPersist: true });
+
+  closeSwipeDeleteRows_(null);
 }
 
 function handleUiVariantToggleClick() {
-  if (ENTRY_PAGE_ROUTE_ && ENTRY_ALT_PAGE_ROUTE_) {
-    navigateToWebAppPage_(ENTRY_ALT_PAGE_ROUTE_, {});
-    return;
-  }
-  const nextVariant = normalizeEntryViewVariant_(entryViewVariant) === 'A' ? 'B' : 'A';
-  applyEntryViewVariant_(nextVariant);
-  renderExpenseArea();
-  renderPointArea();
-  applyDetailPanelVisibility_();
-  if (entryInputStageState_.active) {
-    renderEntryInputStage_();
-  }
-  updateTopHelperButtons_();
-}
-
-function isUiVariantB_() {
-  return normalizeEntryViewVariant_(entryViewVariant) === 'B';
+  navigateToWebAppPage_(ENTRY_ALT_PAGE_ROUTE_, {});
 }
 
 function isInputStabilityVariantB_() {
-  return isUiVariantB_();
-}
-
-function isFooterConsolidatedMode_() {
   return true;
 }
 
 function renderTopHelperButtons_() {
   const helperBar = document.getElementById('entry-top-helper-bar');
   if (!helperBar) return;
-  if (isFooterConsolidatedMode_()) {
-    helperBar.innerHTML = '';
-    return;
-  }
-  helperBar.innerHTML = '' +
-    '<button type="button" id="helper-variant-btn" class="header-toggle-btn" onclick="handleUiVariantToggleClick()"></button>' +
-    '<button type="button" id="helper-individual-btn" class="header-toggle-btn" onclick="handleIndividualModeToggleClick()"></button>' +
-    '<button type="button" id="helper-tax-btn" class="header-toggle-btn" onclick="handleTaxToggleClick()"></button>';
+  helperBar.innerHTML = '';
 }
 
 function setEntryScreenState_(screen) {
@@ -565,7 +690,7 @@ function applyEntryInputStagePosition_(stageEl) {
     stageEl.style.setProperty('--entry-stage-height', Math.round(vvHeight) + 'px');
 
     const safeMargin = 8;
-    const panelWidth = Math.max(0, Math.min(layoutWidth - (safeMargin * 2), Math.min(layoutWidth * 0.92, 720)));
+    const panelWidth = Math.max(0, Math.min(layoutWidth - (safeMargin * 2), Math.min(layoutWidth * 0.98, 72)));
     const left = Math.round(layoutWidth / 2);
     const top = safeMargin;
     const panelMaxHeight = Math.max(0, vvHeight - (safeMargin * 2));
@@ -610,7 +735,7 @@ function applyEntryInputStagePosition_(stageEl) {
     width: Math.max(0, window.innerWidth - 16),
     height: 0
   };
-  const panelWidth = Math.min(window.innerWidth * 0.92, 720);
+  const panelWidth = Math.min(window.innerWidth * 0.96, 1200);
   const rootStyles = window.getComputedStyle(document.documentElement);
   const topOffsetRaw = parseFloat(String(rootStyles.getPropertyValue('--entry-top-offset') || '').trim());
   const topOffset = Number.isFinite(topOffsetRaw) ? topOffsetRaw : 0;
@@ -799,21 +924,254 @@ function getEntryInputStageInputClass_(scope, step) {
 
 function getEntryInputStageInputAttrs_(scope, step) {
   if (scope === 'lineItem') {
-    if (step === 'payment') return 'type="text" list="payment-options"';
+    if (step === 'payment') return 'type="text"';
     return 'type="text" inputmode="numeric" pattern="\\d*"';
   }
   if (scope === 'product' && step === 'name') {
-    return 'type="text" list="product-options"';
+    return 'type="text"';
   }
   if (scope === 'expense' && step === 'name') {
-    return 'type="text" list="expense-items"';
+    return 'type="text"';
   }
   if (scope === 'common') {
-    if (step === 'supplier') return 'type="text" list="supplier-options"';
-    if (step === 'payment') return 'type="text" list="payment-options"';
+    if (step === 'supplier') return 'type="text"';
+    if (step === 'payment') return 'type="text"';
     return 'type="text" inputmode="numeric" pattern="\\d*"';
   }
   return 'type="text" inputmode="numeric" pattern="\\d*"';
+}
+
+function isEntryInputStageDateField_(scope, step) {
+  return normalizeEntryInputStageScope_(scope) === 'common' && normalizeEntryInputStageStep_('common', step) === 'date';
+}
+
+function isEntryInputStageAutocompleteField_(scope, step) {
+  const targetScope = normalizeEntryInputStageScope_(scope);
+  const targetStep = normalizeEntryInputStageStep_(targetScope, step);
+  if (targetScope === 'product' && targetStep === 'name') return true;
+  if (targetScope === 'expense' && targetStep === 'name') return true;
+  if (targetScope === 'common' && (targetStep === 'supplier' || targetStep === 'payment')) return true;
+  return false;
+}
+
+function getEntryInputStageAutocompleteSource_(scope, step) {
+  const targetScope = normalizeEntryInputStageScope_(scope);
+  const targetStep = normalizeEntryInputStageStep_(targetScope, step);
+  if (targetScope === 'product' && targetStep === 'name') {
+    const out = [];
+    const seen = new Set();
+    (productCandidates || []).forEach(function(item) {
+      if (!item) return;
+      const values = [item.label, item.name, item.productNo, item.jan];
+      values.forEach(function(v) {
+        const val = String(v || '').trim();
+        if (!val) return;
+        if (seen.has(val)) return;
+        seen.add(val);
+        out.push(val);
+      });
+    });
+    return out;
+  }
+  if (targetScope === 'expense' && targetStep === 'name') {
+    return (expenseCandidates || []).map(function(v) { return String(v || '').trim(); }).filter(function(v) { return !!v; });
+  }
+  if (targetScope === 'common' && targetStep === 'supplier') {
+    return (supplierCandidates || []).map(function(v) { return String(v || '').trim(); }).filter(function(v) { return !!v; });
+  }
+  if (targetScope === 'common' && targetStep === 'payment') {
+    return (paymentCandidates || []).map(function(v) { return String(v || '').trim(); }).filter(function(v) { return !!v; });
+  }
+  return [];
+}
+
+function createEntryInputStageSuggestionList_(scope, step, inputValue) {
+  if (!isEntryInputStageAutocompleteField_(scope, step)) return [];
+  const queryRaw = String(inputValue || '').trim();
+  const query = queryRaw.toLowerCase();
+  const source = getEntryInputStageAutocompleteSource_(scope, step);
+  const seen = new Set();
+  const startsWith = [];
+  const includes = [];
+  source.forEach(function(item) {
+    const value = String(item || '').trim();
+    if (!value) return;
+    const key = value.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    if (!query) {
+      startsWith.push(value);
+      return;
+    }
+    const lower = value.toLowerCase();
+    if (lower.indexOf(query) === 0) {
+      startsWith.push(value);
+      return;
+    }
+    if (lower.indexOf(query) >= 0) {
+      includes.push(value);
+    }
+  });
+  return startsWith.concat(includes).slice(0, 12);
+}
+
+function renderEntryInputStageSuggestions_() {
+  const listEl = document.getElementById('entry-input-stage-suggestions');
+  if (!listEl) return;
+  if (!entryInputStageSuggestionVisible_ || !entryInputStageSuggestions_.length) {
+    listEl.innerHTML = '';
+    listEl.style.display = 'none';
+    return;
+  }
+  const itemsHtml = entryInputStageSuggestions_.map(function(item, idx) {
+    const activeClass = idx === entryInputStageSuggestionActiveIndex_ ? ' is-active' : '';
+    const escaped = escapeHtml(item);
+    return `<button type="button" class="entry-input-stage-suggestion-item${activeClass}" onmousedown="onEntryInputStageSuggestionPick(${idx}, event)">${escaped}</button>`;
+  }).join('');
+  listEl.innerHTML = itemsHtml;
+  listEl.style.display = 'flex';
+}
+
+function updateEntryInputStageSuggestions_(scope, step, value, opts) {
+  const options = opts || {};
+  if (!isEntryInputStageAutocompleteField_(scope, step)) {
+    entryInputStageSuggestions_ = [];
+    entryInputStageSuggestionActiveIndex_ = -1;
+    entryInputStageSuggestionVisible_ = false;
+    renderEntryInputStageSuggestions_();
+    return;
+  }
+  const nextSuggestions = createEntryInputStageSuggestionList_(scope, step, value);
+  entryInputStageSuggestions_ = nextSuggestions;
+  entryInputStageSuggestionVisible_ = nextSuggestions.length > 0;
+  if (!entryInputStageSuggestionVisible_) {
+    entryInputStageSuggestionActiveIndex_ = -1;
+    renderEntryInputStageSuggestions_();
+    return;
+  }
+  if (options.resetActive) {
+    entryInputStageSuggestionActiveIndex_ = -1;
+  } else if (entryInputStageSuggestionActiveIndex_ >= nextSuggestions.length) {
+    entryInputStageSuggestionActiveIndex_ = nextSuggestions.length - 1;
+  }
+  renderEntryInputStageSuggestions_();
+}
+
+function closeEntryInputStageSuggestions_() {
+  entryInputStageSuggestions_ = [];
+  entryInputStageSuggestionActiveIndex_ = -1;
+  entryInputStageSuggestionVisible_ = false;
+  renderEntryInputStageSuggestions_();
+}
+
+function onEntryInputStageSuggestionPick(index, event) {
+  if (event && typeof event.preventDefault === 'function') {
+    event.preventDefault();
+  }
+  const idx = Number(index);
+  if (!Number.isFinite(idx) || idx < 0 || idx >= entryInputStageSuggestions_.length) return;
+  const picked = entryInputStageSuggestions_[idx];
+  const inputEl = document.getElementById('entry-input-stage-field');
+  if (inputEl) {
+    inputEl.value = picked;
+    if (typeof inputEl.focus === 'function') {
+      try {
+        inputEl.focus({ preventScroll: true });
+      } catch (err) {
+        inputEl.focus();
+      }
+    }
+  }
+  onEntryInputStageInput(picked);
+  closeEntryInputStageSuggestions_();
+}
+
+function moveEntryInputStageSuggestionSelection_(direction) {
+  if (!entryInputStageSuggestionVisible_ || !entryInputStageSuggestions_.length) return false;
+  const len = entryInputStageSuggestions_.length;
+  if (entryInputStageSuggestionActiveIndex_ < 0) {
+    entryInputStageSuggestionActiveIndex_ = direction > 0 ? 0 : len - 1;
+  } else {
+    entryInputStageSuggestionActiveIndex_ = (entryInputStageSuggestionActiveIndex_ + direction + len) % len;
+  }
+  renderEntryInputStageSuggestions_();
+  return true;
+}
+
+function buildEntryInputStageFieldHtml_(scope, step, inputClass, inputAttrs, value, placeholder) {
+  const inputHtml = `<input id="entry-input-stage-field" class="${inputClass}" ${inputAttrs} value="${value}" placeholder="${placeholder}" autocapitalize="off" autocorrect="off" spellcheck="false" onfocus="handleEntryInputStageFieldFocus_()" onblur="handleEntryInputStageFieldBlur_()" oninput="onEntryInputStageInput(this.value)" onkeydown="onEntryInputStageKeydown(event)">`;
+  if (!isEntryInputStageDateField_(scope, step)) {
+    const suggestionHtml = isEntryInputStageAutocompleteField_(scope, step)
+      ? '<div id="entry-input-stage-suggestions" class="entry-input-stage-suggestions" style="display:none;"></div>'
+      : '';
+    return `
+      <div class="entry-input-stage-input-wrap">
+        ${inputHtml}
+        ${suggestionHtml}
+      </div>
+    `;
+  }
+  return `
+    <div class="entry-input-stage-input-wrap is-date">
+      ${inputHtml}
+      <button type="button" class="entry-input-stage-date-button" aria-label="日付を選択" onclick="openEntryInputStageDatePicker_(); return false;">
+        <span class="entry-input-stage-date-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+            <rect x="4" y="5" width="16" height="15" rx="2" ry="2"></rect>
+            <line x1="8" y1="3.5" x2="8" y2="8"></line>
+            <line x1="16" y1="3.5" x2="16" y2="8"></line>
+            <line x1="4" y1="9" x2="20" y2="9"></line>
+          </svg>
+        </span>
+      </button>
+      <input type="date" id="entry-input-stage-date-picker" class="date-picker-helper entry-input-stage-date-native" aria-label="日付を選択" onclick="syncEntryInputStageDatePicker_()" onfocus="syncEntryInputStageDatePicker_()" oninput="onEntryInputStageDatePickerChange_()" onchange="onEntryInputStageDatePickerChange_()">
+    </div>
+  `;
+}
+
+function syncEntryInputStageDatePicker_() {
+  const inputEl = document.getElementById('entry-input-stage-field');
+  const pickerEl = document.getElementById('entry-input-stage-date-picker');
+  if (!inputEl || !pickerEl) return;
+  pickerEl.value = digitsToIsoDate_(String(inputEl.value || ''));
+}
+
+function onEntryInputStageDatePickerChange_() {
+  const inputEl = document.getElementById('entry-input-stage-field');
+  const pickerEl = document.getElementById('entry-input-stage-date-picker');
+  if (!inputEl || !pickerEl) return;
+  inputEl.value = isoDateToDigits_(pickerEl.value);
+  onEntryInputStageInput(inputEl.value);
+}
+
+function openEntryInputStageDatePicker_() {
+  const inputEl = document.getElementById('entry-input-stage-field');
+  const pickerEl = document.getElementById('entry-input-stage-date-picker');
+  if (!inputEl || !pickerEl) return false;
+  syncEntryInputStageDatePicker_();
+  if (typeof pickerEl.showPicker === 'function') {
+    try {
+      pickerEl.showPicker();
+      return true;
+    } catch (err) {
+      // showPicker非対応またはユーザー操作条件を満たさない場合は下へフォールバック
+    }
+  }
+  try {
+    pickerEl.focus({ preventScroll: true });
+  } catch (err2) {
+    try {
+      pickerEl.focus();
+    } catch (err3) {
+      return false;
+    }
+  }
+  try {
+    pickerEl.click();
+    return true;
+  } catch (err4) {
+    return false;
+  }
 }
 
 function focusEntryInputStage_() {
@@ -842,6 +1200,12 @@ function focusEntryInputStage_() {
 }
 
 function handleEntryInputStageFieldFocus_() {
+  if (entryInputStageState_.active) {
+    const scope = normalizeEntryInputStageScope_(entryInputStageState_.scope);
+    const step = normalizeEntryInputStageStep_(scope, entryInputStageState_.step);
+    const inputEl = document.getElementById('entry-input-stage-field');
+    updateEntryInputStageSuggestions_(scope, step, inputEl ? inputEl.value : '', { resetActive: true });
+  }
   if (!isInputStabilityVariantB_()) return;
   handleEntryInputStageViewportChange_();
   window.setTimeout(function() {
@@ -850,6 +1214,9 @@ function handleEntryInputStageFieldFocus_() {
 }
 
 function handleEntryInputStageFieldBlur_() {
+  window.setTimeout(function() {
+    closeEntryInputStageSuggestions_();
+  }, 120);
   if (!isInputStabilityVariantB_()) return;
   handleEntryInputStageViewportChange_();
 }
@@ -894,6 +1261,7 @@ function closeEntryInputStage_() {
   entryInputStageState_.step = 'name';
   entryInputStageState_.tempData = null;
   entryInputStageState_.originRect = null;
+  closeEntryInputStageSuggestions_();
   unlockEntryStageBodyForMobile_();
   document.body.classList.remove('entry-stage-active');
   document.body.classList.remove('entry-stage-mobile-b');
@@ -954,17 +1322,20 @@ function renderEntryInputStage_() {
   const placeholder = getEntryInputStagePlaceholder_(scope, step);
   const inputClass = getEntryInputStageInputClass_(scope, step);
   const inputAttrs = getEntryInputStageInputAttrs_(scope, step);
+  const fieldHtml = buildEntryInputStageFieldHtml_(scope, step, inputClass, inputAttrs, value, placeholder);
 
   stageEl.innerHTML = `
     <div class="entry-input-stage-panel" role="group" aria-label="${label}">
       <label class="entry-input-stage-label" for="entry-input-stage-field">${label}</label>
-      <input id="entry-input-stage-field" class="${inputClass}" ${inputAttrs} value="${value}" placeholder="${placeholder}" autocapitalize="off" autocorrect="off" spellcheck="false" onfocus="handleEntryInputStageFieldFocus_()" onblur="handleEntryInputStageFieldBlur_()" oninput="onEntryInputStageInput(this.value)" onkeydown="onEntryInputStageKeydown(event)">
+      ${fieldHtml}
       <div class="entry-input-stage-actions">
         <button type="button" class="btn-sub" onclick="onEntryInputStageBack()">戻る</button>
         <button type="button" class="btn-main" onclick="onEntryInputStageAction()">${actionLabel}</button>
       </div>
     </div>
   `;
+  updateEntryInputStageSuggestions_(scope, step, getEntryInputStageValue_(scope, step), { resetActive: true });
+  if (isEntryInputStageDateField_(scope, step)) syncEntryInputStageDatePicker_();
   applyEntryInputStagePosition_(stageEl);
   stageEl.style.display = 'flex';
   stageEl.classList.add('is-open');
@@ -1039,12 +1410,38 @@ function onEntryInputStageInput(value) {
   if (!entryInputStageState_.active) return;
   const scope = normalizeEntryInputStageScope_(entryInputStageState_.scope);
   const step = normalizeEntryInputStageStep_(scope, entryInputStageState_.step);
-  setEntryInputStageValue_(scope, step, value);
+  const nextValue = String(value || '');
+  setEntryInputStageValue_(scope, step, nextValue);
+  updateEntryInputStageSuggestions_(scope, step, nextValue, { resetActive: true });
 }
 
 function onEntryInputStageKeydown(event) {
   if (!event) return;
+  if (event.key === 'ArrowDown') {
+    if (moveEntryInputStageSuggestionSelection_(1)) {
+      event.preventDefault();
+      return;
+    }
+  }
+  if (event.key === 'ArrowUp') {
+    if (moveEntryInputStageSuggestionSelection_(-1)) {
+      event.preventDefault();
+      return;
+    }
+  }
+  if (event.key === 'Escape') {
+    if (entryInputStageSuggestionVisible_) {
+      event.preventDefault();
+      closeEntryInputStageSuggestions_();
+      return;
+    }
+  }
   if (event.key !== 'Enter') return;
+  if (entryInputStageSuggestionVisible_ && entryInputStageSuggestionActiveIndex_ >= 0 && entryInputStageSuggestionActiveIndex_ < entryInputStageSuggestions_.length) {
+    event.preventDefault();
+    onEntryInputStageSuggestionPick(entryInputStageSuggestionActiveIndex_);
+    return;
+  }
   event.preventDefault();
   onEntryInputStageAction();
 }
@@ -1079,9 +1476,11 @@ function commitEntryInputStageStep_() {
     if (!row) return;
     if (step === 'name') {
       onExpenseNameInput(idx, value);
+      renderExpenseArea();
       return;
     }
     onExpenseAmountBlur(idx, value);
+    renderExpenseArea();
     return;
   }
 
@@ -1125,6 +1524,7 @@ function commitEntryInputStageStep_() {
 
   pointTotal = Math.max(0, roundYen(value || 0));
   recalculateCosts();
+  renderPointArea();
 }
 
 function onEntryInputStageAction() {
@@ -1363,13 +1763,8 @@ function applyDetailPanelVisibility_() {
   const expenseEl = document.getElementById('expense-area');
   const pointEl = document.getElementById('point-area');
   if (!expenseEl || !pointEl) return;
-  if (isFooterConsolidatedMode_()) {
-    expenseEl.style.display = detailPanelState.expense ? 'block' : 'none';
-    pointEl.style.display = detailPanelState.point ? 'block' : 'none';
-    return;
-  }
-  expenseEl.style.display = 'block';
-  pointEl.style.display = 'block';
+  expenseEl.style.display = detailPanelState.expense ? 'block' : 'none';
+  pointEl.style.display = detailPanelState.point ? 'block' : 'none';
 }
 
 function toggleExpensePanelVisibility_() {
@@ -1383,7 +1778,6 @@ function togglePointPanelVisibility_() {
 }
 
 function updateTopHelperButtons_() {
-  const variantBtn = document.getElementById('helper-variant-btn');
   const individualBtn = document.getElementById('helper-individual-btn');
   const taxBtn = document.getElementById('helper-tax-btn');
   const footerHomeBtn = document.getElementById('footer-home-btn');
@@ -1391,17 +1785,10 @@ function updateTopHelperButtons_() {
   const footerDetailBtn = document.getElementById('footer-detail-btn');
   const footerTaxBtn = document.getElementById('footer-tax-btn');
   const footerIndividualBtn = document.getElementById('footer-individual-btn');
-  const isVariantB = normalizeEntryViewVariant_(entryViewVariant) === 'B';
   const isIndividual = isLineItemIndividualMode_();
   const detailsOpen = !!detailPanelState.expense || !!detailPanelState.point;
   const currentScreen = String(document.body.getAttribute('data-entry-screen') || 'entry').trim() || 'entry';
 
-  if (variantBtn) {
-    variantBtn.textContent = '表示：' + (isVariantB ? 'B' : 'A');
-    variantBtn.classList.toggle('is-open', isVariantB);
-    variantBtn.setAttribute('aria-pressed', isVariantB ? 'true' : 'false');
-    variantBtn.title = isVariantB ? 'A表示に切り替え' : 'B表示に切り替え';
-  }
   if (individualBtn) {
     individualBtn.textContent = '個別モード：' + (isIndividual ? 'ON' : 'OFF');
     individualBtn.classList.toggle('is-open', isIndividual);
@@ -1419,9 +1806,10 @@ function updateTopHelperButtons_() {
     footerHomeBtn.setAttribute('aria-pressed', currentScreen === 'entry' ? 'true' : 'false');
   }
   if (footerVariantBtn) {
-    footerVariantBtn.classList.toggle('is-active', isVariantB);
-    footerVariantBtn.setAttribute('aria-pressed', isVariantB ? 'true' : 'false');
-    footerVariantBtn.setAttribute('title', isVariantB ? 'Aに切替' : 'Bに切替');
+    const variantTargetLabel = ENTRY_ALT_PAGE_ROUTE_ === 'entry_a' ? 'Aに切替' : 'Bに切替';
+    footerVariantBtn.classList.remove('is-active');
+    footerVariantBtn.setAttribute('aria-pressed', 'false');
+    footerVariantBtn.setAttribute('title', variantTargetLabel);
   }
   if (footerDetailBtn) {
     footerDetailBtn.classList.toggle('is-active', detailsOpen);
@@ -1456,6 +1844,8 @@ function setLineItemIndividualMode_(enabled) {
       row.point = 0;
       row.expenseAlloc = 0;
     });
+    detailPanelState.expense = false;
+    detailPanelState.point = false;
   } else {
     pointTotal = entryRows.reduce(function(sum, row) {
       if (!String(row.name || '').trim() || roundYen(row.price) <= 0) return sum;
@@ -1730,6 +2120,9 @@ function removeEntryRow(idx) {
       entryInputStageState_.currentRow -= 1;
     }
   }
+  if (entryRows.length <= 1) {
+    setEntryListDeleteMode_('product', false);
+  }
   renderEntryRows();
   recalculateCosts();
 }
@@ -1747,14 +2140,17 @@ function renderEntryRows() {
   const expenseLabel = isExpenseAllocationMode_() ? '経費分配' : '経費個別';
   const pointMetaLabel = lineItemIndividualMode ? 'ポイント' : pointLabel;
   const expenseMetaLabel = lineItemIndividualMode ? '経費' : expenseLabel;
-  const addEntryButtonRow = `
-      <tr class="append-row">
-        <td colspan="5" class="append-cell"></td>
-        <td class="append-action-cell">
-          <button type="button" class="btn-append-row" onclick="addEntryRow(${Math.max(0, entryRows.length - 1)})" aria-label="商品行を追加">＋</button>
-        </td>
-      </tr>
-  `;
+  const canDeleteEntryRows = entryRows.length > 1;
+  if (!canDeleteEntryRows) {
+    setEntryListDeleteMode_('product', false);
+  }
+  const isEntryDeleteMode = canDeleteEntryRows && !!entryListDeleteModeState_.product;
+  const addEntryButtonHtml = `<button type="button" class="btn-append-row" onclick="addEntryRow(${Math.max(0, entryRows.length - 1)})" aria-label="商品行を追加">＋</button>`;
+  const deleteEntryButtonHtml = canDeleteEntryRows
+    ? `<button type="button" class="btn-delete-mode${isEntryDeleteMode ? ' is-active' : ''}" onclick="toggleEntryListDeleteMode_('product')" aria-label="商品削除モード切替" aria-pressed="${isEntryDeleteMode ? 'true' : 'false'}">−</button>`
+    : '';
+  const entryTitleActionsHtml = `<div class="entry-lines-title-actions">${addEntryButtonHtml}${deleteEntryButtonHtml}</div>`;
+  const entryTableClass = `entry-inline-table entry-product-table entry-swipe-table${isEntryDeleteMode ? ' is-delete-mode' : ''}`;
   let rowsHtml = '';
   entryRows.forEach((row, idx) => {
     const pointCell = lineItemIndividualMode
@@ -1774,9 +2170,12 @@ function renderEntryRows() {
     const taxAmount = (typeof row.taxBasePrice !== 'undefined')
       ? Math.max(0, roundYen(row.price) - roundYen(row.taxBasePrice))
       : 0;
-    const canRemoveRow = idx > 0;
-    const rowDeleteButton = canRemoveRow
-      ? `<button type="button" class="btn-icon btn-icon-minus entry-row-remove" onclick="removeEntryRow(${idx})" aria-label="商品${idx + 1}を削除">−</button>`
+    const canRemoveRow = canDeleteEntryRows && idx > 0;
+    const mainRowClass = canRemoveRow
+      ? `entry-main-row entry-swipe-delete-row${isEntryDeleteMode ? ' is-swipe-open' : ''}`
+      : 'entry-main-row';
+    const removeBtn = canRemoveRow
+      ? `<button type="button" class="entry-row-remove" onclick="removeEntryRow(${idx})" aria-label="商品${idx + 1}を削除">−</button>`
       : '';
     const metaRowClass = lineItemIndividualMode ? 'entry-meta-row is-individual' : 'entry-meta-row';
     const metaGridClass = lineItemIndividualMode
@@ -1784,7 +2183,7 @@ function renderEntryRows() {
       : 'entry-meta-grid entry-meta-grid-normal';
 
     rowsHtml += `
-      <tr class="entry-main-row">
+      <tr class="${mainRowClass}" data-entry-row-index="${idx}">
         <td class="col-no">${idx + 1}</td>
         <td class="col-item">
           <input type="text" class="inline-input entry-product-input entry-stage-trigger" list="product-options" value="${escapeHtml(row.productInput || '')}" title="${escapeHtml(row.productInput || '')}" readonly onfocus="this.blur(); openEntryInputStage(${idx}, 'name', this)" onclick="openEntryInputStage(${idx}, 'name', this)" placeholder="JAN / 商品名 / 商品マスタ番号">
@@ -1796,12 +2195,10 @@ function renderEntryRows() {
           <input type="text" class="inline-number entry-stage-trigger" inputmode="numeric" pattern="\\d*" value="${row.qty || 1}" readonly onfocus="this.blur(); openEntryInputStage(${idx}, 'qty', this)" onclick="openEntryInputStage(${idx}, 'qty', this)">
         </td>
         <td class="col-num"><div class="inline-value">${row.cost || 0}</div></td>
-        <td class="col-action">
-          ${rowDeleteButton}
-        </td>
+        <td class="col-action">${removeBtn}</td>
       </tr>
       <tr class="${metaRowClass}">
-        <td colspan="5">
+        <td colspan="6">
           <div class="${metaGridClass}">
             <div class="entry-meta-item">
               <div class="entry-meta-label">単価</div>
@@ -1826,15 +2223,17 @@ function renderEntryRows() {
             </div>
           </div>
         </td>
-        <td class="col-action"></td>
       </tr>
     `;
   });
 
   document.getElementById('entry-lines').innerHTML = `
-    <h3 class="mid-title">商品入力</h3>
-    <div class="entry-line-card section-card">
-      <table class="entry-inline-table">
+    <div class="entry-lines-title-row">
+      <h3 class="mid-title">商品入力</h3>
+      ${entryTitleActionsHtml}
+    </div>
+    <div class="entry-line-card section-card section-tone-product">
+      <table class="${entryTableClass}">
         <tr>
           <th class="col-no">No</th>
           <th class="col-item">商品</th>
@@ -1844,7 +2243,6 @@ function renderEntryRows() {
           <th class="col-action"></th>
         </tr>
         ${rowsHtml}
-        ${addEntryButtonRow}
       </table>
     </div>
   `;
@@ -2009,7 +2407,6 @@ function removeTaxFromAll_() {
 }
 
 function renderPointArea() {
-  const isVariantB = isFooterConsolidatedMode_();
   const pointTotalFromRows = entryRows.reduce((sum, row) => {
     if (!String(row.name || '').trim() || roundYen(row.price) <= 0) return sum;
     return sum + Math.max(0, roundYen(row.point || 0));
@@ -2024,12 +2421,11 @@ function renderPointArea() {
   }
   const pointToggleBtnClass = pointPanelOpen ? 'btn-icon btn-icon-minus panel-head-toggle' : 'btn-icon btn-icon-plus panel-head-toggle';
   const pointToggleLabel = pointPanelOpen ? 'ポイント入力エリアを閉じる' : 'ポイント入力エリアを開く';
-
   let modeContent = '';
   if (pointPanelOpen && isPointAllocationMode_()) {
     modeContent = `
-      <div class="entry-line-card section-card">
-        <div class="point-input-row">
+      <div class="entry-line-card section-card section-tone-point">
+        <div class="point-input-row b-panel-input-row">
           <input type="text" id="point-total-display" class="inline-number point-stage-trigger entry-stage-trigger" inputmode="numeric" pattern="\\d*" value="${pointTotal || ''}" readonly onfocus="this.blur(); openPointInputStage(this)" onclick="openPointInputStage(this)" aria-label="ポイント/割引入力">
           <span class="point-input-unit">pt / 円</span>
         </div>
@@ -2037,17 +2433,17 @@ function renderPointArea() {
     `;
   } else if (pointPanelOpen) {
     modeContent = `
-      <div class="entry-line-card section-card">
+      <div class="entry-line-card section-card section-tone-point">
         <div class="entry-line-title">ポイント個別入力</div>
         <div class="note-text">商品入力テーブルの2行目（補助情報）で入力してください。</div>
-        <div class="note-text">現在のポイント合計: ${formatYen_(pointTotalFromRows)}</div>
+        <div class="note-text b-panel-note">現在のポイント合計: ${formatYen_(pointTotalFromRows)}</div>
       </div>
     `;
+  } else {
+    modeContent = '';
   }
 
-  const headerHtml = isVariantB
-    ? '<h3 class="mid-title panel-head-title">ポイント/割引</h3>'
-    : `<div class="panel-head-row"><h3 class="mid-title panel-head-title">ポイント/割引</h3><button type="button" class="${pointToggleBtnClass}" onclick="togglePointPanelVisibility_()" aria-label="${pointToggleLabel}">${pointPanelOpen ? '−' : '＋'}</button></div>`;
+  const headerHtml = '<h3 class="mid-title panel-head-title">ポイント/割引</h3>';
 
   document.getElementById('point-area').innerHTML = headerHtml + modeContent;
   applyDetailPanelVisibility_();
@@ -2067,10 +2463,14 @@ function onPointModeChange(mode) {
 }
 
 function renderExpenseArea() {
-  const isVariantB = isFooterConsolidatedMode_();
   if (!expenseList.length) {
     expenseList = [createEmptyExpenseRow()];
   }
+  const canDeleteExpenseRows = expenseList.length > 1;
+  if (!canDeleteExpenseRows) {
+    setEntryListDeleteMode_('expense', false);
+  }
+  const isExpenseDeleteMode = canDeleteExpenseRows && !!entryListDeleteModeState_.expense;
   if (entryInputStageState_.active && entryInputStageState_.scope === 'expense') {
     if (entryInputStageState_.expenseIdx < 0 || entryInputStageState_.expenseIdx >= expenseList.length) {
       closeEntryInputStage_();
@@ -2082,7 +2482,18 @@ function renderExpenseArea() {
   }
   const expenseToggleBtnClass = expensePanelOpen ? 'btn-icon btn-icon-minus panel-head-toggle' : 'btn-icon btn-icon-plus panel-head-toggle';
   const expenseToggleLabel = expensePanelOpen ? '経費入力エリアを閉じる' : '経費入力エリアを開く';
-
+  const addExpenseButtonHtml = `<button type="button" class="btn-append-row" onclick="addExpenseRow(${Math.max(0, expenseList.length - 1)})" aria-label="経費行を追加">＋</button>`;
+  const deleteExpenseButtonHtml = canDeleteExpenseRows
+    ? `<button type="button" class="btn-delete-mode${isExpenseDeleteMode ? ' is-active' : ''}" onclick="toggleEntryListDeleteMode_('expense')" aria-label="経費削除モード切替" aria-pressed="${isExpenseDeleteMode ? 'true' : 'false'}">−</button>`
+    : '';
+  const expenseTitleActionsHtml = (expensePanelOpen && isExpenseAllocationMode_())
+    ? `<div class="entry-lines-title-actions">${addExpenseButtonHtml}${deleteExpenseButtonHtml}</div>`
+    : '';
+  const expenseInputTotal = getActiveExpenseRows_().reduce((sum, ex) => sum + roundYen(ex.amount), 0);
+  const expenseAllocTotal = entryRows.reduce((sum, row) => {
+    if (!String(row.name || '').trim() || roundYen(row.price) <= 0) return sum;
+    return sum + roundYen(row.expenseAlloc || 0);
+  }, 0);
   let options = '';
   expenseCandidates.forEach(name => {
     options += `<option value="${escapeHtml(name)}"></option>`;
@@ -2091,11 +2502,15 @@ function renderExpenseArea() {
   let rows = '';
   if (expensePanelOpen) {
     expenseList.forEach((ex, idx) => {
-      const removeBtn = !isVariantB && idx > 0
-        ? `<button type="button" class="btn-icon btn-icon-minus entry-row-remove" onclick="removeExpenseRow(${idx})" aria-label="経費${idx + 1}を削除">−</button>`
+      const canRemoveRow = canDeleteExpenseRows && idx > 0;
+      const rowClass = canRemoveRow
+        ? `entry-main-row entry-swipe-delete-row${isExpenseDeleteMode ? ' is-swipe-open' : ''}`
+        : 'entry-main-row';
+      const removeBtn = canRemoveRow
+        ? `<button type="button" class="entry-row-remove" onclick="removeExpenseRow(${idx})" aria-label="経費${idx + 1}を削除">−</button>`
         : '';
       rows += `
-        <tr class="entry-main-row">
+        <tr class="${rowClass}" data-expense-row-index="${idx}">
           <td class="col-no">${idx + 1}</td>
           <td class="col-item">
             <input type="text" class="inline-input entry-stage-trigger" list="expense-items" autocomplete="off" value="${escapeHtml(ex.name || '')}" readonly onfocus="this.blur(); openExpenseInputStage(${idx}, 'name', this)" onclick="openExpenseInputStage(${idx}, 'name', this)" placeholder="経費名">
@@ -2111,20 +2526,11 @@ function renderExpenseArea() {
 
   let modeContent = '';
   if (expensePanelOpen && isExpenseAllocationMode_()) {
-    const addExpenseButtonRow = isVariantB
-      ? ''
-      : `
-      <tr class="append-row">
-        <td colspan="3" class="append-cell"></td>
-        <td class="append-action-cell">
-          <button type="button" class="btn-append-row" onclick="addExpenseRow(${Math.max(0, expenseList.length - 1)})" aria-label="経費行を追加">＋</button>
-        </td>
-      </tr>
-    `;
+    const expenseTableClass = `entry-inline-table entry-expense-table entry-swipe-table${isExpenseDeleteMode ? ' is-delete-mode' : ''}`;
     modeContent =
       `<datalist id="expense-items">${options}</datalist>` +
-      `<div class="entry-line-card section-card">` +
-        `<table class="entry-inline-table">` +
+      `<div class="entry-line-card section-card section-tone-expense">` +
+        `<table class="${expenseTableClass}">` +
           `<tr>` +
             `<th class="col-no">No</th>` +
             `<th class="col-item">経費名</th>` +
@@ -2132,21 +2538,21 @@ function renderExpenseArea() {
             `<th class="col-action"></th>` +
           `</tr>` +
           rows +
-          addExpenseButtonRow +
         `</table>` +
       `</div>`;
   } else if (expensePanelOpen) {
     modeContent = `
-      <div class="entry-line-card section-card">
+      <div class="entry-line-card section-card section-tone-expense">
         <div class="entry-line-title">経費個別入力</div>
         <div class="note-text">商品入力テーブルの2行目（補助情報）で入力してください。</div>
+        <div class="note-text b-panel-note">現在の経費反映合計: ${formatYen_(expenseAllocTotal)}</div>
       </div>
     `;
+  } else {
+    modeContent = '';
   }
 
-  const headerHtml = isVariantB
-    ? '<h3 class="mid-title panel-head-title">経費</h3>'
-    : `<div class="panel-head-row"><h3 class="mid-title panel-head-title">経費</h3><button type="button" class="${expenseToggleBtnClass}" onclick="toggleExpensePanelVisibility_()" aria-label="${expenseToggleLabel}">${expensePanelOpen ? '−' : '＋'}</button></div>`;
+  const headerHtml = `<div class="entry-lines-title-row"><h3 class="mid-title">経費</h3>${expenseTitleActionsHtml}</div>`;
 
   document.getElementById('expense-area').innerHTML = headerHtml + modeContent;
   applyDetailPanelVisibility_();
@@ -2206,6 +2612,9 @@ function removeExpenseRow(idx) {
       entryInputStageState_.expenseIdx -= 1;
     }
   }
+  if (expenseList.length <= 1) {
+    setEntryListDeleteMode_('expense', false);
+  }
   renderExpenseArea();
   recalculateCosts();
 }
@@ -2250,26 +2659,22 @@ function renderSummary() {
 
   document.getElementById('summary-area').innerHTML = `
     <h3 class="mid-title">集計</h3>
-    <div class="summary-table-wrap">
-      <table class="summary-table">
-        <thead>
-          <tr>
-            <th>商品数</th>
-            <th>総提示金額</th>
-            <th>ポイント合計</th>
-            <th>経費合計</th>
-            <th>原価合計</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr class="summary-value-row">
-            <td class="count-cell">${formatWithComma_(totalCount)}</td>
-            <td>${formatYen_(totalPrice)}</td>
-            <td>${formatYen_(totalPoint)}</td>
-            <td>${formatYen_(summaryExpenseTotal)}</td>
-            <td class="is-emphasis">${formatYen_(Math.max(0, totalCost))}</td>
-          </tr>
-        </tbody>
+    <div class="entry-line-card section-card section-tone-summary">
+      <table class="entry-inline-table entry-summary-table">
+        <tr>
+          <th>商品数</th>
+          <th>総提示金額</th>
+          <th>ポイント合計</th>
+          <th>経費合計</th>
+          <th>原価合計</th>
+        </tr>
+        <tr class="entry-main-row summary-value-row">
+          <td class="count-cell">${formatWithComma_(totalCount)}</td>
+          <td>${formatYen_(totalPrice)}</td>
+          <td>${formatYen_(totalPoint)}</td>
+          <td>${formatYen_(summaryExpenseTotal)}</td>
+          <td class="is-emphasis">${formatYen_(Math.max(0, totalCost))}</td>
+        </tr>
       </table>
     </div>
   `;
@@ -2285,34 +2690,24 @@ function renderCommonInfo() {
     ? ''
     : " onfocus=\"this.blur(); openCommonInputStage('payment', this)\" onclick=\"openCommonInputStage('payment', this)\"";
   const paymentNoteHtml = lineItemIndividualMode
-    ? '<div class="note-subtle common-payment-note">個別モード中は、各商品の2行目で支払い方法を入力してください。</div>'
+    ? '<div class="note-subtle common-payment-note" style="margin-top:6px;">個別モード中は、各商品の2行目で支払い方法を入力してください。</div>'
     : '';
 
   document.getElementById('common-info').innerHTML =
     '<datalist id="supplier-options"></datalist>' +
     '<datalist id="payment-options"></datalist>' +
-    '<div class="summary-table-wrap">' +
-      '<table class="summary-table summary-form-table">' +
-        '<thead>' +
-          '<tr>' +
-            '<th>仕入日</th>' +
-            '<th>仕入先</th>' +
-            '<th>支払方法</th>' +
-          '</tr>' +
-        '</thead>' +
-        '<tbody>' +
-          '<tr class="summary-input-row">' +
-            '<td>' +
-              '<div class="date-input-wrap">' +
-                '<input type="text" id="common-date" class="inline-input entry-stage-trigger common-stage-trigger" inputmode="numeric" pattern="\\d*" autocomplete="off" placeholder="YYYYMMDD" readonly' + dateStageHandlers + '>' +
-                '<button type="button" class="btn-sub btn-date-picker" onclick="openDatePickerFromText(\'common-date\', \'common-date-picker\')">選択</button>' +
-                '<input type="date" id="common-date-picker" class="date-picker-helper" oninput="onDatePickerChange(\'common-date\', \'common-date-picker\')" onchange="onDatePickerChange(\'common-date\', \'common-date-picker\')">' +
-              '</div>' +
-            '</td>' +
-            '<td><input type="text" id="common-supplier" class="inline-input entry-stage-trigger common-stage-trigger" list="supplier-options" autocomplete="off" placeholder="仕入先を入力" readonly' + supplierStageHandlers + '></td>' +
-            '<td><input type="text" id="common-payment" class="inline-input entry-stage-trigger common-stage-trigger" list="payment-options" autocomplete="off" placeholder="' + paymentPlaceholder + '"' + paymentDisabledAttr + paymentStageHandlers + '>' + paymentNoteHtml + '</td>' +
-          '</tr>' +
-        '</tbody>' +
+    '<div class="entry-line-card section-card section-tone-common">' +
+      '<table class="entry-inline-table entry-common-table">' +
+        '<tr>' +
+          '<th>仕入日</th>' +
+          '<th>仕入先</th>' +
+          '<th>支払方法</th>' +
+        '</tr>' +
+        '<tr class="entry-main-row">' +
+          '<td><input type="text" id="common-date" class="inline-input entry-stage-trigger common-stage-trigger" inputmode="numeric" pattern="\\d*" autocomplete="off" placeholder="YYYYMMDD" readonly' + dateStageHandlers + '></td>' +
+          '<td><input type="text" id="common-supplier" class="inline-input entry-stage-trigger common-stage-trigger" list="supplier-options" autocomplete="off" placeholder="仕入先を入力" readonly' + supplierStageHandlers + '></td>' +
+          '<td><input type="text" id="common-payment" class="inline-input entry-stage-trigger common-stage-trigger" list="payment-options" autocomplete="off" placeholder="' + paymentPlaceholder + '"' + paymentDisabledAttr + paymentStageHandlers + '>' + paymentNoteHtml + '</td>' +
+        '</tr>' +
       '</table>' +
     '</div>';
   renderSupplierPaymentDatalists_();
@@ -2384,9 +2779,16 @@ function syncDatePickerFromText_(targetId, pickerId) {
 
 function openDatePickerFromText(targetId, pickerId) {
   const picker = document.getElementById(pickerId);
-  if (!picker) return;
+  if (!picker) return false;
   syncDatePickerFromText_(targetId, pickerId);
-  let opened = false;
+  if (typeof picker.showPicker === 'function') {
+    try {
+      picker.showPicker();
+      return true;
+    } catch (err3) {
+      // showPicker非対応/制限時はclickにフォールバック
+    }
+  }
   try {
     picker.focus({ preventScroll: true });
   } catch (err) {
@@ -2396,24 +2798,14 @@ function openDatePickerFromText(targetId, pickerId) {
       // no-op
     }
   }
-  if (typeof picker.showPicker === 'function') {
-    try {
-      picker.showPicker();
-      opened = true;
-      return;
-    } catch (err3) {
-      // showPicker非対応/制限時はclickにフォールバック
-    }
-  }
   try {
     picker.click();
-    opened = true;
+    return true;
   } catch (err4) {
     // no-op
   }
-  if (!opened) {
-    alert('カレンダーを開けませんでした。日付欄（YYYY-MM-DD）を直接タップして選択してください。');
-  }
+  alert('カレンダーを開けませんでした。日付欄（YYYY-MM-DD）を直接タップして選択してください。');
+  return false;
 }
 
 function onDatePickerChange(targetId, pickerId) {
@@ -2621,37 +3013,20 @@ function renderFinalConfirm_(rows, expenses, commonInfo, pointMode, expenseMode)
   let detailRows = '';
   activeRows.forEach(function(row, idx) {
     const rowPayment = String(row.paymentMethod || info.payment || '').trim();
-    if (lineItemIndividualMode) {
-      detailRows += '<tr>' +
-        '<td>' + (idx + 1) + '</td>' +
-        '<td>' + escapeHtml(String(row.productNo || '').trim()) + '</td>' +
-        '<td>' + escapeHtml(String(row.name || '').trim()) + '</td>' +
-        '<td>' + formatYen_(roundYen(row.price)) + '</td>' +
-        '<td>' + formatYen_(roundYen(row.cost)) + '</td>' +
-        '<td>' + formatWithComma_(roundYen(row.qty)) + '</td>' +
-        '<td>' + formatYen_(roundYen(row.unitPrice)) + '</td>' +
-      '</tr>' +
-      '<tr class="detail-meta-row">' +
-        '<td></td>' +
-        '<td colspan="6" class="detail-meta-cell">' +
-          'ポイント/割引: ' + formatYen_(roundYen(row.point)) +
-          ' ／ 経費: ' + formatYen_(roundYen(row.expenseAlloc)) +
-          ' ／ 支払い方法: ' + escapeHtml(rowPayment || '未入力') +
-        '</td>' +
-      '</tr>';
-      return;
-    }
-
+    const metaInfo = 'ポイント/割引: ' + formatYen_(roundYen(row.point)) +
+      ' ／ 経費: ' + formatYen_(roundYen(row.expenseAlloc)) +
+      (lineItemIndividualMode ? (' ／ 支払い方法: ' + escapeHtml(rowPayment || '未入力')) : '');
     detailRows += '<tr>' +
       '<td>' + (idx + 1) + '</td>' +
-      '<td>' + escapeHtml(String(row.productNo || '').trim()) + '</td>' +
       '<td>' + escapeHtml(String(row.name || '').trim()) + '</td>' +
       '<td>' + formatYen_(roundYen(row.price)) + '</td>' +
-      '<td>' + formatYen_(roundYen(row.point)) + '</td>' +
-      '<td>' + formatYen_(roundYen(row.expenseAlloc)) + '</td>' +
       '<td>' + formatYen_(roundYen(row.cost)) + '</td>' +
       '<td>' + formatWithComma_(roundYen(row.qty)) + '</td>' +
       '<td>' + formatYen_(roundYen(row.unitPrice)) + '</td>' +
+    '</tr>' +
+    '<tr class="detail-meta-row">' +
+      '<td></td>' +
+      '<td colspan="5" class="detail-meta-cell">' + metaInfo + '</td>' +
     '</tr>';
   });
 
@@ -2677,7 +3052,7 @@ function renderFinalConfirm_(rows, expenses, commonInfo, pointMode, expenseMode)
   let pointExpenseBlock = '';
   if (hasExpenseRows) {
     pointExpenseBlock =
-      '<div class="confirm-block section-card slip-block slip-block-expense">' +
+      '<div class="confirm-block section-card slip-block slip-block-expense section-tone-expense">' +
         '<div class="confirm-title">経費</div>' +
         '<div class="summary-table-wrap">' +
           '<table class="summary-table summary-meta-table">' +
@@ -2689,23 +3064,21 @@ function renderFinalConfirm_(rows, expenses, commonInfo, pointMode, expenseMode)
   }
 
   document.getElementById('confirm-area').innerHTML =
-    '<div class="confirm-block section-card">' +
+    '<div class="confirm-block section-card section-tone-product">' +
       '<div class="confirm-title">商品明細</div>' +
       '<div class="table-wrap">' +
         '<table>' +
-          (lineItemIndividualMode
-            ? '<tr><th>No</th><th>商品マスタ番号</th><th>商品名</th><th>提示金額</th><th>原価</th><th>個数</th><th>単価</th></tr>'
-            : '<tr><th>No</th><th>商品マスタ番号</th><th>商品名</th><th>提示金額</th><th>ポイント/割引</th><th>経費</th><th>原価</th><th>個数</th><th>単価</th></tr>') +
+          '<tr><th>No</th><th>商品名</th><th>提示金額</th><th>原価</th><th>個数</th><th>単価</th></tr>' +
           detailRows +
         '</table>' +
       '</div>' +
     '</div>' +
     pointExpenseBlock +
 
-    '<div class="confirm-block section-card">' +
+    '<div class="confirm-block section-card section-tone-summary">' +
       '<div class="confirm-title">集計</div>' +
       '<div class="summary-table-wrap">' +
-        '<table class="summary-table">' +
+        '<table class="summary-table confirm-summary-table">' +
           '<thead><tr><th>商品数</th><th>総提示金額</th><th>ポイント合計</th><th>経費合計</th><th>原価合計</th></tr></thead>' +
           '<tbody><tr class="summary-value-row">' +
             '<td class="count-cell">' + formatWithComma_(totalQty) + '</td>' +
@@ -2718,7 +3091,7 @@ function renderFinalConfirm_(rows, expenses, commonInfo, pointMode, expenseMode)
       '</div>' +
     '</div>' +
 
-    '<div class="confirm-block section-card">' +
+    '<div class="confirm-block section-card section-tone-common">' +
       '<div class="confirm-title">共通情報</div>' +
       '<div class="summary-table-wrap">' +
         '<table class="summary-table summary-meta-table">' +
@@ -2824,37 +3197,21 @@ function buildPostSubmitSlipPreviewHtml_(result) {
   }
 
   const lineRows = lines.map(function(line) {
-    if (lineItemIndividualMode) {
-      const rowPayment = String(line.paymentMethod || slip.payment || '').trim();
-      return '<tr>' +
-        '<td>' + escapeHtml(String(line.lineNo || '')) + '</td>' +
-        '<td>' + escapeHtml(String(line.productNo || '')) + '</td>' +
-        '<td>' + escapeHtml(String(line.name || '')) + '</td>' +
-        '<td>' + formatYen_(line.price || 0) + '</td>' +
-        '<td>' + formatYen_(line.cost || 0) + '</td>' +
-        '<td>' + formatWithComma_(line.qty || 0) + '</td>' +
-        '<td>' + formatYen_(line.unitPrice || 0) + '</td>' +
-      '</tr>' +
-      '<tr class="detail-meta-row">' +
-        '<td></td>' +
-        '<td colspan="6" class="detail-meta-cell">' +
-          'ポイント/割引: ' + formatYen_(line.point || 0) +
-          ' ／ 経費: ' + formatYen_(line.expenseAlloc || 0) +
-          ' ／ 支払い方法: ' + escapeHtml(rowPayment || '未入力') +
-        '</td>' +
-      '</tr>';
-    }
-
+    const rowPayment = String(line.paymentMethod || slip.payment || '').trim();
+    const metaInfo = 'ポイント/割引: ' + formatYen_(line.point || 0) +
+      ' ／ 経費: ' + formatYen_(line.expenseAlloc || 0) +
+      (lineItemIndividualMode ? (' ／ 支払い方法: ' + escapeHtml(rowPayment || '未入力')) : '');
     return '<tr>' +
       '<td>' + escapeHtml(String(line.lineNo || '')) + '</td>' +
-      '<td>' + escapeHtml(String(line.productNo || '')) + '</td>' +
       '<td>' + escapeHtml(String(line.name || '')) + '</td>' +
       '<td>' + formatYen_(line.price || 0) + '</td>' +
-      '<td>' + formatYen_(line.point || 0) + '</td>' +
-      '<td>' + formatYen_(line.expenseAlloc || 0) + '</td>' +
       '<td>' + formatYen_(line.cost || 0) + '</td>' +
       '<td>' + formatWithComma_(line.qty || 0) + '</td>' +
       '<td>' + formatYen_(line.unitPrice || 0) + '</td>' +
+    '</tr>' +
+    '<tr class="detail-meta-row">' +
+      '<td></td>' +
+      '<td colspan="5" class="detail-meta-cell">' + metaInfo + '</td>' +
     '</tr>';
   }).join('');
 
@@ -2877,7 +3234,7 @@ function buildPostSubmitSlipPreviewHtml_(result) {
     }).join('');
 
     pointExpenseBlock =
-      '<div class="confirm-block section-card slip-block slip-block-expense">' +
+      '<div class="confirm-block section-card slip-block slip-block-expense section-tone-expense">' +
         '<div class="confirm-title">経費</div>' +
         '<div class="summary-table-wrap">' +
           '<table class="summary-table summary-meta-table">' +
@@ -2896,12 +3253,12 @@ function buildPostSubmitSlipPreviewHtml_(result) {
   }
 
   return '' +
-    '<div class="confirm-block section-card"><div class="result-success">' + message + '</div>' + pdfStatusHtml + '</div>' +
-    '<div class="confirm-block section-card slip-block slip-block-summary">' +
+    '<div class="confirm-block section-card section-tone-summary"><div class="result-success">' + message + '</div>' + pdfStatusHtml + '</div>' +
+    '<div class="confirm-block section-card slip-block slip-block-summary section-tone-summary">' +
       '<div class="confirm-title">仕入伝票プレビュー</div>' +
       '<div class="note-text">内容を確認し、印刷するか選択してください。</div>' +
     '</div>' +
-    '<div class="confirm-block section-card slip-block slip-block-common">' +
+    '<div class="confirm-block section-card slip-block slip-block-common section-tone-common">' +
       '<div class="confirm-title">共通情報</div>' +
       '<div class="summary-table-wrap">' +
         '<table class="summary-table summary-meta-table">' +
@@ -2915,22 +3272,20 @@ function buildPostSubmitSlipPreviewHtml_(result) {
         '</table>' +
       '</div>' +
     '</div>' +
-    '<div class="confirm-block section-card slip-block slip-block-detail">' +
+    '<div class="confirm-block section-card slip-block slip-block-detail section-tone-product">' +
       '<div class="confirm-title">商品明細</div>' +
       '<div class="table-wrap">' +
         '<table>' +
-          (lineItemIndividualMode
-            ? '<tr><th>No</th><th>商品マスタ番号</th><th>商品名</th><th>提示金額</th><th>原価</th><th>個数</th><th>単価</th></tr>'
-            : '<tr><th>No</th><th>商品マスタ番号</th><th>商品名</th><th>提示金額</th><th>ポイント/割引</th><th>経費</th><th>原価</th><th>個数</th><th>単価</th></tr>') +
+          '<tr><th>No</th><th>商品名</th><th>提示金額</th><th>原価</th><th>個数</th><th>単価</th></tr>' +
           lineRows +
         '</table>' +
       '</div>' +
     '</div>' +
     pointExpenseBlock +
-    '<div class="confirm-block section-card slip-block slip-block-summary">' +
+    '<div class="confirm-block section-card slip-block slip-block-summary section-tone-summary">' +
       '<div class="confirm-title">集計</div>' +
       '<div class="summary-table-wrap">' +
-        '<table class="summary-table">' +
+        '<table class="summary-table confirm-summary-table">' +
           '<thead><tr><th>商品数</th><th>総提示金額</th><th>ポイント合計</th><th>経費合計</th><th>原価合計</th></tr></thead>' +
           '<tbody><tr class="summary-value-row">' +
             '<td class="count-cell">' + formatWithComma_(totals.qty || 0) + '</td>' +
@@ -2942,7 +3297,7 @@ function buildPostSubmitSlipPreviewHtml_(result) {
         '</table>' +
       '</div>' +
     '</div>' +
-    '<div class="confirm-block section-card">' +
+    '<div class="confirm-block section-card section-tone-common">' +
       '<div class="confirm-title">印刷確認</div>' +
       '<div class="note-text">仕入伝票を印刷しますか？</div>' +
       '<div class="button-row" id="post-submit-print-controls">' +
@@ -3015,8 +3370,6 @@ function buildSlipPrintHtml_(data) {
     const rowClass = (idx % 2 === 1) ? ' class="row-alt"' : '';
     return '<tr' + rowClass + '>' +
       '<td class="center cell-weak">' + escapeHtml(String(line.lineNo || '')) + '</td>' +
-      '<td class="cell-weak">' + escapeHtml(String(line.inventoryId || '')) + '</td>' +
-      '<td class="cell-weak">' + escapeHtml(String(line.productNo || '')) + '</td>' +
       '<td class="cell-name">' + escapeHtml(String(line.name || '')) + '</td>' +
       '<td class="num cell-mid">' + formatYen_(line.price || 0) + '</td>' +
       '<td class="num cell-weak">' + formatYen_(line.point || 0) + '</td>' +
@@ -3048,7 +3401,7 @@ function buildSlipPrintHtml_(data) {
       'body{font-family:Arial,\"Hiragino Kaku Gothic ProN\",Meiryo,sans-serif;color:#111827;background:#fff;font-size:10.5px;line-height:1.28;-webkit-print-color-adjust:exact;print-color-adjust:exact;}' +
       '*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;}' +
       '.slip-root{display:flex;flex-direction:column;gap:5px;}' +
-      '.section{border:1.2px solid #9ca3af;border-radius:5px;padding:6px 8px;margin:0;page-break-inside:avoid;break-inside:avoid;}' +
+      '.section{border:1.4px solid #94a3b8;border-radius:4px;padding:6px 8px;margin:0;page-break-inside:avoid;break-inside:avoid;}' +
       '.section-head{font-size:12px;font-weight:800;letter-spacing:0.02em;color:#0f172a;margin:0 0 4px 0;padding:0 0 3px 0;border-bottom:1px solid #cfd5dc;}' +
       '.title-row{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;}' +
       '.title-main{font-size:20px;font-weight:900;letter-spacing:0.03em;line-height:1;}' +
@@ -3066,8 +3419,8 @@ function buildSlipPrintHtml_(data) {
       '.totals-sub .mini{font-size:10px;font-weight:700;color:#374151;}' +
       '.totals-sub .mini b{font-size:12px;color:#111827;}' +
       'table{width:100%;border-collapse:collapse;table-layout:fixed;}' +
-      'th,td{border:1px solid #b8c0ca;padding:4px 5px;vertical-align:middle;page-break-inside:avoid;break-inside:avoid;}' +
-      'th{background:#e5e7eb;color:#111827;font-weight:800;font-size:9.5px;text-align:left;}' +
+      'th,td{border:1px solid #9ca3af;padding:4px 5px;vertical-align:middle;page-break-inside:avoid;break-inside:avoid;}' +
+      'th{background:#e2e8f0;color:#0f172a;font-weight:800;font-size:9.5px;text-align:left;}' +
       'td{font-size:10px;color:#111827;}' +
       '.num{text-align:right;font-variant-numeric:tabular-nums;}' +
       '.center{text-align:center;}' +
@@ -3076,9 +3429,9 @@ function buildSlipPrintHtml_(data) {
       '.cell-weak{color:#6b7280;font-weight:600;}' +
       '.cell-cost{font-weight:800;}' +
       '.row-alt td{background:#fafafa;}' +
-      '.expense-table th{background:#efefef;}' +
+      '.expense-table th{background:#f1f5f9;}' +
       '.expense-empty{text-align:center;color:#6b7280;font-weight:700;}' +
-      '.w-no{width:5%;}.w-inv{width:11%;}.w-prod{width:10%;}.w-name{width:24%;}.w-price{width:9%;}.w-point{width:8%;}.w-exp{width:8%;}.w-cost{width:9%;}.w-qty{width:6%;}.w-unit{width:10%;}' +
+      '.w-no{width:6%;}.w-name{width:30%;}.w-price{width:11%;}.w-point{width:11%;}.w-exp{width:11%;}.w-cost{width:11%;}.w-qty{width:8%;}.w-unit{width:12%;}' +
       '.w-exp-no{width:8%;}.w-exp-name{width:42%;}.w-exp-amount{width:18%;}.w-exp-memo{width:32%;}' +
     '</style></head><body>' +
       '<div class="slip-root">' +
@@ -3122,10 +3475,10 @@ function buildSlipPrintHtml_(data) {
           '<div class="section-head">商品明細</div>' +
           '<table>' +
             '<colgroup>' +
-              '<col class="w-no"><col class="w-inv"><col class="w-prod"><col class="w-name"><col class="w-price"><col class="w-point"><col class="w-exp"><col class="w-cost"><col class="w-qty"><col class="w-unit">' +
+              '<col class="w-no"><col class="w-name"><col class="w-price"><col class="w-point"><col class="w-exp"><col class="w-cost"><col class="w-qty"><col class="w-unit">' +
             '</colgroup>' +
             '<thead>' +
-              '<tr><th>No</th><th>商品個別番号</th><th>商品マスタ番号</th><th>商品名</th><th>提示金額</th><th>ポイント</th><th>経費</th><th>原価</th><th>個数</th><th>単価</th></tr>' +
+              '<tr><th>No</th><th>商品名</th><th>提示金額</th><th>ポイント</th><th>経費</th><th>原価</th><th>個数</th><th>単価</th></tr>' +
             '</thead>' +
             '<tbody>' + lineRows + '</tbody>' +
           '</table>' +
