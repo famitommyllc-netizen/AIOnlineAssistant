@@ -1,4 +1,4 @@
-/* rev: style.css.html rev-20260405-14 */
+/* rev: style.css.html rev-20260406-16 */
 :root {
   /* 一覧 */
   --list-header-font-size: 18px;
@@ -13,7 +13,7 @@
   --entry-width: 92vw;
   --entry-max-width: 2000px;
   --entry-padding: 24px;
-  --entry-radius: 24px;
+  --entry-radius: var(--app-button-radius);
   --entry-gap: 16px;
 
   /* 文字 */
@@ -41,8 +41,8 @@
   --entry-top-offset: -40px;
   --app-header-height: 60px;
   --app-footer-height: 90px;
-  --app-shell-max-width: 1100px;
-  --app-header-padding-x: 14px;
+  --app-shell-max-width: 100%;
+  --app-header-padding-x: 8px;
   --app-footer-icon-size: 24px;
   --app-footer-label-font: 12px;
   --app-header-title-font: 22px;
@@ -127,6 +127,14 @@ body {
   font-weight: 800;
   color: #0f172a;
   letter-spacing: 0.01em;
+}
+
+h1.entry-fixed-header-title,
+h1.section-title,
+h2.section-title,
+h2.mid-title,
+h2.confirm-title {
+  margin-top: 0;
 }
 
 .entry-fixed-header-title-wrap {
@@ -281,9 +289,9 @@ body.entry-app-layout .entry-input-stage-label {
 
 .section {
   background: #ffffff;
-  margin: 1.6em auto;
-  padding: 1.45em 1.4em;
-  max-width: 1100px;
+  margin: 8px 0;
+  padding: 1em 0.8em;
+  max-width: none;
   border-radius: 14px;
   border: 1px solid #cfe4da;
   box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
@@ -293,8 +301,8 @@ body.entry-app-layout .entry-input-stage-label {
 #confirm-page,
 #result-page {
   width: 100%;
-  max-width: var(--app-shell-max-width);
-  margin: 0 auto;
+  max-width: 100%;
+  margin: 0;
   overflow-x: hidden;
 }
 
@@ -755,7 +763,7 @@ th {
 .confirm-title {
   font-weight: 700;
   color: #0f4c81;
-  margin-bottom: 0.55em;
+  margin: 0 0 0.55em 0;
 }
 
 .detail-meta-row td {
@@ -768,6 +776,69 @@ th {
 .detail-meta-cell {
   text-align: left;
   letter-spacing: 0;
+}
+
+.confirm-detail-table.is-vertical .detail-vertical-name-row td {
+  text-align: left !important;
+  font-weight: 700;
+  color: #0f172a;
+  background: #fff;
+}
+
+.confirm-detail-table.is-vertical .detail-vertical-main-row td {
+  background: #fff;
+  border-bottom-color: #e2e8f0;
+}
+
+.confirm-detail-main-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 0.5em;
+  align-items: end;
+}
+
+.confirm-detail-main-item {
+  min-width: 0;
+}
+
+.confirm-detail-main-item-name {
+  grid-column: 1 / 2;
+}
+
+.confirm-inline-box {
+  width: 100%;
+  cursor: default;
+  background: #fff;
+}
+
+.confirm-inline-box.is-numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.confirm-detail-table.is-vertical .detail-vertical-name {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+}
+
+.confirm-detail-table.is-vertical .detail-vertical-no {
+  color: #475569;
+  font-weight: 700;
+}
+
+.confirm-detail-table.is-vertical .detail-meta-row td {
+  text-align: left !important;
+}
+
+.confirm-detail-meta-grid {
+  justify-content: flex-start;
+  gap: 0.28em;
+}
+
+.confirm-summary-table .count-unit-cell {
+  text-align: right !important;
+  font-variant-numeric: tabular-nums;
 }
 
 .slip-block {
@@ -925,7 +996,7 @@ th {
 }
 
 .entry-inline-table .col-item {
-  width: 44%;
+  width: 52%;
   min-width: 0;
 }
 
@@ -935,6 +1006,14 @@ th {
 
 .entry-inline-table .col-action {
   width: 7%;
+}
+
+.entry-inline-table.entry-expense-table .col-item {
+  width: 72%;
+}
+
+.entry-inline-table.entry-expense-table .col-num {
+  width: 28%;
 }
 
 .entry-inline-table.entry-swipe-table th.col-action,
@@ -1056,6 +1135,37 @@ th {
   font-weight: 800;
   color: #065f46;
   line-height: 1.1;
+  padding-right: calc(var(--entry-delete-button-size) * 0.84);
+}
+
+.entry-input-stage-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: clamp(30px, calc(var(--entry-delete-button-size) * 0.72), 52px) !important;
+  height: clamp(30px, calc(var(--entry-delete-button-size) * 0.72), 52px) !important;
+  min-width: clamp(30px, calc(var(--entry-delete-button-size) * 0.72), 52px) !important;
+  min-height: clamp(30px, calc(var(--entry-delete-button-size) * 0.72), 52px) !important;
+  padding: 0 !important;
+  border-radius: 9999px !important;
+  aspect-ratio: 1 / 1;
+  border: none;
+  background: #ef4444;
+  color: #fff;
+  font-size: 1em;
+  line-height: 1;
+  font-weight: 700;
+  cursor: pointer;
+  z-index: 5;
+  box-sizing: border-box;
+}
+
+.entry-input-stage-close:hover {
+  opacity: 0.9;
 }
 
 .entry-input-stage-input {
@@ -1076,6 +1186,18 @@ th {
 .entry-input-stage-input-wrap {
   position: relative;
   width: 100%;
+}
+
+.entry-input-stage-secondary-wrap {
+  margin-top: 10px;
+}
+
+.entry-input-stage-secondary-label {
+  display: block;
+  margin: 0 0 6px 0;
+  font-size: 0.9em;
+  font-weight: 700;
+  color: #0f4c81;
 }
 
 .entry-input-stage-suggestions {
@@ -1360,7 +1482,7 @@ body.entry-app-layout.entry-stage-mobile #entry-input-stage {
 }
 
 .entry-meta-grid-individual {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
 }
 
 .entry-meta-grid-normal {
@@ -1469,7 +1591,7 @@ body.entry-app-layout.entry-stage-mobile #entry-input-stage {
   font-size: 0.95em;
   padding: 0.56em 0.62em;
   border: 1.5px solid #9fd3bf;
-  border-radius: 10px;
+  border-radius: var(--app-button-radius);
   background: #fff;
   color: #1f2933;
 }
@@ -1489,7 +1611,7 @@ body.entry-app-layout.entry-stage-mobile #entry-input-stage {
   box-sizing: border-box;
   padding: 0.56em 0.62em;
   border: 1.4px solid #d0d7e2;
-  border-radius: 10px;
+  border-radius: var(--app-button-radius);
   background: #f7f9fc;
   color: #243b53;
   font-weight: 700;
@@ -1917,8 +2039,8 @@ body.entry-app-layout.entry-stage-mobile #entry-input-stage {
 
   .section {
     max-width: 100%;
-    margin: clamp(8px, 2vw, 10px) clamp(6px, 2vw, 8px);
-    padding: clamp(8px, 2vw, 10px) clamp(8px, 2vw, 10px);
+    margin: clamp(6px, 2vw, 8px) 0;
+    padding: clamp(8px, 2vw, 10px) clamp(6px, 2vw, 8px);
     border-radius: 12px;
   }
 
@@ -2248,7 +2370,7 @@ body.entry-app-layout.entry-stage-mobile #entry-input-stage {
   }
 
   .entry-meta-row.is-individual .entry-meta-grid-individual {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 0.28em;
   }
 
@@ -2514,6 +2636,7 @@ body.entry-app-layout.entry-stage-mobile #entry-input-stage {
   --entry-ui-line-height: 1.3;
   --entry-ui-border-width: 2px;
   --entry-ui-radius-scale: 1;
+  --entry-ui-unified-radius: calc(var(--app-button-radius) * var(--entry-ui-radius-scale));
   --entry-ui-font-weight: 500;
   --entry-ui-col-no: 8%;
   --entry-ui-col-item: 36%;
@@ -2557,7 +2680,7 @@ body.entry-app-layout.entry-stage-mobile #entry-input-stage {
   overflow: auto;
   background: #fff;
   border: 2px solid #cbd5e1;
-  border-radius: 16px;
+  border-radius: var(--app-button-radius);
   box-shadow: 0 24px 48px rgba(2, 6, 23, 0.25);
   padding: 16px;
 }
@@ -2584,7 +2707,7 @@ body.entry-app-layout.entry-stage-mobile #entry-input-stage {
 
 .entry-display-settings-size-block {
   border: 1px solid #e2e8f0;
-  border-radius: 10px;
+  border-radius: var(--app-button-radius);
   padding: 8px;
   background: #f8fafc;
 }
@@ -2637,7 +2760,7 @@ body.entry-app-layout .entry-input-stage-input,
 body.entry-app-layout .entry-meta-input {
   border-width: var(--entry-ui-border-width) !important;
   font-weight: var(--entry-ui-font-weight) !important;
-  border-radius: calc(10px * var(--entry-ui-radius-scale)) !important;
+  border-radius: var(--entry-ui-unified-radius) !important;
   padding-top: calc(0.58em * var(--entry-ui-row-scale)) !important;
   padding-bottom: calc(0.58em * var(--entry-ui-row-scale)) !important;
 }
@@ -2645,7 +2768,7 @@ body.entry-app-layout .entry-meta-input {
 body.entry-app-layout .entry-line-card,
 body.entry-app-layout .section-card,
 body.entry-app-layout .confirm-block {
-  border-radius: calc(12px * var(--entry-ui-radius-scale)) !important;
+  border-radius: var(--entry-ui-unified-radius) !important;
 }
 
 body.entry-app-layout .entry-inline-table .col-no {
@@ -2678,7 +2801,7 @@ body.entry-app-layout .entry-inline-table:not(.entry-swipe-table) .col-action {
     body.entry-b-layout .section {
       margin: 0;
       max-width: none;
-      padding: 15px 15px;
+      padding: 12px 8px;
       border: 0;
       border-radius: 0;
       box-shadow: none;
@@ -3195,6 +3318,15 @@ body.entry-app-layout .entry-inline-table:not(.entry-swipe-table) .col-action {
       font-variant-numeric: tabular-nums;
     }
 
+    body.entry-b-layout #confirm-page .section-tone-product .confirm-detail-table.is-vertical td:first-child,
+    body.entry-b-layout #confirm-page .section-tone-product .confirm-detail-table.is-vertical td:nth-child(n + 2),
+    body.entry-b-layout #result-page .section-tone-product .confirm-detail-table.is-vertical td:first-child,
+    body.entry-b-layout #result-page .section-tone-product .confirm-detail-table.is-vertical td:nth-child(n + 2) {
+      width: auto;
+      text-align: left !important;
+      font-variant-numeric: normal;
+    }
+
     body.entry-b-layout #confirm-page .section-tone-product .detail-meta-row td,
     body.entry-b-layout #result-page .section-tone-product .detail-meta-row td {
       background: #f8fafc;
@@ -3362,7 +3494,7 @@ body.entry-app-layout .entry-inline-table:not(.entry-swipe-table) .col-action {
 
       body.entry-b-layout .section {
         margin: 0 !important;
-        padding: 12px 9px !important;
+        padding: 10px 6px !important;
         border-radius: 0 !important;
       }
 
@@ -3669,7 +3801,7 @@ html body.entry-app-layout .entry-input-stage-input,
 html body.entry-app-layout .entry-meta-input {
   border-width: var(--entry-ui-border-width) !important;
   font-weight: var(--entry-ui-font-weight) !important;
-  border-radius: calc(10px * var(--entry-ui-radius-scale)) !important;
+  border-radius: var(--entry-ui-unified-radius) !important;
   padding-top: calc(0.58em * var(--entry-ui-row-scale)) !important;
   padding-bottom: calc(0.58em * var(--entry-ui-row-scale)) !important;
 }
@@ -3677,7 +3809,7 @@ html body.entry-app-layout .entry-meta-input {
 html body.entry-app-layout .entry-line-card,
 html body.entry-app-layout .section-card,
 html body.entry-app-layout .confirm-block {
-  border-radius: calc(12px * var(--entry-ui-radius-scale)) !important;
+  border-radius: var(--entry-ui-unified-radius) !important;
 }
 
 html body.entry-app-layout .entry-inline-table .col-no {
@@ -3722,8 +3854,8 @@ html body.entry-app-layout #point-area .note-text {
 html body.entry-app-layout #point-area .entry-point-align-wrap {
   display: flex;
   justify-content: flex-end;
-  margin-left: var(--entry-ui-col-no) !important;
-  width: calc(100% - var(--entry-ui-col-no));
+  margin-left: 0 !important;
+  width: 100%;
 }
 
 html body.entry-app-layout #point-area .point-input-row {
@@ -3733,8 +3865,7 @@ html body.entry-app-layout #point-area .point-input-row {
   margin-right: 0;
 }
 
-html body.entry-app-layout .entry-common-table .entry-main-row .inline-input,
-html body.entry-app-layout .entry-common-table th {
+html body.entry-app-layout .entry-common-table .entry-main-row .inline-input {
   font-size: calc(var(--entry-ui-common-font-px) * var(--entry-ui-common-scale)) !important;
 }
 
@@ -3751,6 +3882,8 @@ html body.entry-app-layout .entry-line-title {
 }
 
 html body.entry-app-layout .entry-inline-table.entry-summary-table th,
+html body.entry-app-layout .entry-inline-table th,
+html body.entry-app-layout .entry-common-table th,
 html body.entry-app-layout .summary-table th {
   font-size: calc(var(--entry-ui-summary-header-font-px) * var(--entry-ui-summary-header-scale)) !important;
 }
@@ -3768,4 +3901,150 @@ html body.entry-app-layout .summary-table.is-vertical td {
 
 html body.entry-app-layout .summary-table.is-vertical th {
   width: 38%;
+}
+
+/* Confirm-page only: keep header/value/meta sizes linked to existing input groups */
+html body.entry-app-layout #confirm-page table th {
+  font-size: calc(var(--entry-ui-summary-header-font-px) * var(--entry-ui-summary-header-scale)) !important;
+}
+
+html body.entry-app-layout #confirm-page .section-tone-product table td,
+html body.entry-app-layout #confirm-page .section-tone-expense table td,
+html body.entry-app-layout #confirm-page .section-tone-common .summary-table td,
+html body.entry-app-layout #confirm-page .section-tone-summary .summary-table td {
+  font-size: calc(var(--entry-ui-product-row1-font-px) * var(--entry-ui-product-row1-scale)) !important;
+}
+
+html body.entry-app-layout #confirm-page .section-tone-product .detail-meta-row td,
+html body.entry-app-layout #confirm-page .section-tone-product .detail-meta-row .entry-meta-label,
+html body.entry-app-layout #confirm-page .section-tone-product .detail-meta-row .entry-meta-value {
+  font-size: calc(var(--entry-ui-product-row2-font-px) * var(--entry-ui-product-row2-scale)) !important;
+}
+
+html body.entry-app-layout #confirm-page .section-tone-expense .summary-table td .confirm-inline-box {
+  width: 100%;
+}
+
+/* Confirm-page expense table widths (No column removed) */
+html body.entry-app-layout #confirm-page .section-tone-expense table th:first-child,
+html body.entry-app-layout #confirm-page .section-tone-expense table td:first-child {
+  width: 70% !important;
+  min-width: 0 !important;
+  text-align: left;
+}
+
+html body.entry-app-layout #confirm-page .section-tone-expense table th:nth-child(2),
+html body.entry-app-layout #confirm-page .section-tone-expense table td:nth-child(2) {
+  width: 30% !important;
+  min-width: 0 !important;
+  text-align: right;
+}
+
+/* Entry input alignment: qty / expense amount / point */
+html body.entry-app-layout .entry-product-table .entry-main-row td:nth-child(3) .inline-number,
+html body.entry-app-layout .entry-expense-table .entry-main-row td:nth-child(2) .inline-number,
+html body.entry-app-layout #point-total-display,
+html body.entry-app-layout .entry-meta-item input[id^="entry-point-"] {
+  text-align: right !important;
+}
+
+/* Role-based display settings (v2) */
+html body.entry-app-layout .entry-fixed-header-title {
+  font-size: var(--entry-ui-h1-font-px, 22px) !important;
+}
+
+html body.entry-app-layout .entry-fixed-header-file,
+html body.entry-app-layout .entry-fixed-header-state {
+  font-size: var(--entry-ui-header-font-px, 18px) !important;
+}
+
+html body.entry-app-layout .mid-title,
+html body.entry-app-layout .section-title,
+html body.entry-app-layout .confirm-title,
+html body.entry-app-layout .entry-line-title {
+  font-size: var(--entry-ui-title-font-px, 36px) !important;
+}
+
+html body.entry-app-layout .entry-inline-table th,
+html body.entry-app-layout .summary-table th,
+html body.entry-app-layout #confirm-page table th {
+  font-size: var(--entry-ui-summary-header-font-px, 36px) !important;
+}
+
+html body.entry-app-layout .inline-input,
+html body.entry-app-layout .inline-number,
+html body.entry-app-layout .inline-value,
+html body.entry-app-layout .summary-table .summary-value-row td,
+html body.entry-app-layout .summary-table .summary-text-row td,
+html body.entry-app-layout #confirm-page .section-tone-product table td,
+html body.entry-app-layout #confirm-page .section-tone-expense table td,
+html body.entry-app-layout #confirm-page .section-tone-common .summary-table td,
+html body.entry-app-layout #confirm-page .section-tone-summary .summary-table td,
+html body.entry-app-layout #confirm-page .detail-vertical-metrics-row .entry-meta-value {
+  font-size: var(--entry-ui-value-font-px, 48px) !important;
+}
+
+html body.entry-app-layout .entry-meta-label,
+html body.entry-app-layout .entry-product-table .entry-meta-row .entry-meta-label,
+html body.entry-app-layout #confirm-page .detail-vertical-extra-row .entry-meta-label,
+html body.entry-app-layout #confirm-page .detail-vertical-extra-row .entry-meta-value {
+  font-size: var(--entry-ui-helper-font-px, 36px) !important;
+}
+
+html body.entry-app-layout .note-text,
+html body.entry-app-layout .note-subtle {
+  font-size: var(--entry-ui-note-font-px, 18px) !important;
+}
+
+html body.entry-app-layout .btn-main,
+html body.entry-app-layout .btn-sub,
+html body.entry-app-layout .btn-icon,
+html body.entry-app-layout .btn-append-row,
+html body.entry-app-layout .btn-delete-mode {
+  font-size: var(--entry-ui-button-font-px, 21px) !important;
+}
+
+html body.entry-app-layout .entry-bottom-nav-label,
+html body.entry-app-layout .entry-bottom-nav-icon {
+  font-size: var(--entry-ui-footer-font-px, 36px) !important;
+}
+
+html body.entry-app-layout .entry-product-table th.col-item,
+html body.entry-app-layout .entry-product-table td.col-item {
+  width: var(--entry-ui-product-col-item, 50%) !important;
+}
+
+html body.entry-app-layout .entry-product-table th.col-num,
+html body.entry-app-layout .entry-product-table td.col-num {
+  width: var(--entry-ui-product-col-price, 20%) !important;
+}
+
+html body.entry-app-layout .entry-product-table th.col-qty,
+html body.entry-app-layout .entry-product-table td.col-qty {
+  width: var(--entry-ui-product-col-qty, 10%) !important;
+}
+
+html body.entry-app-layout .entry-product-table:not(.entry-swipe-table) th.col-action,
+html body.entry-app-layout .entry-product-table:not(.entry-swipe-table) td.col-action {
+  width: var(--entry-ui-col-action, 8%) !important;
+}
+
+html body.entry-app-layout .entry-expense-table th.col-item,
+html body.entry-app-layout .entry-expense-table td.col-item {
+  width: 70% !important;
+}
+
+html body.entry-app-layout .entry-expense-table th.col-num,
+html body.entry-app-layout .entry-expense-table td.col-num {
+  width: 30% !important;
+}
+
+html body.entry-app-layout .entry-common-table th,
+html body.entry-app-layout .entry-common-table td {
+  width: var(--entry-ui-common-col, 33%) !important;
+}
+
+html body.entry-app-layout .entry-display-settings-template-actions {
+  display: flex;
+  gap: 8px;
 }

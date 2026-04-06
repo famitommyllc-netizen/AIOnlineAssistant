@@ -12,7 +12,7 @@
     <header id="entry-fixed-header" class="entry-fixed-header">
       <div class="entry-fixed-header-inner">
         <div class="entry-fixed-header-title-wrap">
-          <div class="entry-fixed-header-title">仕入入力</div>
+          <h1 class="entry-fixed-header-title">仕入入力</h1>
           <div id="entry-fixed-header-file" class="entry-fixed-header-file">EntryForm.html</div>
         </div>
         <div id="entry-fixed-header-state" class="entry-fixed-header-state">入力</div>
@@ -34,7 +34,7 @@
         <div id="summary-area" class="section"></div>
 
         <div class="section">
-          <h3 class="mid-title">共通項目</h3>
+          <h2 class="mid-title">共通項目</h2>
           <div id="common-info"></div>
         </div>
         <div class="section">
@@ -46,7 +46,6 @@
 
       <div id="confirm-page" style="display:none;">
         <div class="section">
-          <h2 class="section-title">仕入登録 最終確認</h2>
           <div class="note-text">内容を確認し、問題なければ登録してください。</div>
           <div id="confirm-area"></div>
           <div class="button-row">
@@ -59,7 +58,6 @@
 
       <div id="result-page" style="display:none;">
         <div class="section">
-          <h2 class="section-title">仕入登録 完了</h2>
           <div id="entry-status"></div>
           <div class="button-row">
             <button type="button" class="btn-main" onclick="startNewEntry()">新しく仕入入力する</button>
@@ -137,7 +135,8 @@ function uiBuildInputTable_(config) {
   var bodyHtml = String(c.bodyHtml || '');
   var note = c.note ? '<div class="note-text" style="margin-top:0.45em;">' + uiEscapeHtml_(c.note) + '</div>' : '';
 
-  var header = '<th class="col-no">No</th>';
+  var includeNo = c.includeNo === true;
+  var header = includeNo ? '<th class="col-no">No</th>' : '';
   for (var i = 0; i < columns.length; i++) {
     var col = columns[i] || {};
     var cls = col.className ? ' ' + uiEscapeHtml_(col.className) : '';
@@ -199,42 +198,35 @@ let entryInputStageSuggestionActiveIndex_ = -1;
 let entryInputStageSuggestionVisible_ = false;
 let entryInputStageViewportRaf_ = 0;
 let entryStageBodyLockScrollY_ = 0;
-// rev: EntryForm.html rev-20260405-14
-const ENTRY_FORM_REV_ = 'rev-20260405-14';
-// rev: style.css.html rev-20260405-14
-const ENTRY_STYLE_REV_ = 'rev-20260405-14';
+// rev: EntryForm.html rev-20260406-20
+const ENTRY_FORM_REV_ = 'rev-20260406-20';
+// rev: style.css.html rev-20260406-16
+const ENTRY_STYLE_REV_ = 'rev-20260406-16';
 const ENTRY_DISPLAY_SETTINGS_STORAGE_KEY_ = 'entryDisplaySettings.v1';
 const ENTRY_DISPLAY_SETTINGS_DEFAULTS_STORAGE_KEY_ = 'entryDisplaySettings.defaults.v1';
+const ENTRY_DISPLAY_SETTINGS_TEMPLATES_STORAGE_KEY_ = 'entryDisplaySettings.templates.v1';
+const ENTRY_DISPLAY_SETTINGS_ACTIVE_TEMPLATE_KEY_ = 'entryDisplaySettings.activeTemplate.v1';
+const ENTRY_DISPLAY_SETTINGS_RADIUS_MIGRATION_KEY_ = 'entryDisplaySettings.radiusReset.rev20260406';
 const ENTRY_DISPLAY_SETTINGS_DEFAULTS_ = {
-  fontScale: 100,
-  rowScale: 100,
-  lineHeight: 130,
+  h1FontPx: 22,
+  h2FontPx: 36,
+  thFontPx: 36,
+  valueFontPx: 48,
+  helperFontPx: 36,
+  headerFontPx: 18,
+  footerFontPx: 36,
+  noteFontPx: 18,
+  buttonFontPx: 21,
   borderWidth: 2,
   radiusScale: 100,
   fontWeight: 500,
-  colNo: 8,
   colAction: 8,
-  colNum: 16,
-  productRow1Scale: 100,
-  productRow2Scale: 100,
-  expenseScale: 100,
-  pointScale: 100,
-  commonScale: 100,
-  footerScale: 100,
-  titleScale: 100,
   pointFormWidth: 100,
-  productRow1FontPx: 24,
-  productRow2FontPx: 18,
-  expenseFontPx: 24,
-  pointFontPx: 24,
-  commonFontPx: 24,
-  footerFontPx: 14,
-  titleFontPx: 18,
-  summaryHeaderScale: 100,
-  summaryHeaderFontPx: 18,
-  summaryValueScale: 100,
-  summaryValueFontPx: 24,
-  confirmLayout: 'horizontal'
+  productColItemPct: 50,
+  productColPricePct: 20,
+  productColQtyPct: 10,
+  productColCostPct: 20,
+  commonColPct: 33
 };
 let entryDisplaySettings_ = null;
 let entryRowDeleteMode_ = false;
@@ -358,40 +350,30 @@ function clampDisplaySetting_(value, min, max, fallback) {
 function normalizeDisplaySettings_(input) {
   const src = input || {};
   const out = {
-    fontScale: clampDisplaySetting_(src.fontScale, 70, 180, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.fontScale),
-    rowScale: clampDisplaySetting_(src.rowScale, 70, 180, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.rowScale),
-    lineHeight: clampDisplaySetting_(src.lineHeight, 110, 190, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.lineHeight),
+    h1FontPx: clampDisplaySetting_(src.h1FontPx, 12, 96, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.h1FontPx),
+    h2FontPx: clampDisplaySetting_(src.h2FontPx, 12, 96, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.h2FontPx),
+    thFontPx: clampDisplaySetting_(src.thFontPx, 10, 96, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.thFontPx),
+    valueFontPx: clampDisplaySetting_(src.valueFontPx, 10, 96, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.valueFontPx),
+    helperFontPx: clampDisplaySetting_(src.helperFontPx, 10, 96, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.helperFontPx),
+    headerFontPx: clampDisplaySetting_(src.headerFontPx, 10, 96, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.headerFontPx),
+    footerFontPx: clampDisplaySetting_(src.footerFontPx, 10, 96, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.footerFontPx),
+    noteFontPx: clampDisplaySetting_(src.noteFontPx, 10, 96, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.noteFontPx),
+    buttonFontPx: clampDisplaySetting_(src.buttonFontPx, 10, 96, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.buttonFontPx),
     borderWidth: clampDisplaySetting_(src.borderWidth, 1, 8, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.borderWidth),
     radiusScale: clampDisplaySetting_(src.radiusScale, 50, 220, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.radiusScale),
     fontWeight: clampDisplaySetting_(src.fontWeight, 400, 700, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.fontWeight),
-    colNo: clampDisplaySetting_(src.colNo, 6, 18, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.colNo),
     colAction: clampDisplaySetting_(src.colAction, 6, 18, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.colAction),
-    colNum: clampDisplaySetting_(src.colNum, 10, 26, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.colNum),
-    productRow1Scale: clampDisplaySetting_(src.productRow1Scale, 60, 220, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.productRow1Scale),
-    productRow2Scale: clampDisplaySetting_(src.productRow2Scale, 60, 220, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.productRow2Scale),
-    expenseScale: clampDisplaySetting_(src.expenseScale, 60, 220, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.expenseScale),
-    pointScale: clampDisplaySetting_(src.pointScale, 60, 220, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.pointScale),
-    commonScale: clampDisplaySetting_(src.commonScale, 60, 220, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.commonScale),
-    footerScale: clampDisplaySetting_(src.footerScale, 60, 220, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.footerScale),
-    titleScale: clampDisplaySetting_(src.titleScale, 60, 220, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.titleScale),
     pointFormWidth: clampDisplaySetting_(src.pointFormWidth, 40, 100, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.pointFormWidth),
-    productRow1FontPx: clampDisplaySetting_(src.productRow1FontPx, 10, 96, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.productRow1FontPx),
-    productRow2FontPx: clampDisplaySetting_(src.productRow2FontPx, 10, 96, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.productRow2FontPx),
-    expenseFontPx: clampDisplaySetting_(src.expenseFontPx, 10, 96, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.expenseFontPx),
-    pointFontPx: clampDisplaySetting_(src.pointFontPx, 10, 96, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.pointFontPx),
-    commonFontPx: clampDisplaySetting_(src.commonFontPx, 10, 96, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.commonFontPx),
-    footerFontPx: clampDisplaySetting_(src.footerFontPx, 10, 96, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.footerFontPx),
-    titleFontPx: clampDisplaySetting_(src.titleFontPx, 10, 96, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.titleFontPx),
-    summaryHeaderScale: clampDisplaySetting_(src.summaryHeaderScale, 60, 220, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.summaryHeaderScale),
-    summaryHeaderFontPx: clampDisplaySetting_(src.summaryHeaderFontPx, 10, 96, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.summaryHeaderFontPx),
-    summaryValueScale: clampDisplaySetting_(src.summaryValueScale, 60, 220, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.summaryValueScale),
-    summaryValueFontPx: clampDisplaySetting_(src.summaryValueFontPx, 10, 96, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.summaryValueFontPx),
-    confirmLayout: String(src.confirmLayout || ENTRY_DISPLAY_SETTINGS_DEFAULTS_.confirmLayout) === 'vertical' ? 'vertical' : 'horizontal'
+    productColItemPct: clampDisplaySetting_(src.productColItemPct, 40, 70, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.productColItemPct),
+    productColPricePct: clampDisplaySetting_(src.productColPricePct, 10, 30, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.productColPricePct),
+    productColQtyPct: clampDisplaySetting_(src.productColQtyPct, 8, 20, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.productColQtyPct),
+    productColCostPct: clampDisplaySetting_(src.productColCostPct, 10, 30, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.productColCostPct),
+    commonColPct: clampDisplaySetting_(src.commonColPct, 30, 34, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.commonColPct)
   };
-  const itemWidth = 100 - out.colNo - out.colAction - (out.colNum * 3);
-  if (itemWidth < 20) {
-    const over = 20 - itemWidth;
-    out.colNum = Math.max(10, out.colNum - Math.ceil(over / 3));
+  const productTotal = out.productColItemPct + out.productColPricePct + out.productColQtyPct + out.productColCostPct;
+  if (productTotal !== 100) {
+    const diff = 100 - productTotal;
+    out.productColItemPct = Math.max(40, Math.min(70, out.productColItemPct + diff));
   }
   return out;
 }
@@ -451,43 +433,62 @@ function applyDisplaySettings_() {
   const settings = normalizeDisplaySettings_(entryDisplaySettings_ || ENTRY_DISPLAY_SETTINGS_DEFAULTS_);
   entryDisplaySettings_ = settings;
   const root = document.documentElement;
-  root.style.setProperty('--entry-ui-font-scale', String(settings.fontScale / 100));
-  root.style.setProperty('--entry-ui-row-scale', String(settings.rowScale / 100));
-  root.style.setProperty('--entry-ui-line-height', String(settings.lineHeight / 100));
   root.style.setProperty('--entry-ui-border-width', settings.borderWidth + 'px');
   root.style.setProperty('--entry-ui-radius-scale', String(settings.radiusScale / 100));
   root.style.setProperty('--entry-ui-font-weight', String(settings.fontWeight));
-  root.style.setProperty('--entry-ui-col-no', settings.colNo + '%');
+  root.style.setProperty('--entry-ui-col-no', '0%');
   root.style.setProperty('--entry-ui-col-action', settings.colAction + '%');
-  root.style.setProperty('--entry-ui-col-num', settings.colNum + '%');
-  root.style.setProperty('--entry-ui-product-row1-scale', String(settings.productRow1Scale / 100));
-  root.style.setProperty('--entry-ui-product-row2-scale', String(settings.productRow2Scale / 100));
-  root.style.setProperty('--entry-ui-expense-scale', String(settings.expenseScale / 100));
-  root.style.setProperty('--entry-ui-point-scale', String(settings.pointScale / 100));
-  root.style.setProperty('--entry-ui-common-scale', String(settings.commonScale / 100));
-  root.style.setProperty('--entry-ui-footer-scale', String(settings.footerScale / 100));
-  root.style.setProperty('--entry-ui-title-scale', String(settings.titleScale / 100));
+  root.style.setProperty('--entry-ui-col-num', settings.productColPricePct + '%');
+  root.style.setProperty('--entry-ui-col-qty', settings.productColQtyPct + '%');
+  root.style.setProperty('--entry-ui-product-row1-scale', '1');
+  root.style.setProperty('--entry-ui-product-row2-scale', '1');
+  root.style.setProperty('--entry-ui-expense-scale', '1');
+  root.style.setProperty('--entry-ui-point-scale', '1');
+  root.style.setProperty('--entry-ui-common-scale', '1');
+  root.style.setProperty('--entry-ui-footer-scale', '1');
+  root.style.setProperty('--entry-ui-title-scale', '1');
+  root.style.setProperty('--entry-ui-summary-header-scale', '1');
+  root.style.setProperty('--entry-ui-summary-value-scale', '1');
   root.style.setProperty('--entry-ui-point-form-width', settings.pointFormWidth + '%');
-  root.style.setProperty('--entry-ui-product-row1-font-px', settings.productRow1FontPx + 'px');
-  root.style.setProperty('--entry-ui-product-row2-font-px', settings.productRow2FontPx + 'px');
-  root.style.setProperty('--entry-ui-expense-font-px', settings.expenseFontPx + 'px');
-  root.style.setProperty('--entry-ui-point-font-px', settings.pointFontPx + 'px');
-  root.style.setProperty('--entry-ui-common-font-px', settings.commonFontPx + 'px');
+  root.style.setProperty('--entry-ui-product-row1-font-px', settings.valueFontPx + 'px');
+  root.style.setProperty('--entry-ui-product-row2-font-px', settings.helperFontPx + 'px');
+  root.style.setProperty('--entry-ui-expense-font-px', settings.valueFontPx + 'px');
+  root.style.setProperty('--entry-ui-point-font-px', settings.valueFontPx + 'px');
+  root.style.setProperty('--entry-ui-common-font-px', settings.valueFontPx + 'px');
   root.style.setProperty('--entry-ui-footer-font-px', settings.footerFontPx + 'px');
-  root.style.setProperty('--entry-ui-title-font-px', settings.titleFontPx + 'px');
-  root.style.setProperty('--entry-ui-summary-header-scale', String(settings.summaryHeaderScale / 100));
-  root.style.setProperty('--entry-ui-summary-header-font-px', settings.summaryHeaderFontPx + 'px');
-  root.style.setProperty('--entry-ui-summary-value-scale', String(settings.summaryValueScale / 100));
-  root.style.setProperty('--entry-ui-summary-value-font-px', settings.summaryValueFontPx + 'px');
+  root.style.setProperty('--entry-ui-title-font-px', settings.h2FontPx + 'px');
+  root.style.setProperty('--entry-ui-summary-header-font-px', settings.thFontPx + 'px');
+  root.style.setProperty('--entry-ui-summary-value-font-px', settings.valueFontPx + 'px');
+  root.style.setProperty('--entry-ui-h1-font-px', settings.h1FontPx + 'px');
+  root.style.setProperty('--entry-ui-header-font-px', settings.headerFontPx + 'px');
+  root.style.setProperty('--entry-ui-note-font-px', settings.noteFontPx + 'px');
+  root.style.setProperty('--entry-ui-button-font-px', settings.buttonFontPx + 'px');
+  root.style.setProperty('--entry-ui-helper-font-px', settings.helperFontPx + 'px');
+  root.style.setProperty('--entry-ui-value-font-px', settings.valueFontPx + 'px');
+  root.style.setProperty('--entry-ui-product-col-item', settings.productColItemPct + '%');
+  root.style.setProperty('--entry-ui-product-col-price', settings.productColPricePct + '%');
+  root.style.setProperty('--entry-ui-product-col-qty', settings.productColQtyPct + '%');
+  root.style.setProperty('--entry-ui-product-col-cost', settings.productColCostPct + '%');
+  root.style.setProperty('--entry-ui-common-col', settings.commonColPct + '%');
   if (document.body) {
-    document.body.setAttribute('data-confirm-layout', settings.confirmLayout);
+    document.body.setAttribute('data-confirm-layout', 'vertical');
   }
-  const colItem = Math.max(20, 100 - settings.colNo - settings.colAction - (settings.colNum * 3));
+  const colItem = settings.productColItemPct;
   root.style.setProperty('--entry-ui-col-item', colItem + '%');
 }
 
 function initializeDisplaySettings_() {
   entryDisplaySettings_ = loadDisplaySettings_();
+  // One-time migration: restore "standard roundness" (radiusScale=100).
+  try {
+    if (!window.localStorage.getItem(ENTRY_DISPLAY_SETTINGS_RADIUS_MIGRATION_KEY_)) {
+      entryDisplaySettings_.radiusScale = ENTRY_DISPLAY_SETTINGS_DEFAULTS_.radiusScale;
+      window.localStorage.setItem(ENTRY_DISPLAY_SETTINGS_RADIUS_MIGRATION_KEY_, '1');
+      saveDisplaySettings_();
+    }
+  } catch (err) {
+    // no-op
+  }
   applyDisplaySettings_();
 }
 
@@ -511,24 +512,85 @@ function getDisplaySettingsModalField_(id) {
   return document.getElementById('entry-display-settings-' + id);
 }
 
-function updateDisplaySettingsValueLabels_() {
-  const ids = ['fontScale', 'rowScale', 'lineHeight', 'borderWidth', 'radiusScale', 'colNo', 'colAction', 'colNum', 'productRow1Scale', 'productRow2Scale', 'expenseScale', 'pointScale', 'commonScale', 'footerScale', 'titleScale', 'pointFormWidth', 'summaryHeaderScale', 'summaryValueScale'];
-  ids.forEach(function(id) {
-    const input = getDisplaySettingsModalField_(id);
-    const label = document.getElementById('entry-display-settings-value-' + id);
-    if (!input || !label) return;
-    const value = Number(input.value || 0);
-    if (id === 'borderWidth') {
-      label.textContent = value + 'px';
-      return;
-    }
-    label.textContent = value + '%';
-  });
+function loadDisplaySettingsTemplates_() {
+  try {
+    const raw = window.localStorage.getItem(ENTRY_DISPLAY_SETTINGS_TEMPLATES_STORAGE_KEY_);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch (err) {
+    return {};
+  }
+}
+
+function saveDisplaySettingsTemplates_(templates) {
+  try {
+    window.localStorage.setItem(ENTRY_DISPLAY_SETTINGS_TEMPLATES_STORAGE_KEY_, JSON.stringify(templates || {}));
+  } catch (err) {
+    // no-op
+  }
+}
+
+function saveCurrentDisplaySettingsAsTemplate_() {
+  const nameField = getDisplaySettingsModalField_('template-name');
+  const name = String((nameField && nameField.value) || '').trim();
+  if (!name) {
+    alert('テンプレート名を入力してください');
+    return;
+  }
+  const templates = loadDisplaySettingsTemplates_();
+  templates[name] = normalizeDisplaySettings_(entryDisplaySettings_ || ENTRY_DISPLAY_SETTINGS_DEFAULTS_);
+  saveDisplaySettingsTemplates_(templates);
+  try {
+    window.localStorage.setItem(ENTRY_DISPLAY_SETTINGS_ACTIVE_TEMPLATE_KEY_, name);
+  } catch (err) {
+    // no-op
+  }
+  openDisplaySettingsModal_();
+}
+
+function applySelectedDisplayTemplate_() {
+  const selectEl = getDisplaySettingsModalField_('template-select');
+  const name = String((selectEl && selectEl.value) || '').trim();
+  if (!name) return;
+  const templates = loadDisplaySettingsTemplates_();
+  if (!templates[name]) return;
+  entryDisplaySettings_ = normalizeDisplaySettings_(templates[name]);
+  applyDisplaySettings_();
+  saveDisplaySettings_();
+  try {
+    window.localStorage.setItem(ENTRY_DISPLAY_SETTINGS_ACTIVE_TEMPLATE_KEY_, name);
+  } catch (err) {
+    // no-op
+  }
+  openDisplaySettingsModal_();
+}
+
+function deleteSelectedDisplayTemplate_() {
+  const selectEl = getDisplaySettingsModalField_('template-select');
+  const name = String((selectEl && selectEl.value) || '').trim();
+  if (!name) return;
+  const templates = loadDisplaySettingsTemplates_();
+  if (!templates[name]) return;
+  delete templates[name];
+  saveDisplaySettingsTemplates_(templates);
+  try {
+    const active = String(window.localStorage.getItem(ENTRY_DISPLAY_SETTINGS_ACTIVE_TEMPLATE_KEY_) || '');
+    if (active === name) window.localStorage.removeItem(ENTRY_DISPLAY_SETTINGS_ACTIVE_TEMPLATE_KEY_);
+  } catch (err) {
+    // no-op
+  }
+  openDisplaySettingsModal_();
 }
 
 function readDisplaySettingsFromModal_() {
   const next = Object.assign({}, entryDisplaySettings_ || ENTRY_DISPLAY_SETTINGS_DEFAULTS_);
-  const keys = ['fontScale', 'rowScale', 'lineHeight', 'borderWidth', 'radiusScale', 'colNo', 'colAction', 'colNum', 'productRow1Scale', 'productRow2Scale', 'expenseScale', 'pointScale', 'commonScale', 'footerScale', 'titleScale', 'pointFormWidth', 'productRow1FontPx', 'productRow2FontPx', 'expenseFontPx', 'pointFontPx', 'commonFontPx', 'footerFontPx', 'titleFontPx', 'summaryHeaderScale', 'summaryHeaderFontPx', 'summaryValueScale', 'summaryValueFontPx'];
+  const keys = [
+    'h1FontPx', 'h2FontPx', 'thFontPx', 'valueFontPx', 'helperFontPx',
+    'headerFontPx', 'footerFontPx', 'noteFontPx', 'buttonFontPx',
+    'borderWidth', 'radiusScale', 'colAction', 'pointFormWidth',
+    'productColItemPct', 'productColPricePct', 'productColQtyPct', 'productColCostPct',
+    'commonColPct'
+  ];
   keys.forEach(function(key) {
     const field = getDisplaySettingsModalField_(key);
     if (!field) return;
@@ -536,30 +598,12 @@ function readDisplaySettingsFromModal_() {
   });
   const weightField = getDisplaySettingsModalField_('fontWeight');
   if (weightField) next.fontWeight = Number(weightField.value || next.fontWeight);
-  const confirmLayoutField = getDisplaySettingsModalField_('confirmLayout');
-  if (confirmLayoutField) next.confirmLayout = String(confirmLayoutField.value || next.confirmLayout);
   entryDisplaySettings_ = normalizeDisplaySettings_(next);
 }
 
 function onDisplaySettingsInput_() {
   readDisplaySettingsFromModal_();
-  updateDisplaySettingsValueLabels_();
   applyDisplaySettings_();
-}
-
-function buildDisplaySizeControl_(title, fontId, scaleId, fontValue, scaleValue) {
-  return `
-    <div class="entry-display-settings-size-block">
-      <div class="entry-display-settings-size-title">${title}</div>
-      <label>${title} 文字サイズ(px)
-        <input id="entry-display-settings-${fontId}" type="number" min="10" max="96" step="1" value="${fontValue}" oninput="onDisplaySettingsInput_()">
-      </label>
-      <label>${title} 行幅比(%)
-        <span id="entry-display-settings-value-${scaleId}">${scaleValue}%</span>
-        <input id="entry-display-settings-${scaleId}" type="range" min="60" max="220" step="1" value="${scaleValue}" oninput="onDisplaySettingsInput_()">
-      </label>
-    </div>
-  `;
 }
 
 function resetDisplaySettings_() {
@@ -573,18 +617,45 @@ function openDisplaySettingsModal_() {
   if (!modal) return;
   const s = normalizeDisplaySettings_(entryDisplaySettings_ || ENTRY_DISPLAY_SETTINGS_DEFAULTS_);
   entryDisplaySettings_ = s;
+  const templates = loadDisplaySettingsTemplates_();
+  const templateNames = Object.keys(templates).sort();
+  let activeTemplateName = '';
+  try {
+    activeTemplateName = String(window.localStorage.getItem(ENTRY_DISPLAY_SETTINGS_ACTIVE_TEMPLATE_KEY_) || '').trim();
+  } catch (err) {
+    activeTemplateName = '';
+  }
+  if (!templateNames.includes(activeTemplateName)) {
+    activeTemplateName = templateNames.length ? templateNames[0] : '';
+  }
+  const templateOptionsHtml = ['<option value="">テンプレート未選択</option>'].concat(
+    templateNames.map(function(name) {
+      const selected = activeTemplateName === name ? ' selected' : '';
+      return '<option value="' + escapeHtml(name) + '"' + selected + '>' + escapeHtml(name) + '</option>';
+    })
+  ).join('');
   modal.innerHTML = `
     <div class="entry-display-settings-panel" role="dialog" aria-modal="true" aria-label="表示調整">
       <div class="entry-display-settings-title">表示調整</div>
       <div class="entry-display-settings-grid">
-        <label>文字サイズ <span id="entry-display-settings-value-fontScale">${s.fontScale}%</span><input id="entry-display-settings-fontScale" type="range" min="70" max="180" step="1" value="${s.fontScale}" oninput="onDisplaySettingsInput_()"></label>
-        <label>行の太さ <span id="entry-display-settings-value-rowScale">${s.rowScale}%</span><input id="entry-display-settings-rowScale" type="range" min="70" max="180" step="1" value="${s.rowScale}" oninput="onDisplaySettingsInput_()"></label>
-        <label>行間 <span id="entry-display-settings-value-lineHeight">${s.lineHeight}%</span><input id="entry-display-settings-lineHeight" type="range" min="110" max="190" step="1" value="${s.lineHeight}" oninput="onDisplaySettingsInput_()"></label>
-        <label>フォーム線の太さ <span id="entry-display-settings-value-borderWidth">${s.borderWidth}px</span><input id="entry-display-settings-borderWidth" type="range" min="1" max="8" step="1" value="${s.borderWidth}" oninput="onDisplaySettingsInput_()"></label>
-        <label>角丸 <span id="entry-display-settings-value-radiusScale">${s.radiusScale}%</span><input id="entry-display-settings-radiusScale" type="range" min="50" max="220" step="1" value="${s.radiusScale}" oninput="onDisplaySettingsInput_()"></label>
-        <label>No列幅 <span id="entry-display-settings-value-colNo">${s.colNo}%</span><input id="entry-display-settings-colNo" type="range" min="6" max="18" step="1" value="${s.colNo}" oninput="onDisplaySettingsInput_()"></label>
-        <label>操作列幅 <span id="entry-display-settings-value-colAction">${s.colAction}%</span><input id="entry-display-settings-colAction" type="range" min="6" max="18" step="1" value="${s.colAction}" oninput="onDisplaySettingsInput_()"></label>
-        <label>金額列幅 <span id="entry-display-settings-value-colNum">${s.colNum}%</span><input id="entry-display-settings-colNum" type="range" min="10" max="26" step="1" value="${s.colNum}" oninput="onDisplaySettingsInput_()"></label>
+        <label>h1文字サイズ(px)<input id="entry-display-settings-h1FontPx" type="number" min="12" max="96" step="1" value="${s.h1FontPx}" oninput="onDisplaySettingsInput_()"></label>
+        <label>h2文字サイズ(px)<input id="entry-display-settings-h2FontPx" type="number" min="12" max="96" step="1" value="${s.h2FontPx}" oninput="onDisplaySettingsInput_()"></label>
+        <label>th文字サイズ(px)<input id="entry-display-settings-thFontPx" type="number" min="10" max="96" step="1" value="${s.thFontPx}" oninput="onDisplaySettingsInput_()"></label>
+        <label>値文字サイズ(px)<input id="entry-display-settings-valueFontPx" type="number" min="10" max="96" step="1" value="${s.valueFontPx}" oninput="onDisplaySettingsInput_()"></label>
+        <label>補助ラベル文字サイズ(px)<input id="entry-display-settings-helperFontPx" type="number" min="10" max="96" step="1" value="${s.helperFontPx}" oninput="onDisplaySettingsInput_()"></label>
+        <label>ヘッダー文字サイズ(px)<input id="entry-display-settings-headerFontPx" type="number" min="10" max="96" step="1" value="${s.headerFontPx}" oninput="onDisplaySettingsInput_()"></label>
+        <label>フッター文字サイズ(px)<input id="entry-display-settings-footerFontPx" type="number" min="10" max="96" step="1" value="${s.footerFontPx}" oninput="onDisplaySettingsInput_()"></label>
+        <label>注記文字サイズ(px)<input id="entry-display-settings-noteFontPx" type="number" min="10" max="96" step="1" value="${s.noteFontPx}" oninput="onDisplaySettingsInput_()"></label>
+        <label>ボタン文字サイズ(px)<input id="entry-display-settings-buttonFontPx" type="number" min="10" max="96" step="1" value="${s.buttonFontPx}" oninput="onDisplaySettingsInput_()"></label>
+        <label>フォーム線の太さ(px)<input id="entry-display-settings-borderWidth" type="number" min="1" max="8" step="1" value="${s.borderWidth}" oninput="onDisplaySettingsInput_()"></label>
+        <label>角丸(%)<input id="entry-display-settings-radiusScale" type="number" min="50" max="220" step="1" value="${s.radiusScale}" oninput="onDisplaySettingsInput_()"></label>
+        <label>操作列幅(%)<input id="entry-display-settings-colAction" type="number" min="6" max="18" step="1" value="${s.colAction}" oninput="onDisplaySettingsInput_()"></label>
+        <label>ポイントフォーム横幅(%)<input id="entry-display-settings-pointFormWidth" type="number" min="40" max="100" step="1" value="${s.pointFormWidth}" oninput="onDisplaySettingsInput_()"></label>
+        <label>商品列幅: 商品名(%)<input id="entry-display-settings-productColItemPct" type="number" min="40" max="70" step="1" value="${s.productColItemPct}" oninput="onDisplaySettingsInput_()"></label>
+        <label>商品列幅: 提示金額(%)<input id="entry-display-settings-productColPricePct" type="number" min="10" max="30" step="1" value="${s.productColPricePct}" oninput="onDisplaySettingsInput_()"></label>
+        <label>商品列幅: 個数(%)<input id="entry-display-settings-productColQtyPct" type="number" min="8" max="20" step="1" value="${s.productColQtyPct}" oninput="onDisplaySettingsInput_()"></label>
+        <label>商品列幅: 原価(%)<input id="entry-display-settings-productColCostPct" type="number" min="10" max="30" step="1" value="${s.productColCostPct}" oninput="onDisplaySettingsInput_()"></label>
+        <label>共通項目3等分幅(%)<input id="entry-display-settings-commonColPct" type="number" min="30" max="34" step="1" value="${s.commonColPct}" oninput="onDisplaySettingsInput_()"></label>
         <label>文字の太さ
           <select id="entry-display-settings-fontWeight" onchange="onDisplaySettingsInput_()">
             <option value="400"${s.fontWeight === 400 ? ' selected' : ''}>標準</option>
@@ -592,22 +663,19 @@ function openDisplaySettingsModal_() {
             <option value="700"${s.fontWeight === 700 ? ' selected' : ''}>太字</option>
           </select>
         </label>
-        ${buildDisplaySizeControl_('商品入力 1row', 'productRow1FontPx', 'productRow1Scale', s.productRow1FontPx, s.productRow1Scale)}
-        ${buildDisplaySizeControl_('商品入力 2row', 'productRow2FontPx', 'productRow2Scale', s.productRow2FontPx, s.productRow2Scale)}
-        ${buildDisplaySizeControl_('経費', 'expenseFontPx', 'expenseScale', s.expenseFontPx, s.expenseScale)}
-        ${buildDisplaySizeControl_('ポイント', 'pointFontPx', 'pointScale', s.pointFontPx, s.pointScale)}
-        ${buildDisplaySizeControl_('共通項目', 'commonFontPx', 'commonScale', s.commonFontPx, s.commonScale)}
-        ${buildDisplaySizeControl_('フッター', 'footerFontPx', 'footerScale', s.footerFontPx, s.footerScale)}
-        ${buildDisplaySizeControl_('タイトル見出し', 'titleFontPx', 'titleScale', s.titleFontPx, s.titleScale)}
-        ${buildDisplaySizeControl_('サマリー見出し', 'summaryHeaderFontPx', 'summaryHeaderScale', s.summaryHeaderFontPx, s.summaryHeaderScale)}
-        ${buildDisplaySizeControl_('サマリー実値', 'summaryValueFontPx', 'summaryValueScale', s.summaryValueFontPx, s.summaryValueScale)}
-        <label>確認画面レイアウト
-          <select id="entry-display-settings-confirmLayout" onchange="onDisplaySettingsInput_()">
-            <option value="horizontal"${s.confirmLayout === 'horizontal' ? ' selected' : ''}>横並び（現在）</option>
-            <option value="vertical"${s.confirmLayout === 'vertical' ? ' selected' : ''}>縦並び</option>
+        <label>テンプレート選択
+          <select id="entry-display-settings-template-select">
+            ${templateOptionsHtml}
           </select>
         </label>
-        <label>ポイントフォーム横幅(%)<input id="entry-display-settings-pointFormWidth" type="number" min="40" max="100" step="1" value="${s.pointFormWidth}" oninput="onDisplaySettingsInput_()"></label>
+        <div class="entry-display-settings-template-actions">
+          <button type="button" class="btn-sub" onclick="applySelectedDisplayTemplate_()">適用</button>
+          <button type="button" class="btn-sub" onclick="deleteSelectedDisplayTemplate_()">削除</button>
+        </div>
+        <label>テンプレート名
+          <input id="entry-display-settings-template-name" type="text" value="${escapeHtml(activeTemplateName)}" placeholder="例: 標準A">
+        </label>
+        <button type="button" class="btn-sub" onclick="saveCurrentDisplaySettingsAsTemplate_()">現在値をテンプレート保存</button>
       </div>
       <div class="entry-display-settings-actions">
         <button type="button" class="btn-sub" onclick="resetDisplaySettings_()">初期値に戻す</button>
@@ -620,7 +688,6 @@ function openDisplaySettingsModal_() {
   modal.onclick = handleDisplaySettingsBackdropClick_;
   modal.style.display = 'flex';
   document.body.classList.add('entry-display-settings-open');
-  updateDisplaySettingsValueLabels_();
 }
 
 function isStableStageInputMode_() {
@@ -636,6 +703,15 @@ function renderTopHelperButtons_() {
 function setEntryScreenState_(screen) {
   const normalized = String(screen || 'entry').trim() || 'entry';
   document.body.setAttribute('data-entry-screen', normalized);
+  const titleEl = document.querySelector('.entry-fixed-header-title');
+  if (titleEl) {
+    const titleMap = {
+      entry: '仕入入力',
+      confirm: '仕入登録 最終確認',
+      result: '仕入登録 完了'
+    };
+    titleEl.textContent = titleMap[normalized] || titleMap.entry;
+  }
   updateTopHelperButtons_();
 }
 
@@ -723,6 +799,7 @@ function createEmptyEntryRow() {
     productNo: '',
     name: '',
     price: 0,
+    itemDiscount: 0,
     qty: 1,
     point: 0,
     expenseAlloc: 0,
@@ -965,10 +1042,12 @@ function buildProductInputStageTemp_(row) {
   const src = row || {};
   const nameValue = String(src.productInput || src.name || '').trim();
   const priceRaw = roundYen(src.price || 0);
+  const itemDiscountRaw = Math.max(0, roundYen(src.itemDiscount || 0));
   const qtyRaw = Math.max(1, roundYen(src.qty || 1));
   return {
     name: nameValue,
     price: priceRaw > 0 ? String(priceRaw) : '',
+    itemDiscount: itemDiscountRaw > 0 ? String(itemDiscountRaw) : '',
     qty: String(qtyRaw)
   };
 }
@@ -1013,14 +1092,20 @@ function buildCommonInputStageTemp_() {
 
 function getEntryInputStageValue_(scope, step) {
   const targetScope = normalizeEntryInputStageScope_(scope);
-  const targetStep = normalizeEntryInputStageStep_(targetScope, step);
+  let targetStep = normalizeEntryInputStageStep_(targetScope, step);
+  if (targetScope === 'product' && String(step || '').trim() === 'itemDiscount') {
+    targetStep = 'itemDiscount';
+  }
   const temp = entryInputStageState_.tempData || {};
   return String(temp[targetStep] || '');
 }
 
 function setEntryInputStageValue_(scope, step, value) {
   const targetScope = normalizeEntryInputStageScope_(scope);
-  const targetStep = normalizeEntryInputStageStep_(targetScope, step);
+  let targetStep = normalizeEntryInputStageStep_(targetScope, step);
+  if (targetScope === 'product' && String(step || '').trim() === 'itemDiscount') {
+    targetStep = 'itemDiscount';
+  }
   if (!entryInputStageState_.tempData) {
     entryInputStageState_.tempData = {};
   }
@@ -1289,6 +1374,21 @@ function moveEntryInputStageSuggestionSelection_(direction) {
 
 function buildEntryInputStageFieldHtml_(scope, step, inputClass, inputAttrs, value, placeholder) {
   const inputHtml = `<input id="entry-input-stage-field" class="${inputClass}" ${inputAttrs} value="${value}" placeholder="${placeholder}" autocapitalize="off" autocorrect="off" spellcheck="false" onfocus="handleEntryInputStageFieldFocus_()" onblur="handleEntryInputStageFieldBlur_()" oninput="onEntryInputStageInput(this.value)" onkeydown="onEntryInputStageKeydown(event)">`;
+  if (normalizeEntryInputStageScope_(scope) === 'product' && normalizeEntryInputStageStep_('product', step) === 'price') {
+    const discountRaw = getEntryInputStageValue_('product', 'itemDiscount');
+    const discountValue = escapeHtml(String(discountRaw || ''));
+    return `
+      <div class="entry-input-stage-input-wrap">
+        ${inputHtml}
+      </div>
+      <div class="entry-input-stage-secondary-wrap">
+        <label class="entry-input-stage-secondary-label" for="entry-input-stage-item-discount">個別値引き</label>
+        <div class="entry-input-stage-input-wrap">
+          <input id="entry-input-stage-item-discount" class="${inputClass}" ${inputAttrs} value="${discountValue}" placeholder="個別値引きを入力" autocapitalize="off" autocorrect="off" spellcheck="false" oninput="onEntryInputStageItemDiscountInput(this.value)" onkeydown="onEntryInputStageItemDiscountKeydown(event)">
+        </div>
+      </div>
+    `;
+  }
   if (!isEntryInputStageDateField_(scope, step)) {
     const suggestionHtml = isEntryInputStageAutocompleteField_(scope, step)
       ? '<div id="entry-input-stage-suggestions" class="entry-input-stage-suggestions" style="display:none;"></div>'
@@ -1503,6 +1603,7 @@ function renderEntryInputStage_() {
 
   stageEl.innerHTML = `
     <div class="entry-input-stage-panel" role="group" aria-label="${label}">
+      <button type="button" class="entry-input-stage-close" aria-label="ステージ入力を閉じる" onclick="closeEntryInputStage_()">×</button>
       <label class="entry-input-stage-label" for="entry-input-stage-field">${label}</label>
       ${fieldHtml}
       <div class="entry-input-stage-actions">
@@ -1592,6 +1693,20 @@ function onEntryInputStageInput(value) {
   updateEntryInputStageSuggestions_(scope, step, nextValue, { resetActive: true });
 }
 
+function onEntryInputStageItemDiscountInput(value) {
+  if (!entryInputStageState_.active) return;
+  const scope = normalizeEntryInputStageScope_(entryInputStageState_.scope);
+  const step = normalizeEntryInputStageStep_(scope, entryInputStageState_.step);
+  if (!(scope === 'product' && step === 'price')) return;
+  setEntryInputStageValue_('product', 'itemDiscount', String(value || ''));
+}
+
+function onEntryInputStageItemDiscountKeydown(event) {
+  if (!event || event.key !== 'Enter') return;
+  event.preventDefault();
+  onEntryInputStageAction();
+}
+
 function onEntryInputStageKeydown(event) {
   if (!event) return;
   if (event.key === 'ArrowDown') {
@@ -1640,7 +1755,14 @@ function commitEntryInputStageStep_() {
       return;
     }
     if (step === 'price') {
-      onPriceInput(idx, value);
+      const itemDiscountEl = document.getElementById('entry-input-stage-item-discount');
+      const itemDiscountValue = itemDiscountEl
+        ? String(itemDiscountEl.value || '')
+        : getEntryInputStageValue_('product', 'itemDiscount');
+      setEntryInputStageValue_('product', 'itemDiscount', itemDiscountValue);
+      row.price = Math.max(0, roundYen(value));
+      row.itemDiscount = Math.max(0, roundYen(itemDiscountValue));
+      recalculateCosts();
       return;
     }
     onQtyInput(idx, value);
@@ -1919,8 +2041,7 @@ function isLineItemIndividualMode_() {
 }
 
 function isVerticalConfirmLayout_() {
-  const mode = String((entryDisplaySettings_ && entryDisplaySettings_.confirmLayout) || ENTRY_DISPLAY_SETTINGS_DEFAULTS_.confirmLayout || 'horizontal');
-  return mode === 'vertical';
+  return true;
 }
 
 function getPointModeLabel_() {
@@ -2373,25 +2494,28 @@ function renderEntryRows() {
 
     rowsHtml += `
       <tr class="${mainRowClass}" data-entry-row-index="${idx}">
-        <td class="col-no">${idx + 1}</td>
         <td class="col-item">
           <input type="text" class="inline-input entry-product-input entry-stage-trigger" list="product-options" value="${escapeHtml(row.productInput || '')}" title="${escapeHtml(row.productInput || '')}" readonly onfocus="this.blur(); openEntryInputStage(${idx}, 'name', this)" onclick="openEntryInputStage(${idx}, 'name', this)" placeholder="JAN / 商品名 / 商品マスタ番号">
         </td>
         <td class="col-num">
           <input type="text" class="inline-number entry-stage-trigger" inputmode="numeric" pattern="\\d*" value="${row.price || ''}" readonly onfocus="this.blur(); openEntryInputStage(${idx}, 'price', this)" onclick="openEntryInputStage(${idx}, 'price', this)">
         </td>
-        <td class="col-num">
+        <td class="col-qty">
           <input type="text" class="inline-number entry-stage-trigger" inputmode="numeric" pattern="\\d*" value="${row.qty || 1}" readonly onfocus="this.blur(); openEntryInputStage(${idx}, 'qty', this)" onclick="openEntryInputStage(${idx}, 'qty', this)">
         </td>
         <td class="col-num"><div class="inline-value">${row.cost || 0}</div></td>
         <td class="col-action">${removeBtn}</td>
       </tr>
       <tr class="${metaRowClass}">
-        <td colspan="6">
+        <td colspan="5">
           <div class="${metaGridClass}">
             <div class="entry-meta-item">
               <div class="entry-meta-label">単価</div>
               <span class="entry-meta-value">${formatYen_(row.unitPrice || 0)}</span>
+            </div>
+            <div class="entry-meta-item">
+              <div class="entry-meta-label">個別値引き</div>
+              <span class="entry-meta-value">${formatYen_(row.itemDiscount || 0)}</span>
             </div>
             <div class="entry-meta-item">
               <div class="entry-meta-label">${pointMetaLabel}</div>
@@ -2418,16 +2542,15 @@ function renderEntryRows() {
 
   document.getElementById('entry-lines').innerHTML = `
     <div class="entry-lines-title-row">
-      <h3 class="mid-title">商品入力</h3>
+      <h2 class="mid-title">商品入力</h2>
       ${entryTitleActionsHtml}
     </div>
     <div class="entry-line-card section-card section-tone-product">
       <table class="${entryTableClass}">
         <tr>
-          <th class="col-no">No</th>
           <th class="col-item">商品</th>
           <th class="col-num">提示金額</th>
-          <th class="col-num">個数</th>
+          <th class="col-qty">個数</th>
           <th class="col-num">原価</th>
           <th class="col-action"></th>
         </tr>
@@ -2476,6 +2599,10 @@ function recalculateCosts() {
 
   entryRows.forEach(row => {
     row.price = Math.max(0, roundYen(row.price));
+    row.itemDiscount = Math.max(0, roundYen(row.itemDiscount || 0));
+    if (row.itemDiscount > row.price) {
+      row.itemDiscount = row.price;
+    }
     row.qty = Math.max(1, roundYen(row.qty || 1));
     if (pointAllocation) {
       row.point = 0;
@@ -2487,9 +2614,9 @@ function recalculateCosts() {
     } else {
       row.expenseAlloc = Math.max(0, roundYen(row.expenseAlloc || 0));
     }
-    row.baseCost = row.price;
-    row.cost = row.price;
-    row.unitPrice = row.qty > 0 ? Math.round(row.price / row.qty) : row.price;
+    row.baseCost = Math.max(0, row.price - row.itemDiscount);
+    row.cost = row.baseCost;
+    row.unitPrice = row.qty > 0 ? Math.round(row.cost / row.qty) : row.cost;
   });
 
   const targetRows = entryRows.filter(row => String(row.name || '').trim() && row.price > 0);
@@ -2519,12 +2646,12 @@ function recalculateCosts() {
       }
       remainPoint -= pointAlloc;
       row.point = pointAlloc;
-      row.baseCost = Math.max(0, row.price - pointAlloc);
+      row.baseCost = Math.max(0, row.price - row.itemDiscount - pointAlloc);
     });
   } else {
     targetRows.forEach(row => {
       row.point = Math.max(0, roundYen(row.point || 0));
-      row.baseCost = Math.max(0, row.price - row.point);
+      row.baseCost = Math.max(0, row.price - row.itemDiscount - row.point);
     });
     pointTotal = targetRows.reduce((sum, row) => sum + roundYen(row.point), 0);
   }
@@ -2632,7 +2759,7 @@ function renderPointArea() {
     modeContent = '';
   }
 
-  const headerHtml = '<h3 class="mid-title panel-head-title">ポイント/割引</h3>';
+  const headerHtml = '<h2 class="mid-title panel-head-title">ポイント/割引</h2>';
 
   const pointAlignedContent = modeContent
     ? `<div class="entry-point-align-wrap">${modeContent}</div>`
@@ -2701,7 +2828,6 @@ function renderExpenseArea() {
         : '';
       rows += `
         <tr class="${rowClass}" data-expense-row-index="${idx}">
-          <td class="col-no">${idx + 1}</td>
           <td class="col-item">
             <input type="text" class="inline-input entry-stage-trigger" list="expense-items" autocomplete="off" value="${escapeHtml(ex.name || '')}" readonly onfocus="this.blur(); openExpenseInputStage(${idx}, 'name', this)" onclick="openExpenseInputStage(${idx}, 'name', this)" placeholder="経費名">
           </td>
@@ -2722,7 +2848,6 @@ function renderExpenseArea() {
       `<div class="entry-line-card section-card section-tone-expense">` +
         `<table class="${expenseTableClass}">` +
           `<tr>` +
-            `<th class="col-no">No</th>` +
             `<th class="col-item">経費名</th>` +
             `<th class="col-num">金額</th>` +
             `<th class="col-action"></th>` +
@@ -2742,7 +2867,7 @@ function renderExpenseArea() {
     modeContent = '';
   }
 
-  const headerHtml = `<div class="entry-lines-title-row"><h3 class="mid-title">経費</h3>${expenseTitleActionsHtml}</div>`;
+  const headerHtml = `<div class="entry-lines-title-row"><h2 class="mid-title">経費</h2>${expenseTitleActionsHtml}</div>`;
 
   document.getElementById('expense-area').innerHTML = headerHtml + modeContent;
   applyDetailPanelVisibility_();
@@ -2848,7 +2973,7 @@ function renderSummary() {
   const summaryExpenseTotal = isExpenseAllocationMode_() ? totalExpenseInput : totalExpenseAlloc;
 
   document.getElementById('summary-area').innerHTML = `
-    <h3 class="mid-title">集計</h3>
+    <h2 class="mid-title">集計</h2>
     <div class="entry-line-card section-card section-tone-summary">
       <table class="entry-inline-table entry-summary-table">
         <tr>
@@ -2953,6 +3078,12 @@ function isoDateToDigits_(value) {
   return normalizeDateDigits_(value);
 }
 
+function formatDateSlashDisplay_(value) {
+  const digits = normalizeDateDigits_(value);
+  if (digits.length !== 8) return String(value || '').trim();
+  return digits.replace(/(\d{4})(\d{2})(\d{2})/, '$1/$2/$3');
+}
+
 function onDateTextInput(targetId, pickerId, value) {
   const target = document.getElementById(targetId);
   if (!target) return;
@@ -3039,16 +3170,18 @@ function applyDraftPayload_(payload) {
     const unitPrice = roundYen(item[6]);
     const expenseAlloc = roundYen(item[7]);
     const paymentMethod = String(item[8] || '').trim();
+    const itemDiscount = Math.max(0, roundYen(item[9] || 0));
     return {
       productInput: productNo && name ? productNo + '：' + name : (name || productNo),
       productNo: productNo,
       name: name,
       price: price,
+      itemDiscount: itemDiscount,
       qty: qty,
       point: point,
       expenseAlloc: expenseAlloc,
       paymentMethod: paymentMethod,
-      baseCost: Math.max(0, price - point),
+      baseCost: Math.max(0, price - itemDiscount - point),
       cost: cost,
       unitPrice: unitPrice
     };
@@ -3196,6 +3329,7 @@ function renderFinalConfirm_(rows, expenses, commonInfo, pointMode, expenseMode)
   const activeRows = Array.isArray(rows) ? rows : [];
   const expenseRowsData = Array.isArray(expenses) ? expenses : [];
   const info = commonInfo || {};
+  const verticalLayout = isVerticalConfirmLayout_();
   const lineItemIndividualMode =
     String(pointMode || 'allocation') === 'individual' &&
     String(expenseMode || 'allocation') === 'individual';
@@ -3203,11 +3337,51 @@ function renderFinalConfirm_(rows, expenses, commonInfo, pointMode, expenseMode)
   let detailRows = '';
   activeRows.forEach(function(row, idx) {
     const rowPayment = String(row.paymentMethod || info.payment || '').trim();
-    const metaInfo = 'ポイント/割引: ' + formatYen_(roundYen(row.point)) +
+    const itemDiscount = Math.max(0, roundYen(row.itemDiscount || 0));
+    const metaInfo = '個別値引き: ' + formatYen_(itemDiscount) +
+      ' ／ ポイント/割引: ' + formatYen_(roundYen(row.point)) +
       ' ／ 経費: ' + formatYen_(roundYen(row.expenseAlloc)) +
       (lineItemIndividualMode ? (' ／ 支払い方法: ' + escapeHtml(rowPayment || '未入力')) : '');
+    if (verticalLayout) {
+      const qtyText = formatWithComma_(roundYen(row.qty)) + '点';
+      const showMainLabels = idx === 0;
+      const verticalRow3Html = '<tr class="detail-meta-row detail-vertical-extra-row">' +
+          '<td colspan="5" class="detail-meta-cell">' +
+            '<div class="entry-meta-grid entry-meta-grid-normal confirm-detail-meta-grid">' +
+              '<div class="entry-meta-item"><div class="entry-meta-label">ポイント/割引</div><span class="entry-meta-value">' + formatYen_(roundYen(row.point)) + '</span></div>' +
+              '<div class="entry-meta-item"><div class="entry-meta-label">経費</div><span class="entry-meta-value">' + formatYen_(roundYen(row.expenseAlloc)) + '</span></div>' +
+              (lineItemIndividualMode ? '<div class="entry-meta-item"><div class="entry-meta-label">支払い方法</div><span class="entry-meta-value">' + escapeHtml(rowPayment || '未入力') + '</span></div>' : '') +
+            '</div>' +
+          '</td>' +
+        '</tr>';
+      detailRows += '<tr class="detail-vertical-main-row">' +
+        '<td colspan="5">' +
+          '<div class="confirm-detail-main-grid">' +
+            '<div class="confirm-detail-main-item confirm-detail-main-item-name">' +
+              '<div class="entry-meta-label">' + (showMainLabels ? '商品' : '&nbsp;') + '</div>' +
+              '<div class="inline-input confirm-inline-box">' + escapeHtml(String(row.name || '').trim()) + '</div>' +
+            '</div>' +
+            '<div class="confirm-detail-main-item">' +
+              '<div class="entry-meta-label">' + (showMainLabels ? '提示金額' : '&nbsp;') + '</div>' +
+              '<div class="inline-input confirm-inline-box is-numeric">' + formatYen_(roundYen(row.price)) + '</div>' +
+            '</div>' +
+          '</div>' +
+        '</td>' +
+      '</tr>' +
+      '<tr class="detail-meta-row detail-vertical-metrics-row">' +
+        '<td colspan="5" class="detail-meta-cell">' +
+          '<div class="entry-meta-grid entry-meta-grid-normal confirm-detail-meta-grid">' +
+            '<div class="entry-meta-item"><div class="entry-meta-label">原価</div><span class="entry-meta-value">' + formatYen_(roundYen(row.cost)) + '</span></div>' +
+            '<div class="entry-meta-item"><div class="entry-meta-label">個数</div><span class="entry-meta-value">' + qtyText + '</span></div>' +
+            '<div class="entry-meta-item"><div class="entry-meta-label">単価</div><span class="entry-meta-value">' + formatYen_(roundYen(row.unitPrice)) + '</span></div>' +
+            '<div class="entry-meta-item"><div class="entry-meta-label">個別値引き</div><span class="entry-meta-value">' + formatYen_(itemDiscount) + '</span></div>' +
+          '</div>' +
+        '</td>' +
+      '</tr>' +
+      verticalRow3Html;
+      return;
+    }
     detailRows += '<tr>' +
-      '<td>' + (idx + 1) + '</td>' +
       '<td>' + escapeHtml(String(row.name || '').trim()) + '</td>' +
       '<td>' + formatYen_(roundYen(row.price)) + '</td>' +
       '<td>' + formatYen_(roundYen(row.cost)) + '</td>' +
@@ -3215,18 +3389,15 @@ function renderFinalConfirm_(rows, expenses, commonInfo, pointMode, expenseMode)
       '<td>' + formatYen_(roundYen(row.unitPrice)) + '</td>' +
     '</tr>' +
     '<tr class="detail-meta-row">' +
-      '<td></td>' +
       '<td colspan="5" class="detail-meta-cell">' + metaInfo + '</td>' +
     '</tr>';
   });
 
   let expenseRows = '';
-  expenseRowsData.forEach(function(ex, idx) {
+  expenseRowsData.forEach(function(ex) {
     expenseRows += '<tr>' +
-      '<td>' + (idx + 1) + '</td>' +
-      '<td>' + escapeHtml(String(ex.name || '').trim()) + '</td>' +
-      '<td>' + formatYen_(roundYen(ex.amount)) + '</td>' +
-      '<td>' + escapeHtml(String(ex.memo || '').trim()) + '</td>' +
+      '<td><div class="inline-input confirm-inline-box">' + escapeHtml(String(ex.name || '').trim()) + '</div></td>' +
+      '<td><div class="inline-input confirm-inline-box is-numeric">' + formatYen_(roundYen(ex.amount)) + '</div></td>' +
     '</tr>';
   });
 
@@ -3238,16 +3409,16 @@ function renderFinalConfirm_(rows, expenses, commonInfo, pointMode, expenseMode)
   const totalExpenseInput = expenseRowsData.reduce((sum, ex) => sum + roundYen(ex.amount), 0);
   const expenseTotal = String(expenseMode || 'allocation') === 'individual' ? totalExpAlloc : totalExpenseInput;
   const hasExpenseRows = expenseRowsData.length > 0;
-  const verticalLayout = isVerticalConfirmLayout_();
+  const dateDisplay = formatDateSlashDisplay_(String(info.date || '').trim());
 
   let pointExpenseBlock = '';
   if (hasExpenseRows) {
     pointExpenseBlock =
       '<div class="confirm-block section-card slip-block slip-block-expense section-tone-expense">' +
-        '<div class="confirm-title">経費</div>' +
+        '<h2 class="confirm-title">経費</h2>' +
         '<div class="summary-table-wrap">' +
           '<table class="summary-table summary-meta-table">' +
-            '<thead><tr><th>No</th><th>内容</th><th>金額</th><th>メモ</th></tr></thead>' +
+            '<thead><tr><th>内容</th><th>金額</th></tr></thead>' +
             '<tbody>' + expenseRows + '</tbody>' +
           '</table>' +
         '</div>' +
@@ -3257,7 +3428,7 @@ function renderFinalConfirm_(rows, expenses, commonInfo, pointMode, expenseMode)
   const summaryTableHtml = verticalLayout
     ? '<table class="summary-table confirm-summary-table is-vertical">' +
         '<tbody class="summary-value-row">' +
-          '<tr><th>商品数</th><td class="count-cell">' + formatWithComma_(totalQty) + '</td></tr>' +
+          '<tr><th>商品数</th><td class="count-unit-cell">' + formatWithComma_(totalQty) + '点</td></tr>' +
           '<tr><th>総提示金額</th><td>' + formatYen_(totalPrice) + '</td></tr>' +
           '<tr><th>ポイント合計</th><td>' + formatYen_(totalPoint) + '</td></tr>' +
           '<tr><th>経費合計</th><td>' + formatYen_(expenseTotal) + '</td></tr>' +
@@ -3267,7 +3438,7 @@ function renderFinalConfirm_(rows, expenses, commonInfo, pointMode, expenseMode)
     : '<table class="summary-table confirm-summary-table">' +
         '<thead><tr><th>商品数</th><th>総提示金額</th><th>ポイント合計</th><th>経費合計</th><th>原価合計</th></tr></thead>' +
         '<tbody><tr class="summary-value-row">' +
-          '<td class="count-cell">' + formatWithComma_(totalQty) + '</td>' +
+          '<td class="count-unit-cell">' + formatWithComma_(totalQty) + '点</td>' +
           '<td>' + formatYen_(totalPrice) + '</td>' +
           '<td>' + formatYen_(totalPoint) + '</td>' +
           '<td>' + formatYen_(expenseTotal) + '</td>' +
@@ -3278,7 +3449,7 @@ function renderFinalConfirm_(rows, expenses, commonInfo, pointMode, expenseMode)
   const commonTableHtml = verticalLayout
     ? '<table class="summary-table summary-meta-table is-vertical">' +
         '<tbody class="summary-text-row">' +
-          '<tr><th>仕入日</th><td>' + escapeHtml(String(info.date || '').trim()) + '</td></tr>' +
+          '<tr><th>仕入日</th><td>' + escapeHtml(dateDisplay) + '</td></tr>' +
           '<tr><th>仕入先</th><td>' + escapeHtml(String(info.supplier || '').trim()) + '</td></tr>' +
           '<tr><th>支払い方法</th><td>' + escapeHtml(String(info.payment || '').trim()) + '</td></tr>' +
         '</tbody>' +
@@ -3286,33 +3457,37 @@ function renderFinalConfirm_(rows, expenses, commonInfo, pointMode, expenseMode)
     : '<table class="summary-table summary-meta-table">' +
         '<thead><tr><th>仕入日</th><th>仕入先</th><th>支払い方法</th></tr></thead>' +
         '<tbody><tr class="summary-text-row">' +
-          '<td>' + escapeHtml(String(info.date || '').trim()) + '</td>' +
+          '<td>' + escapeHtml(dateDisplay) + '</td>' +
           '<td>' + escapeHtml(String(info.supplier || '').trim()) + '</td>' +
           '<td>' + escapeHtml(String(info.payment || '').trim()) + '</td>' +
         '</tr></tbody>' +
       '</table>';
 
+  const detailTableHtml = verticalLayout
+    ? '<table class="confirm-detail-table is-vertical"><tbody>' + detailRows + '</tbody></table>'
+    : '<table class="confirm-detail-table">' +
+        '<tr><th>商品名</th><th>提示金額</th><th>原価</th><th>個数</th><th>単価</th></tr>' +
+        detailRows +
+      '</table>';
+
   document.getElementById('confirm-area').innerHTML =
     '<div class="confirm-block section-card section-tone-product">' +
-      '<div class="confirm-title">商品明細</div>' +
+      '<h2 class="confirm-title">商品明細</h2>' +
       '<div class="table-wrap">' +
-        '<table>' +
-          '<tr><th>No</th><th>商品名</th><th>提示金額</th><th>原価</th><th>個数</th><th>単価</th></tr>' +
-          detailRows +
-        '</table>' +
+        detailTableHtml +
       '</div>' +
     '</div>' +
     pointExpenseBlock +
 
     '<div class="confirm-block section-card section-tone-summary">' +
-      '<div class="confirm-title">集計</div>' +
+      '<h2 class="confirm-title">集計</h2>' +
       '<div class="summary-table-wrap">' +
         summaryTableHtml +
       '</div>' +
     '</div>' +
 
     '<div class="confirm-block section-card section-tone-common">' +
-      '<div class="confirm-title">共通情報</div>' +
+      '<h2 class="confirm-title">共通情報</h2>' +
       '<div class="summary-table-wrap">' +
         commonTableHtml +
       '</div>' +
@@ -3415,7 +3590,6 @@ function buildPostSubmitSlipPreviewHtml_(result) {
       ' ／ 経費: ' + formatYen_(line.expenseAlloc || 0) +
       (lineItemIndividualMode ? (' ／ 支払い方法: ' + escapeHtml(rowPayment || '未入力')) : '');
     return '<tr>' +
-      '<td>' + escapeHtml(String(line.lineNo || '')) + '</td>' +
       '<td>' + escapeHtml(String(line.name || '')) + '</td>' +
       '<td>' + formatYen_(line.price || 0) + '</td>' +
       '<td>' + formatYen_(line.cost || 0) + '</td>' +
@@ -3423,7 +3597,6 @@ function buildPostSubmitSlipPreviewHtml_(result) {
       '<td>' + formatYen_(line.unitPrice || 0) + '</td>' +
     '</tr>' +
     '<tr class="detail-meta-row">' +
-      '<td></td>' +
       '<td colspan="5" class="detail-meta-cell">' + metaInfo + '</td>' +
     '</tr>';
   }).join('');
@@ -3440,19 +3613,17 @@ function buildPostSubmitSlipPreviewHtml_(result) {
     let expenseRows = '';
     expenseRows = expenses.map(function(ex) {
       return '<tr>' +
-        '<td>' + escapeHtml(String(ex.lineNo || '')) + '</td>' +
         '<td>' + escapeHtml(String(ex.name || '')) + '</td>' +
         '<td>' + formatYen_(ex.amount || 0) + '</td>' +
-        '<td>' + escapeHtml(String(ex.memo || '')) + '</td>' +
       '</tr>';
     }).join('');
 
     pointExpenseBlock =
       '<div class="confirm-block section-card slip-block slip-block-expense section-tone-expense">' +
-        '<div class="confirm-title">経費</div>' +
+        '<h2 class="confirm-title">経費</h2>' +
         '<div class="summary-table-wrap">' +
           '<table class="summary-table summary-meta-table">' +
-            '<thead><tr><th>No</th><th>内容</th><th>金額</th><th>メモ</th></tr></thead>' +
+            '<thead><tr><th>内容</th><th>金額</th></tr></thead>' +
             '<tbody>' + expenseRows + '</tbody>' +
           '</table>' +
         '</div>' +
@@ -3509,33 +3680,33 @@ function buildPostSubmitSlipPreviewHtml_(result) {
   return '' +
     '<div class="confirm-block section-card section-tone-summary"><div class="result-success">' + message + '</div>' + pdfStatusHtml + '</div>' +
     '<div class="confirm-block section-card slip-block slip-block-summary section-tone-summary">' +
-      '<div class="confirm-title">仕入伝票プレビュー</div>' +
+      '<h2 class="confirm-title">仕入伝票プレビュー</h2>' +
       '<div class="note-text">内容を確認し、印刷するか選択してください。</div>' +
     '</div>' +
     '<div class="confirm-block section-card slip-block slip-block-common section-tone-common">' +
-      '<div class="confirm-title">共通情報</div>' +
+      '<h2 class="confirm-title">共通情報</h2>' +
       '<div class="summary-table-wrap">' +
         postCommonTableHtml +
       '</div>' +
     '</div>' +
     '<div class="confirm-block section-card slip-block slip-block-detail section-tone-product">' +
-      '<div class="confirm-title">商品明細</div>' +
+      '<h2 class="confirm-title">商品明細</h2>' +
       '<div class="table-wrap">' +
         '<table>' +
-          '<tr><th>No</th><th>商品名</th><th>提示金額</th><th>原価</th><th>個数</th><th>単価</th></tr>' +
+          '<tr><th>商品名</th><th>提示金額</th><th>原価</th><th>個数</th><th>単価</th></tr>' +
           lineRows +
         '</table>' +
       '</div>' +
     '</div>' +
     pointExpenseBlock +
     '<div class="confirm-block section-card slip-block slip-block-summary section-tone-summary">' +
-      '<div class="confirm-title">集計</div>' +
+      '<h2 class="confirm-title">集計</h2>' +
       '<div class="summary-table-wrap">' +
         postSummaryTableHtml +
       '</div>' +
     '</div>' +
     '<div class="confirm-block section-card section-tone-common">' +
-      '<div class="confirm-title">印刷確認</div>' +
+      '<h2 class="confirm-title">印刷確認</h2>' +
       '<div class="note-text">仕入伝票を印刷しますか？</div>' +
       '<div class="button-row" id="post-submit-print-controls">' +
         '<button type="button" class="btn-main" onclick="handlePostSubmitPrintDecision_(true)">印刷する</button>' +
@@ -3606,7 +3777,6 @@ function buildSlipPrintHtml_(data) {
   const lineRows = lines.map(function(line, idx) {
     const rowClass = (idx % 2 === 1) ? ' class="row-alt"' : '';
     return '<tr' + rowClass + '>' +
-      '<td class="center cell-weak">' + escapeHtml(String(line.lineNo || '')) + '</td>' +
       '<td class="cell-name">' + escapeHtml(String(line.name || '')) + '</td>' +
       '<td class="num cell-mid">' + formatYen_(line.price || 0) + '</td>' +
       '<td class="num cell-weak">' + formatYen_(line.point || 0) + '</td>' +
@@ -3621,13 +3791,12 @@ function buildSlipPrintHtml_(data) {
     ? expenseLines.map(function(ex, idx) {
         const rowClass = (idx % 2 === 1) ? ' class="row-alt"' : '';
         return '<tr' + rowClass + '>' +
-          '<td class="center cell-weak">' + escapeHtml(String(ex.lineNo || '')) + '</td>' +
           '<td class="cell-mid">' + escapeHtml(String(ex.name || '')) + '</td>' +
           '<td class="num cell-mid">' + formatYen_(ex.amount || 0) + '</td>' +
           '<td class="cell-weak">' + escapeHtml(String(ex.memo || '')) + '</td>' +
         '</tr>';
       }).join('')
-    : '<tr><td colspan="4" class="expense-empty">なし</td></tr>';
+    : '<tr><td colspan="3" class="expense-empty">なし</td></tr>';
 
   return '' +
     '<!DOCTYPE html>' +
@@ -3712,10 +3881,10 @@ function buildSlipPrintHtml_(data) {
           '<div class="section-head">商品明細</div>' +
           '<table>' +
             '<colgroup>' +
-              '<col class="w-no"><col class="w-name"><col class="w-price"><col class="w-point"><col class="w-exp"><col class="w-cost"><col class="w-qty"><col class="w-unit">' +
+              '<col class="w-name"><col class="w-price"><col class="w-point"><col class="w-exp"><col class="w-cost"><col class="w-qty"><col class="w-unit">' +
             '</colgroup>' +
             '<thead>' +
-              '<tr><th>No</th><th>商品名</th><th>提示金額</th><th>ポイント</th><th>経費</th><th>原価</th><th>個数</th><th>単価</th></tr>' +
+              '<tr><th>商品名</th><th>提示金額</th><th>ポイント</th><th>経費</th><th>原価</th><th>個数</th><th>単価</th></tr>' +
             '</thead>' +
             '<tbody>' + lineRows + '</tbody>' +
           '</table>' +
@@ -3724,8 +3893,8 @@ function buildSlipPrintHtml_(data) {
         '<div class="section">' +
           '<div class="section-head">経費明細</div>' +
           '<table class="expense-table">' +
-            '<colgroup><col class="w-exp-no"><col class="w-exp-name"><col class="w-exp-amount"><col class="w-exp-memo"></colgroup>' +
-            '<thead><tr><th>No</th><th>内容</th><th>金額</th><th>メモ</th></tr></thead>' +
+            '<colgroup><col class="w-exp-name"><col class="w-exp-amount"><col class="w-exp-memo"></colgroup>' +
+            '<thead><tr><th>内容</th><th>金額</th><th>メモ</th></tr></thead>' +
             '<tbody>' + expenseRows + '</tbody>' +
           '</table>' +
         '</div>' +
