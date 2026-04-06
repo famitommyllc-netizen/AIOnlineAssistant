@@ -1,3 +1,4 @@
+/* rev: style.css.html rev-20260405-14 */
 :root {
   /* 一覧 */
   --list-header-font-size: 18px;
@@ -1116,17 +1117,22 @@ th {
 }
 
 .entry-input-stage-input-wrap.is-date .entry-input-stage-input {
-  padding-right: 5.9em;
+  padding-right: calc(var(--entry-stage-date-hit-size) + var(--entry-stage-date-hit-right) + 20px);
+}
+
+.entry-input-stage-input-wrap.is-date {
+  --entry-stage-date-hit-size: 72px;
+  --entry-stage-date-hit-right: 12px;
 }
 
 .entry-input-stage-date-button {
   position: absolute;
   top: 50%;
-  right: 12px;
-  min-height: 72px;
-  min-width: 72px;
-  width: 72px;
-  height: 72px;
+  right: var(--entry-stage-date-hit-right);
+  min-height: var(--entry-stage-date-hit-size);
+  min-width: var(--entry-stage-date-hit-size);
+  width: var(--entry-stage-date-hit-size);
+  height: var(--entry-stage-date-hit-size);
   transform: translateY(-50%);
   padding: 0;
   display: flex;
@@ -1168,7 +1174,7 @@ th {
   content: "";
   position: absolute;
   top: 50%;
-  right: 88px;
+  right: calc(var(--entry-stage-date-hit-right) + var(--entry-stage-date-hit-size) + 4px);
   width: 1px;
   height: calc(100% - 24px);
   transform: translateY(-50%);
@@ -1179,22 +1185,37 @@ th {
 .entry-input-stage-date-native {
   position: absolute;
   top: 50%;
-  right: 12px;
+  right: var(--entry-stage-date-hit-right);
   display: block;
-  width: 72px;
-  height: 72px;
-  min-width: 72px;
-  min-height: 72px;
+  width: var(--entry-stage-date-hit-size);
+  height: var(--entry-stage-date-hit-size);
+  min-width: var(--entry-stage-date-hit-size);
+  min-height: var(--entry-stage-date-hit-size);
   transform: translateY(-50%);
   opacity: 0;
   pointer-events: auto;
   z-index: 3;
+  cursor: pointer;
+  touch-action: manipulation;
   background: transparent;
   box-shadow: none;
   border: 0;
   margin: 0;
   padding: 0;
   font-size: 16px;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* 実クリック対象をアイコン領域全体に広げる（PCブラウザ差異対策） */
+.entry-input-stage-date-native::-webkit-calendar-picker-indicator {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  cursor: pointer;
 }
 
 .entry-input-stage-date-label {
@@ -2150,7 +2171,12 @@ body.entry-app-layout.entry-stage-mobile #entry-input-stage {
   }
 
   .entry-input-stage-input-wrap.is-date .entry-input-stage-input {
-    padding-right: 5.5em;
+    padding-right: calc(var(--entry-stage-date-hit-size) + var(--entry-stage-date-hit-right) + 18px);
+  }
+
+  .entry-input-stage-input-wrap.is-date {
+    --entry-stage-date-hit-size: 66px;
+    --entry-stage-date-hit-right: 8px;
   }
 
   .entry-input-stage-suggestions {
@@ -2167,20 +2193,20 @@ body.entry-app-layout.entry-stage-mobile #entry-input-stage {
   }
 
   .entry-input-stage-date-button {
-    min-height: 66px;
-    min-width: 66px;
-    width: 66px;
-    height: 66px;
-    right: 8px;
+    min-height: var(--entry-stage-date-hit-size);
+    min-width: var(--entry-stage-date-hit-size);
+    width: var(--entry-stage-date-hit-size);
+    height: var(--entry-stage-date-hit-size);
+    right: var(--entry-stage-date-hit-right);
     padding: 0;
   }
 
   .entry-input-stage-date-native {
-    min-height: 66px;
-    min-width: 66px;
-    width: 66px;
-    height: 66px;
-    right: 8px;
+    min-height: var(--entry-stage-date-hit-size);
+    min-width: var(--entry-stage-date-hit-size);
+    width: var(--entry-stage-date-hit-size);
+    height: var(--entry-stage-date-hit-size);
+    right: var(--entry-stage-date-hit-right);
   }
 
   .entry-input-stage-date-icon {
@@ -2189,7 +2215,7 @@ body.entry-app-layout.entry-stage-mobile #entry-input-stage {
   }
 
   .entry-input-stage-input-wrap.is-date::after {
-    right: 82px;
+    right: calc(var(--entry-stage-date-hit-right) + var(--entry-stage-date-hit-size) + 4px);
   }
 
   .entry-input-stage-actions .btn-main {
@@ -2482,6 +2508,162 @@ body.entry-app-layout.entry-stage-mobile #entry-input-stage {
       overflow-x: hidden;
     }
 
+:root {
+  --entry-ui-font-scale: 1;
+  --entry-ui-row-scale: 1;
+  --entry-ui-line-height: 1.3;
+  --entry-ui-border-width: 2px;
+  --entry-ui-radius-scale: 1;
+  --entry-ui-font-weight: 500;
+  --entry-ui-col-no: 8%;
+  --entry-ui-col-item: 36%;
+  --entry-ui-col-num: 16%;
+  --entry-ui-col-action: 8%;
+  --entry-ui-product-row1-scale: 1;
+  --entry-ui-product-row2-scale: 1;
+  --entry-ui-expense-scale: 1;
+  --entry-ui-point-scale: 1;
+  --entry-ui-common-scale: 1;
+  --entry-ui-footer-scale: 1;
+  --entry-ui-title-scale: 1;
+  --entry-ui-point-form-width: 100%;
+  --entry-ui-product-row1-font-px: 24px;
+  --entry-ui-product-row2-font-px: 18px;
+  --entry-ui-expense-font-px: 24px;
+  --entry-ui-point-font-px: 24px;
+  --entry-ui-common-font-px: 24px;
+  --entry-ui-footer-font-px: 14px;
+  --entry-ui-title-font-px: 18px;
+  --entry-ui-summary-header-scale: 1;
+  --entry-ui-summary-header-font-px: 18px;
+  --entry-ui-summary-value-scale: 1;
+  --entry-ui-summary-value-font-px: 24px;
+}
+
+.entry-display-settings-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 90000;
+  background: rgba(15, 23, 42, 0.45);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.entry-display-settings-panel {
+  width: min(94vw, 820px);
+  max-height: min(90vh, 920px);
+  overflow: auto;
+  background: #fff;
+  border: 2px solid #cbd5e1;
+  border-radius: 16px;
+  box-shadow: 0 24px 48px rgba(2, 6, 23, 0.25);
+  padding: 16px;
+}
+
+.entry-display-settings-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.entry-display-settings-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.entry-display-settings-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #0f172a;
+  font-size: 13px;
+}
+
+.entry-display-settings-size-block {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 8px;
+  background: #f8fafc;
+}
+
+.entry-display-settings-size-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+.entry-display-settings-grid input[type="range"],
+.entry-display-settings-grid select {
+  width: 100%;
+}
+
+.entry-display-settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+body.entry-app-layout .entry-inline-table th,
+body.entry-app-layout .entry-inline-table td,
+body.entry-app-layout .summary-table th,
+body.entry-app-layout .summary-table td,
+body.entry-app-layout .inline-input,
+body.entry-app-layout .inline-number,
+body.entry-app-layout .inline-value,
+body.entry-app-layout .entry-meta-value,
+body.entry-app-layout .entry-meta-label,
+body.entry-app-layout .note-text {
+  font-size: calc(1em * var(--entry-ui-font-scale)) !important;
+  line-height: var(--entry-ui-line-height) !important;
+}
+
+body.entry-app-layout .entry-inline-table th,
+body.entry-app-layout .entry-inline-table td,
+body.entry-app-layout .summary-table th,
+body.entry-app-layout .summary-table td {
+  padding-top: calc(0.52em * var(--entry-ui-row-scale)) !important;
+  padding-bottom: calc(0.52em * var(--entry-ui-row-scale)) !important;
+  border-width: var(--entry-ui-border-width) !important;
+}
+
+body.entry-app-layout .inline-input,
+body.entry-app-layout .inline-number,
+body.entry-app-layout .entry-input-stage-input,
+body.entry-app-layout .entry-meta-input {
+  border-width: var(--entry-ui-border-width) !important;
+  font-weight: var(--entry-ui-font-weight) !important;
+  border-radius: calc(10px * var(--entry-ui-radius-scale)) !important;
+  padding-top: calc(0.58em * var(--entry-ui-row-scale)) !important;
+  padding-bottom: calc(0.58em * var(--entry-ui-row-scale)) !important;
+}
+
+body.entry-app-layout .entry-line-card,
+body.entry-app-layout .section-card,
+body.entry-app-layout .confirm-block {
+  border-radius: calc(12px * var(--entry-ui-radius-scale)) !important;
+}
+
+body.entry-app-layout .entry-inline-table .col-no {
+  width: var(--entry-ui-col-no) !important;
+}
+
+body.entry-app-layout .entry-inline-table .col-item {
+  width: var(--entry-ui-col-item) !important;
+}
+
+body.entry-app-layout .entry-inline-table .col-num {
+  width: var(--entry-ui-col-num) !important;
+}
+
+body.entry-app-layout .entry-inline-table:not(.entry-swipe-table) .col-action {
+  width: var(--entry-ui-col-action) !important;
+}
+
     body.entry-b-layout .entry-scroll-body {
       padding: 6px 0 12px;
       overflow-x: hidden;
@@ -2630,9 +2812,9 @@ body.entry-app-layout.entry-stage-mobile #entry-input-stage {
     body.entry-b-layout .entry-inline-table .col-no,
     body.entry-b-layout .entry-inline-table th.col-no,
     body.entry-b-layout .entry-inline-table td.col-no {
-      width: 42px !important;
-      min-width: 42px;
-      max-width: 42px;
+      width: var(--entry-ui-col-no) !important;
+      min-width: var(--entry-ui-col-no);
+      max-width: var(--entry-ui-col-no);
       text-align: center;
       padding-left: 0;
       padding-right: 0;
@@ -2654,9 +2836,9 @@ body.entry-app-layout.entry-stage-mobile #entry-input-stage {
     body.entry-b-layout .entry-inline-table.entry-expense-table .col-no,
     body.entry-b-layout .entry-inline-table.entry-expense-table th.col-no,
     body.entry-b-layout .entry-inline-table.entry-expense-table td.col-no {
-      width: 42px !important;
-      min-width: 42px;
-      max-width: 42px;
+      width: var(--entry-ui-col-no) !important;
+      min-width: var(--entry-ui-col-no);
+      max-width: var(--entry-ui-col-no);
     }
 
     body.entry-b-layout .entry-inline-table.entry-expense-table .col-num,
@@ -3047,26 +3229,31 @@ body.entry-app-layout.entry-stage-mobile #entry-input-stage {
     }
 
     body.entry-b-layout .entry-input-stage-input-wrap.is-date .entry-input-stage-input {
-      padding-right: 6em !important;
+      padding-right: calc(var(--entry-stage-date-hit-size) + var(--entry-stage-date-hit-right) + 18px) !important;
+    }
+
+    body.entry-b-layout .entry-input-stage-input-wrap.is-date {
+      --entry-stage-date-hit-size: 80px;
+      --entry-stage-date-hit-right: 12px;
     }
 
     body.entry-b-layout .entry-input-stage-date-button {
-      min-height: 80px;
-      min-width: 80px;
-      width: 80px;
-      height: 80px;
-      right: 12px;
+      min-height: var(--entry-stage-date-hit-size);
+      min-width: var(--entry-stage-date-hit-size);
+      width: var(--entry-stage-date-hit-size);
+      height: var(--entry-stage-date-hit-size);
+      right: var(--entry-stage-date-hit-right);
       padding: 0;
       border-radius: 0;
       font-size: 18px !important;
     }
 
     body.entry-b-layout .entry-input-stage-date-native {
-      min-height: 80px;
-      min-width: 80px;
-      width: 80px;
-      height: 80px;
-      right: 12px;
+      min-height: var(--entry-stage-date-hit-size);
+      min-width: var(--entry-stage-date-hit-size);
+      width: var(--entry-stage-date-hit-size);
+      height: var(--entry-stage-date-hit-size);
+      right: var(--entry-stage-date-hit-right);
     }
 
     body.entry-b-layout .entry-input-stage-date-icon {
@@ -3075,7 +3262,7 @@ body.entry-app-layout.entry-stage-mobile #entry-input-stage {
     }
 
     body.entry-b-layout .entry-input-stage-input-wrap.is-date::after {
-      right: 96px;
+      right: calc(var(--entry-stage-date-hit-right) + var(--entry-stage-date-hit-size) + 4px);
     }
 
     body.entry-b-layout .point-input-row {
@@ -3192,9 +3379,9 @@ body.entry-app-layout.entry-stage-mobile #entry-input-stage {
       body.entry-b-layout .entry-inline-table .col-no,
       body.entry-b-layout .entry-inline-table th.col-no,
       body.entry-b-layout .entry-inline-table td.col-no {
-        width: 57px !important;
-        min-width: 57px;
-        max-width: 57px;
+        width: var(--entry-ui-col-no) !important;
+        min-width: var(--entry-ui-col-no);
+        max-width: var(--entry-ui-col-no);
       }
 
       body.entry-b-layout .entry-inline-table .col-action,
@@ -3208,9 +3395,9 @@ body.entry-app-layout.entry-stage-mobile #entry-input-stage {
       body.entry-b-layout .entry-inline-table.entry-expense-table .col-no,
       body.entry-b-layout .entry-inline-table.entry-expense-table th.col-no,
       body.entry-b-layout .entry-inline-table.entry-expense-table td.col-no {
-        width: 57px !important;
-        min-width: 57px;
-        max-width: 57px;
+        width: var(--entry-ui-col-no) !important;
+        min-width: var(--entry-ui-col-no);
+        max-width: var(--entry-ui-col-no);
       }
 
       body.entry-b-layout .entry-inline-table.entry-expense-table .col-num,
@@ -3322,26 +3509,31 @@ body.entry-app-layout.entry-stage-mobile #entry-input-stage {
       }
 
       body.entry-b-layout .entry-input-stage-input-wrap.is-date .entry-input-stage-input {
-        padding-right: 6.3em !important;
+        padding-right: calc(var(--entry-stage-date-hit-size) + var(--entry-stage-date-hit-right) + 18px) !important;
+      }
+
+      body.entry-b-layout .entry-input-stage-input-wrap.is-date {
+        --entry-stage-date-hit-size: 104px;
+        --entry-stage-date-hit-right: 12px;
       }
 
       body.entry-b-layout .entry-input-stage-date-button {
-        min-height: 104px;
-        min-width: 104px;
-        width: 104px;
-        height: 104px;
-        right: 12px;
+        min-height: var(--entry-stage-date-hit-size);
+        min-width: var(--entry-stage-date-hit-size);
+        width: var(--entry-stage-date-hit-size);
+        height: var(--entry-stage-date-hit-size);
+        right: var(--entry-stage-date-hit-right);
         padding: 0;
         border-radius: 18px;
         font-size: 24px !important;
       }
 
       body.entry-b-layout .entry-input-stage-date-native {
-        min-height: 104px;
-        min-width: 104px;
-        width: 104px;
-        height: 104px;
-        right: 12px;
+        min-height: var(--entry-stage-date-hit-size);
+        min-width: var(--entry-stage-date-hit-size);
+        width: var(--entry-stage-date-hit-size);
+        height: var(--entry-stage-date-hit-size);
+        right: var(--entry-stage-date-hit-right);
       }
 
       body.entry-b-layout .entry-input-stage-date-icon {
@@ -3350,7 +3542,7 @@ body.entry-app-layout.entry-stage-mobile #entry-input-stage {
       }
 
       body.entry-b-layout .entry-input-stage-input-wrap.is-date::after {
-        right: 120px;
+        right: calc(var(--entry-stage-date-hit-right) + var(--entry-stage-date-hit-size) + 4px);
       }
     }
 
@@ -3446,3 +3638,134 @@ body.entry-app-layout.entry-stage-mobile #entry-input-stage {
         font-size: 0.94em;
       }
     }
+
+/* Display settings final override (keep at end) */
+html body.entry-app-layout .entry-inline-table th,
+html body.entry-app-layout .entry-inline-table td,
+html body.entry-app-layout .summary-table th,
+html body.entry-app-layout .summary-table td,
+html body.entry-app-layout .inline-input,
+html body.entry-app-layout .inline-number,
+html body.entry-app-layout .inline-value,
+html body.entry-app-layout .entry-meta-value,
+html body.entry-app-layout .entry-meta-label,
+html body.entry-app-layout .note-text {
+  font-size: calc(1em * var(--entry-ui-font-scale)) !important;
+  line-height: var(--entry-ui-line-height) !important;
+}
+
+html body.entry-app-layout .entry-inline-table th,
+html body.entry-app-layout .entry-inline-table td,
+html body.entry-app-layout .summary-table th,
+html body.entry-app-layout .summary-table td {
+  padding-top: calc(0.52em * var(--entry-ui-row-scale)) !important;
+  padding-bottom: calc(0.52em * var(--entry-ui-row-scale)) !important;
+  border-width: var(--entry-ui-border-width) !important;
+}
+
+html body.entry-app-layout .inline-input,
+html body.entry-app-layout .inline-number,
+html body.entry-app-layout .entry-input-stage-input,
+html body.entry-app-layout .entry-meta-input {
+  border-width: var(--entry-ui-border-width) !important;
+  font-weight: var(--entry-ui-font-weight) !important;
+  border-radius: calc(10px * var(--entry-ui-radius-scale)) !important;
+  padding-top: calc(0.58em * var(--entry-ui-row-scale)) !important;
+  padding-bottom: calc(0.58em * var(--entry-ui-row-scale)) !important;
+}
+
+html body.entry-app-layout .entry-line-card,
+html body.entry-app-layout .section-card,
+html body.entry-app-layout .confirm-block {
+  border-radius: calc(12px * var(--entry-ui-radius-scale)) !important;
+}
+
+html body.entry-app-layout .entry-inline-table .col-no {
+  width: var(--entry-ui-col-no) !important;
+}
+
+html body.entry-app-layout .entry-inline-table .col-item {
+  width: var(--entry-ui-col-item) !important;
+}
+
+html body.entry-app-layout .entry-inline-table .col-num {
+  width: var(--entry-ui-col-num) !important;
+}
+
+html body.entry-app-layout .entry-inline-table:not(.entry-swipe-table) .col-action {
+  width: var(--entry-ui-col-action) !important;
+}
+
+html body.entry-app-layout .entry-product-table .entry-main-row .inline-input,
+html body.entry-app-layout .entry-product-table .entry-main-row .inline-number,
+html body.entry-app-layout .entry-product-table .entry-main-row .inline-value {
+  font-size: calc(var(--entry-ui-product-row1-font-px) * var(--entry-ui-product-row1-scale)) !important;
+}
+
+html body.entry-app-layout .entry-product-table .entry-meta-row .entry-meta-label,
+html body.entry-app-layout .entry-product-table .entry-meta-row .entry-meta-value,
+html body.entry-app-layout .entry-product-table .entry-meta-row .entry-meta-input {
+  font-size: calc(var(--entry-ui-product-row2-font-px) * var(--entry-ui-product-row2-scale)) !important;
+}
+
+html body.entry-app-layout .entry-expense-table .entry-main-row .inline-input,
+html body.entry-app-layout .entry-expense-table .entry-main-row .inline-number {
+  font-size: calc(var(--entry-ui-expense-font-px) * var(--entry-ui-expense-scale)) !important;
+}
+
+html body.entry-app-layout #point-area .point-input-row .inline-number,
+html body.entry-app-layout #point-area .point-input-unit,
+html body.entry-app-layout #point-area .note-text {
+  font-size: calc(var(--entry-ui-point-font-px) * var(--entry-ui-point-scale)) !important;
+}
+
+html body.entry-app-layout #point-area .entry-point-align-wrap {
+  display: flex;
+  justify-content: flex-end;
+  margin-left: var(--entry-ui-col-no) !important;
+  width: calc(100% - var(--entry-ui-col-no));
+}
+
+html body.entry-app-layout #point-area .point-input-row {
+  width: min(100%, var(--entry-ui-point-form-width)) !important;
+  max-width: var(--entry-ui-point-form-width) !important;
+  margin-left: auto;
+  margin-right: 0;
+}
+
+html body.entry-app-layout .entry-common-table .entry-main-row .inline-input,
+html body.entry-app-layout .entry-common-table th {
+  font-size: calc(var(--entry-ui-common-font-px) * var(--entry-ui-common-scale)) !important;
+}
+
+html body.entry-app-layout .entry-bottom-nav-label,
+html body.entry-app-layout .entry-bottom-nav-icon {
+  font-size: calc(var(--entry-ui-footer-font-px) * var(--entry-ui-footer-scale)) !important;
+}
+
+html body.entry-app-layout .mid-title,
+html body.entry-app-layout .section-title,
+html body.entry-app-layout .confirm-title,
+html body.entry-app-layout .entry-line-title {
+  font-size: calc(var(--entry-ui-title-font-px) * var(--entry-ui-title-scale)) !important;
+}
+
+html body.entry-app-layout .entry-inline-table.entry-summary-table th,
+html body.entry-app-layout .summary-table th {
+  font-size: calc(var(--entry-ui-summary-header-font-px) * var(--entry-ui-summary-header-scale)) !important;
+}
+
+html body.entry-app-layout .entry-inline-table.entry-summary-table .summary-value-row td,
+html body.entry-app-layout .summary-table .summary-value-row td,
+html body.entry-app-layout .summary-table .summary-text-row td {
+  font-size: calc(var(--entry-ui-summary-value-font-px) * var(--entry-ui-summary-value-scale)) !important;
+}
+
+html body.entry-app-layout .summary-table.is-vertical th,
+html body.entry-app-layout .summary-table.is-vertical td {
+  white-space: normal;
+}
+
+html body.entry-app-layout .summary-table.is-vertical th {
+  width: 38%;
+}

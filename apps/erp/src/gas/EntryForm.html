@@ -13,7 +13,7 @@
       <div class="entry-fixed-header-inner">
         <div class="entry-fixed-header-title-wrap">
           <div class="entry-fixed-header-title">仕入入力</div>
-          <div class="entry-fixed-header-file">EntryForm.html</div>
+          <div id="entry-fixed-header-file" class="entry-fixed-header-file">EntryForm.html</div>
         </div>
         <div id="entry-fixed-header-state" class="entry-fixed-header-state">入力</div>
       </div>
@@ -94,6 +94,7 @@
     </footer>
   </div>
   <div id="entry-input-stage" class="entry-input-stage" style="display:none;"></div>
+  <div id="entry-display-settings-modal" class="entry-display-settings-modal" style="display:none;"></div>
 
   <script>
 function uiEscapeHtml_(value) {
@@ -198,8 +199,50 @@ let entryInputStageSuggestionActiveIndex_ = -1;
 let entryInputStageSuggestionVisible_ = false;
 let entryInputStageViewportRaf_ = 0;
 let entryStageBodyLockScrollY_ = 0;
+// rev: EntryForm.html rev-20260405-14
+const ENTRY_FORM_REV_ = 'rev-20260405-14';
+// rev: style.css.html rev-20260405-14
+const ENTRY_STYLE_REV_ = 'rev-20260405-14';
+const ENTRY_DISPLAY_SETTINGS_STORAGE_KEY_ = 'entryDisplaySettings.v1';
+const ENTRY_DISPLAY_SETTINGS_DEFAULTS_STORAGE_KEY_ = 'entryDisplaySettings.defaults.v1';
+const ENTRY_DISPLAY_SETTINGS_DEFAULTS_ = {
+  fontScale: 100,
+  rowScale: 100,
+  lineHeight: 130,
+  borderWidth: 2,
+  radiusScale: 100,
+  fontWeight: 500,
+  colNo: 8,
+  colAction: 8,
+  colNum: 16,
+  productRow1Scale: 100,
+  productRow2Scale: 100,
+  expenseScale: 100,
+  pointScale: 100,
+  commonScale: 100,
+  footerScale: 100,
+  titleScale: 100,
+  pointFormWidth: 100,
+  productRow1FontPx: 24,
+  productRow2FontPx: 18,
+  expenseFontPx: 24,
+  pointFontPx: 24,
+  commonFontPx: 24,
+  footerFontPx: 14,
+  titleFontPx: 18,
+  summaryHeaderScale: 100,
+  summaryHeaderFontPx: 18,
+  summaryValueScale: 100,
+  summaryValueFontPx: 24,
+  confirmLayout: 'horizontal'
+};
+let entryDisplaySettings_ = null;
+let entryRowDeleteMode_ = false;
+let expenseRowDeleteMode_ = false;
+const ENTRY_STAGE_DEBUG_ENABLED_ = String(getQueryParam_('stageDebug') || '') === '1';
 
 window.onload = function() {
+  showEntryStageDebugBoot_();
   try {
     if (typeof uiBuildInputTable_ !== 'function') {
       throw new Error('共通UI関数が読み込まれていません');
@@ -217,6 +260,8 @@ window.onload = function() {
     loadExpenseItems();
     loadSupplierPaymentOptions();
     restoreDraftIfNeeded_();
+    applyEntryFormRevisionLabel_();
+    initializeDisplaySettings_();
     setEntryScreenState_('entry');
     applyDetailPanelVisibility_();
     updateTopHelperButtons_();
@@ -239,6 +284,12 @@ window.onload = function() {
     showResultPage_();
   }
 };
+
+function applyEntryFormRevisionLabel_() {
+  const fileEl = document.getElementById('entry-fixed-header-file');
+  if (!fileEl) return;
+  fileEl.textContent = 'EntryForm.html (' + ENTRY_FORM_REV_ + ') / style.css (' + ENTRY_STYLE_REV_ + ')';
+}
 
 window.addEventListener('resize', handleEntryInputStageViewportChange_);
 window.addEventListener('scroll', handleEntryInputStageViewportChange_, true);
@@ -295,7 +346,281 @@ function handleStageTriggerTouchStart_(event) {
 }
 
 function handleFooterDisplaySettingsClick() {
-  alert('表示設定は次のステップで追加予定です。');
+  openDisplaySettingsModal_();
+}
+
+function clampDisplaySetting_(value, min, max, fallback) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(min, Math.min(max, Math.round(n)));
+}
+
+function normalizeDisplaySettings_(input) {
+  const src = input || {};
+  const out = {
+    fontScale: clampDisplaySetting_(src.fontScale, 70, 180, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.fontScale),
+    rowScale: clampDisplaySetting_(src.rowScale, 70, 180, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.rowScale),
+    lineHeight: clampDisplaySetting_(src.lineHeight, 110, 190, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.lineHeight),
+    borderWidth: clampDisplaySetting_(src.borderWidth, 1, 8, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.borderWidth),
+    radiusScale: clampDisplaySetting_(src.radiusScale, 50, 220, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.radiusScale),
+    fontWeight: clampDisplaySetting_(src.fontWeight, 400, 700, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.fontWeight),
+    colNo: clampDisplaySetting_(src.colNo, 6, 18, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.colNo),
+    colAction: clampDisplaySetting_(src.colAction, 6, 18, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.colAction),
+    colNum: clampDisplaySetting_(src.colNum, 10, 26, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.colNum),
+    productRow1Scale: clampDisplaySetting_(src.productRow1Scale, 60, 220, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.productRow1Scale),
+    productRow2Scale: clampDisplaySetting_(src.productRow2Scale, 60, 220, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.productRow2Scale),
+    expenseScale: clampDisplaySetting_(src.expenseScale, 60, 220, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.expenseScale),
+    pointScale: clampDisplaySetting_(src.pointScale, 60, 220, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.pointScale),
+    commonScale: clampDisplaySetting_(src.commonScale, 60, 220, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.commonScale),
+    footerScale: clampDisplaySetting_(src.footerScale, 60, 220, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.footerScale),
+    titleScale: clampDisplaySetting_(src.titleScale, 60, 220, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.titleScale),
+    pointFormWidth: clampDisplaySetting_(src.pointFormWidth, 40, 100, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.pointFormWidth),
+    productRow1FontPx: clampDisplaySetting_(src.productRow1FontPx, 10, 96, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.productRow1FontPx),
+    productRow2FontPx: clampDisplaySetting_(src.productRow2FontPx, 10, 96, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.productRow2FontPx),
+    expenseFontPx: clampDisplaySetting_(src.expenseFontPx, 10, 96, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.expenseFontPx),
+    pointFontPx: clampDisplaySetting_(src.pointFontPx, 10, 96, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.pointFontPx),
+    commonFontPx: clampDisplaySetting_(src.commonFontPx, 10, 96, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.commonFontPx),
+    footerFontPx: clampDisplaySetting_(src.footerFontPx, 10, 96, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.footerFontPx),
+    titleFontPx: clampDisplaySetting_(src.titleFontPx, 10, 96, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.titleFontPx),
+    summaryHeaderScale: clampDisplaySetting_(src.summaryHeaderScale, 60, 220, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.summaryHeaderScale),
+    summaryHeaderFontPx: clampDisplaySetting_(src.summaryHeaderFontPx, 10, 96, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.summaryHeaderFontPx),
+    summaryValueScale: clampDisplaySetting_(src.summaryValueScale, 60, 220, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.summaryValueScale),
+    summaryValueFontPx: clampDisplaySetting_(src.summaryValueFontPx, 10, 96, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.summaryValueFontPx),
+    confirmLayout: String(src.confirmLayout || ENTRY_DISPLAY_SETTINGS_DEFAULTS_.confirmLayout) === 'vertical' ? 'vertical' : 'horizontal'
+  };
+  const itemWidth = 100 - out.colNo - out.colAction - (out.colNum * 3);
+  if (itemWidth < 20) {
+    const over = 20 - itemWidth;
+    out.colNum = Math.max(10, out.colNum - Math.ceil(over / 3));
+  }
+  return out;
+}
+
+function loadDisplaySettings_() {
+  const defaultBase = loadDisplaySettingsDefaults_();
+  try {
+    const raw = window.localStorage.getItem(ENTRY_DISPLAY_SETTINGS_STORAGE_KEY_);
+    if (!raw) return normalizeDisplaySettings_(defaultBase);
+    return normalizeDisplaySettings_(Object.assign({}, defaultBase, JSON.parse(raw)));
+  } catch (err) {
+    return normalizeDisplaySettings_(defaultBase);
+  }
+}
+
+function loadDisplaySettingsDefaults_() {
+  try {
+    const raw = window.localStorage.getItem(ENTRY_DISPLAY_SETTINGS_DEFAULTS_STORAGE_KEY_);
+    if (!raw) return normalizeDisplaySettings_(ENTRY_DISPLAY_SETTINGS_DEFAULTS_);
+    return normalizeDisplaySettings_(Object.assign({}, ENTRY_DISPLAY_SETTINGS_DEFAULTS_, JSON.parse(raw)));
+  } catch (err) {
+    return normalizeDisplaySettings_(ENTRY_DISPLAY_SETTINGS_DEFAULTS_);
+  }
+}
+
+function saveDisplaySettings_() {
+  try {
+    window.localStorage.setItem(ENTRY_DISPLAY_SETTINGS_STORAGE_KEY_, JSON.stringify(entryDisplaySettings_));
+  } catch (err) {
+    // no-op
+  }
+}
+
+function saveDisplaySettingsAsDefaults_() {
+  entryDisplaySettings_ = normalizeDisplaySettings_(entryDisplaySettings_ || ENTRY_DISPLAY_SETTINGS_DEFAULTS_);
+  saveDisplaySettings_();
+  try {
+    window.localStorage.setItem(ENTRY_DISPLAY_SETTINGS_DEFAULTS_STORAGE_KEY_, JSON.stringify(entryDisplaySettings_));
+  } catch (err) {
+    // no-op
+  }
+}
+
+function restoreDisplaySettingsFactoryDefaults_() {
+  entryDisplaySettings_ = normalizeDisplaySettings_(ENTRY_DISPLAY_SETTINGS_DEFAULTS_);
+  applyDisplaySettings_();
+  saveDisplaySettings_();
+  try {
+    window.localStorage.removeItem(ENTRY_DISPLAY_SETTINGS_DEFAULTS_STORAGE_KEY_);
+  } catch (err) {
+    // no-op
+  }
+  openDisplaySettingsModal_();
+}
+
+function applyDisplaySettings_() {
+  const settings = normalizeDisplaySettings_(entryDisplaySettings_ || ENTRY_DISPLAY_SETTINGS_DEFAULTS_);
+  entryDisplaySettings_ = settings;
+  const root = document.documentElement;
+  root.style.setProperty('--entry-ui-font-scale', String(settings.fontScale / 100));
+  root.style.setProperty('--entry-ui-row-scale', String(settings.rowScale / 100));
+  root.style.setProperty('--entry-ui-line-height', String(settings.lineHeight / 100));
+  root.style.setProperty('--entry-ui-border-width', settings.borderWidth + 'px');
+  root.style.setProperty('--entry-ui-radius-scale', String(settings.radiusScale / 100));
+  root.style.setProperty('--entry-ui-font-weight', String(settings.fontWeight));
+  root.style.setProperty('--entry-ui-col-no', settings.colNo + '%');
+  root.style.setProperty('--entry-ui-col-action', settings.colAction + '%');
+  root.style.setProperty('--entry-ui-col-num', settings.colNum + '%');
+  root.style.setProperty('--entry-ui-product-row1-scale', String(settings.productRow1Scale / 100));
+  root.style.setProperty('--entry-ui-product-row2-scale', String(settings.productRow2Scale / 100));
+  root.style.setProperty('--entry-ui-expense-scale', String(settings.expenseScale / 100));
+  root.style.setProperty('--entry-ui-point-scale', String(settings.pointScale / 100));
+  root.style.setProperty('--entry-ui-common-scale', String(settings.commonScale / 100));
+  root.style.setProperty('--entry-ui-footer-scale', String(settings.footerScale / 100));
+  root.style.setProperty('--entry-ui-title-scale', String(settings.titleScale / 100));
+  root.style.setProperty('--entry-ui-point-form-width', settings.pointFormWidth + '%');
+  root.style.setProperty('--entry-ui-product-row1-font-px', settings.productRow1FontPx + 'px');
+  root.style.setProperty('--entry-ui-product-row2-font-px', settings.productRow2FontPx + 'px');
+  root.style.setProperty('--entry-ui-expense-font-px', settings.expenseFontPx + 'px');
+  root.style.setProperty('--entry-ui-point-font-px', settings.pointFontPx + 'px');
+  root.style.setProperty('--entry-ui-common-font-px', settings.commonFontPx + 'px');
+  root.style.setProperty('--entry-ui-footer-font-px', settings.footerFontPx + 'px');
+  root.style.setProperty('--entry-ui-title-font-px', settings.titleFontPx + 'px');
+  root.style.setProperty('--entry-ui-summary-header-scale', String(settings.summaryHeaderScale / 100));
+  root.style.setProperty('--entry-ui-summary-header-font-px', settings.summaryHeaderFontPx + 'px');
+  root.style.setProperty('--entry-ui-summary-value-scale', String(settings.summaryValueScale / 100));
+  root.style.setProperty('--entry-ui-summary-value-font-px', settings.summaryValueFontPx + 'px');
+  if (document.body) {
+    document.body.setAttribute('data-confirm-layout', settings.confirmLayout);
+  }
+  const colItem = Math.max(20, 100 - settings.colNo - settings.colAction - (settings.colNum * 3));
+  root.style.setProperty('--entry-ui-col-item', colItem + '%');
+}
+
+function initializeDisplaySettings_() {
+  entryDisplaySettings_ = loadDisplaySettings_();
+  applyDisplaySettings_();
+}
+
+function closeDisplaySettingsModal_() {
+  const modal = document.getElementById('entry-display-settings-modal');
+  if (!modal) return;
+  modal.style.display = 'none';
+  modal.innerHTML = '';
+  document.body.classList.remove('entry-display-settings-open');
+}
+
+function handleDisplaySettingsBackdropClick_(event) {
+  const target = event && event.target;
+  if (!target) return;
+  if (target.id !== 'entry-display-settings-modal') return;
+  saveDisplaySettings_();
+  closeDisplaySettingsModal_();
+}
+
+function getDisplaySettingsModalField_(id) {
+  return document.getElementById('entry-display-settings-' + id);
+}
+
+function updateDisplaySettingsValueLabels_() {
+  const ids = ['fontScale', 'rowScale', 'lineHeight', 'borderWidth', 'radiusScale', 'colNo', 'colAction', 'colNum', 'productRow1Scale', 'productRow2Scale', 'expenseScale', 'pointScale', 'commonScale', 'footerScale', 'titleScale', 'pointFormWidth', 'summaryHeaderScale', 'summaryValueScale'];
+  ids.forEach(function(id) {
+    const input = getDisplaySettingsModalField_(id);
+    const label = document.getElementById('entry-display-settings-value-' + id);
+    if (!input || !label) return;
+    const value = Number(input.value || 0);
+    if (id === 'borderWidth') {
+      label.textContent = value + 'px';
+      return;
+    }
+    label.textContent = value + '%';
+  });
+}
+
+function readDisplaySettingsFromModal_() {
+  const next = Object.assign({}, entryDisplaySettings_ || ENTRY_DISPLAY_SETTINGS_DEFAULTS_);
+  const keys = ['fontScale', 'rowScale', 'lineHeight', 'borderWidth', 'radiusScale', 'colNo', 'colAction', 'colNum', 'productRow1Scale', 'productRow2Scale', 'expenseScale', 'pointScale', 'commonScale', 'footerScale', 'titleScale', 'pointFormWidth', 'productRow1FontPx', 'productRow2FontPx', 'expenseFontPx', 'pointFontPx', 'commonFontPx', 'footerFontPx', 'titleFontPx', 'summaryHeaderScale', 'summaryHeaderFontPx', 'summaryValueScale', 'summaryValueFontPx'];
+  keys.forEach(function(key) {
+    const field = getDisplaySettingsModalField_(key);
+    if (!field) return;
+    next[key] = Number(field.value || next[key]);
+  });
+  const weightField = getDisplaySettingsModalField_('fontWeight');
+  if (weightField) next.fontWeight = Number(weightField.value || next.fontWeight);
+  const confirmLayoutField = getDisplaySettingsModalField_('confirmLayout');
+  if (confirmLayoutField) next.confirmLayout = String(confirmLayoutField.value || next.confirmLayout);
+  entryDisplaySettings_ = normalizeDisplaySettings_(next);
+}
+
+function onDisplaySettingsInput_() {
+  readDisplaySettingsFromModal_();
+  updateDisplaySettingsValueLabels_();
+  applyDisplaySettings_();
+}
+
+function buildDisplaySizeControl_(title, fontId, scaleId, fontValue, scaleValue) {
+  return `
+    <div class="entry-display-settings-size-block">
+      <div class="entry-display-settings-size-title">${title}</div>
+      <label>${title} 文字サイズ(px)
+        <input id="entry-display-settings-${fontId}" type="number" min="10" max="96" step="1" value="${fontValue}" oninput="onDisplaySettingsInput_()">
+      </label>
+      <label>${title} 行幅比(%)
+        <span id="entry-display-settings-value-${scaleId}">${scaleValue}%</span>
+        <input id="entry-display-settings-${scaleId}" type="range" min="60" max="220" step="1" value="${scaleValue}" oninput="onDisplaySettingsInput_()">
+      </label>
+    </div>
+  `;
+}
+
+function resetDisplaySettings_() {
+  entryDisplaySettings_ = loadDisplaySettingsDefaults_();
+  applyDisplaySettings_();
+  openDisplaySettingsModal_();
+}
+
+function openDisplaySettingsModal_() {
+  const modal = document.getElementById('entry-display-settings-modal');
+  if (!modal) return;
+  const s = normalizeDisplaySettings_(entryDisplaySettings_ || ENTRY_DISPLAY_SETTINGS_DEFAULTS_);
+  entryDisplaySettings_ = s;
+  modal.innerHTML = `
+    <div class="entry-display-settings-panel" role="dialog" aria-modal="true" aria-label="表示調整">
+      <div class="entry-display-settings-title">表示調整</div>
+      <div class="entry-display-settings-grid">
+        <label>文字サイズ <span id="entry-display-settings-value-fontScale">${s.fontScale}%</span><input id="entry-display-settings-fontScale" type="range" min="70" max="180" step="1" value="${s.fontScale}" oninput="onDisplaySettingsInput_()"></label>
+        <label>行の太さ <span id="entry-display-settings-value-rowScale">${s.rowScale}%</span><input id="entry-display-settings-rowScale" type="range" min="70" max="180" step="1" value="${s.rowScale}" oninput="onDisplaySettingsInput_()"></label>
+        <label>行間 <span id="entry-display-settings-value-lineHeight">${s.lineHeight}%</span><input id="entry-display-settings-lineHeight" type="range" min="110" max="190" step="1" value="${s.lineHeight}" oninput="onDisplaySettingsInput_()"></label>
+        <label>フォーム線の太さ <span id="entry-display-settings-value-borderWidth">${s.borderWidth}px</span><input id="entry-display-settings-borderWidth" type="range" min="1" max="8" step="1" value="${s.borderWidth}" oninput="onDisplaySettingsInput_()"></label>
+        <label>角丸 <span id="entry-display-settings-value-radiusScale">${s.radiusScale}%</span><input id="entry-display-settings-radiusScale" type="range" min="50" max="220" step="1" value="${s.radiusScale}" oninput="onDisplaySettingsInput_()"></label>
+        <label>No列幅 <span id="entry-display-settings-value-colNo">${s.colNo}%</span><input id="entry-display-settings-colNo" type="range" min="6" max="18" step="1" value="${s.colNo}" oninput="onDisplaySettingsInput_()"></label>
+        <label>操作列幅 <span id="entry-display-settings-value-colAction">${s.colAction}%</span><input id="entry-display-settings-colAction" type="range" min="6" max="18" step="1" value="${s.colAction}" oninput="onDisplaySettingsInput_()"></label>
+        <label>金額列幅 <span id="entry-display-settings-value-colNum">${s.colNum}%</span><input id="entry-display-settings-colNum" type="range" min="10" max="26" step="1" value="${s.colNum}" oninput="onDisplaySettingsInput_()"></label>
+        <label>文字の太さ
+          <select id="entry-display-settings-fontWeight" onchange="onDisplaySettingsInput_()">
+            <option value="400"${s.fontWeight === 400 ? ' selected' : ''}>標準</option>
+            <option value="500"${s.fontWeight === 500 ? ' selected' : ''}>やや太め</option>
+            <option value="700"${s.fontWeight === 700 ? ' selected' : ''}>太字</option>
+          </select>
+        </label>
+        ${buildDisplaySizeControl_('商品入力 1row', 'productRow1FontPx', 'productRow1Scale', s.productRow1FontPx, s.productRow1Scale)}
+        ${buildDisplaySizeControl_('商品入力 2row', 'productRow2FontPx', 'productRow2Scale', s.productRow2FontPx, s.productRow2Scale)}
+        ${buildDisplaySizeControl_('経費', 'expenseFontPx', 'expenseScale', s.expenseFontPx, s.expenseScale)}
+        ${buildDisplaySizeControl_('ポイント', 'pointFontPx', 'pointScale', s.pointFontPx, s.pointScale)}
+        ${buildDisplaySizeControl_('共通項目', 'commonFontPx', 'commonScale', s.commonFontPx, s.commonScale)}
+        ${buildDisplaySizeControl_('フッター', 'footerFontPx', 'footerScale', s.footerFontPx, s.footerScale)}
+        ${buildDisplaySizeControl_('タイトル見出し', 'titleFontPx', 'titleScale', s.titleFontPx, s.titleScale)}
+        ${buildDisplaySizeControl_('サマリー見出し', 'summaryHeaderFontPx', 'summaryHeaderScale', s.summaryHeaderFontPx, s.summaryHeaderScale)}
+        ${buildDisplaySizeControl_('サマリー実値', 'summaryValueFontPx', 'summaryValueScale', s.summaryValueFontPx, s.summaryValueScale)}
+        <label>確認画面レイアウト
+          <select id="entry-display-settings-confirmLayout" onchange="onDisplaySettingsInput_()">
+            <option value="horizontal"${s.confirmLayout === 'horizontal' ? ' selected' : ''}>横並び（現在）</option>
+            <option value="vertical"${s.confirmLayout === 'vertical' ? ' selected' : ''}>縦並び</option>
+          </select>
+        </label>
+        <label>ポイントフォーム横幅(%)<input id="entry-display-settings-pointFormWidth" type="number" min="40" max="100" step="1" value="${s.pointFormWidth}" oninput="onDisplaySettingsInput_()"></label>
+      </div>
+      <div class="entry-display-settings-actions">
+        <button type="button" class="btn-sub" onclick="resetDisplaySettings_()">初期値に戻す</button>
+        <button type="button" class="btn-sub" onclick="saveDisplaySettingsAsDefaults_(); openDisplaySettingsModal_();">この値を初期値として保存</button>
+        <button type="button" class="btn-sub" onclick="restoreDisplaySettingsFactoryDefaults_()">工場出荷値へ戻す</button>
+        <button type="button" class="btn-main" onclick="saveDisplaySettings_(); closeDisplaySettingsModal_();">閉じる</button>
+      </div>
+    </div>
+  `;
+  modal.onclick = handleDisplaySettingsBackdropClick_;
+  modal.style.display = 'flex';
+  document.body.classList.add('entry-display-settings-open');
+  updateDisplaySettingsValueLabels_();
 }
 
 function isStableStageInputMode_() {
@@ -450,45 +775,45 @@ function applyEntryInputStagePosition_(stageEl) {
   if (!stageEl) return;
   const panelEl = stageEl.querySelector('.entry-input-stage-panel');
   if (!panelEl) return;
-  const isMobile = window.innerWidth <= 768;
   const vv = window.visualViewport;
-  const layoutWidth = Math.max(0, window.innerWidth || (vv ? vv.width : 0));
-  const vvWidth = vv ? Math.max(0, vv.width) : window.innerWidth;
-  const vvHeight = vv ? Math.max(0, vv.height) : window.innerHeight;
+  const viewportScale = vv ? (Number(vv.scale) || 1) : 1;
+  // ズーム時のみ visualViewport のオフセットを使う（通常倍率では座標系を単純化）
+  const useViewportOffset = viewportScale !== 1;
+  const viewportOffsetLeft = (vv && useViewportOffset) ? (Number(vv.offsetLeft) || 0) : 0;
+  const viewportOffsetTop = (vv && useViewportOffset) ? (Number(vv.offsetTop) || 0) : 0;
+  const viewportWidth = vv ? Math.max(0, vv.width) : Math.max(0, window.innerWidth);
+  const viewportHeight = vv ? Math.max(0, vv.height) : window.innerHeight;
+  const isMobile = viewportWidth <= 768;
+  const panelWidth = Math.max(0, viewportWidth * 0.98);
+  const horizontalMargin = Math.max(0, (viewportWidth - panelWidth) / 2);
 
-  if (isMobile && isStableStageInputMode_()) {
+  if (isMobile) {
     stageEl.style.inset = 'auto';
-    stageEl.style.left = '0px';
-    stageEl.style.top = '0px';
-    stageEl.style.width = layoutWidth + 'px';
-    stageEl.style.height = vvHeight + 'px';
-    stageEl.style.setProperty('--entry-stage-height', Math.round(vvHeight) + 'px');
+    stageEl.style.left = viewportOffsetLeft + 'px';
+    stageEl.style.top = viewportOffsetTop + 'px';
+    stageEl.style.width = viewportWidth + 'px';
+    stageEl.style.height = viewportHeight + 'px';
+    stageEl.style.setProperty('--entry-stage-height', Math.round(viewportHeight) + 'px');
 
-    const safeMargin = 8;
-    const panelWidth = Math.max(0, Math.min(layoutWidth - (safeMargin * 2), Math.min(layoutWidth * 0.98, 72)));
-    const left = Math.round(layoutWidth / 2);
-    const top = safeMargin;
-    const panelMaxHeight = Math.max(0, vvHeight - (safeMargin * 2));
+    const left = Math.round(viewportWidth / 2);
+    const top = 8;
+    const panelMaxHeight = Math.max(0, viewportHeight - 16);
 
     panelEl.style.left = left + 'px';
     panelEl.style.top = top + 'px';
     panelEl.style.width = panelWidth + 'px';
     panelEl.style.maxHeight = panelMaxHeight + 'px';
     panelEl.style.transform = 'translateX(-50%)';
-    return;
-  }
-  if (isMobile) {
-    stageEl.style.removeProperty('inset');
-    stageEl.style.removeProperty('left');
-    stageEl.style.removeProperty('top');
-    stageEl.style.removeProperty('width');
-    stageEl.style.removeProperty('height');
-    stageEl.style.setProperty('--entry-stage-height', '100dvh');
-    panelEl.style.left = '50%';
-    panelEl.style.top = '50%';
-    panelEl.style.width = 'min(92vw, 720px)';
-    panelEl.style.maxHeight = '80vh';
-    panelEl.style.transform = 'translate(-50%, -50%)';
+    emitEntryStageDebugInfo_({
+      branch: 'mobile',
+      viewportWidth: viewportWidth,
+      viewportHeight: viewportHeight,
+      viewportScale: viewportScale,
+      viewportOffsetLeft: viewportOffsetLeft,
+      viewportOffsetTop: viewportOffsetTop,
+      panelWidthCalc: panelWidth,
+      panelStyleWidth: panelEl.style.width
+    });
     return;
   }
   stageEl.style.removeProperty('inset');
@@ -507,23 +832,22 @@ function applyEntryInputStagePosition_(stageEl) {
   const anchorRect = captureStageRect_(anchorEl) || {
     left: 8,
     top: 8,
-    width: Math.max(0, window.innerWidth - 16),
+    width: Math.max(0, viewportWidth - 16),
     height: 0
   };
-  const panelWidth = Math.min(window.innerWidth * 0.98, layoutWidth - 16);
   const rootStyles = window.getComputedStyle(document.documentElement);
   const topOffsetRaw = parseFloat(String(rootStyles.getPropertyValue('--entry-top-offset') || '').trim());
   const topOffset = Number.isFinite(topOffsetRaw) ? topOffsetRaw : 0;
-  const safeMargin = 8;
+  const safeMargin = horizontalMargin;
   const left = clampStageValue_(
     anchorRect.left + ((anchorRect.width - panelWidth) / 2),
     safeMargin,
-    Math.max(safeMargin, window.innerWidth - panelWidth - safeMargin)
+    Math.max(safeMargin, viewportWidth - panelWidth - safeMargin)
   );
   const top = clampStageValue_(
     anchorRect.top + 8 + topOffset,
     safeMargin,
-    Math.max(safeMargin, window.innerHeight - 260)
+    Math.max(safeMargin, viewportHeight - 260)
   );
   const originRect = entryInputStageState_.originRect || anchorRect;
   const fromX = (originRect.left + (originRect.width / 2)) - (left + (panelWidth / 2));
@@ -534,6 +858,96 @@ function applyEntryInputStagePosition_(stageEl) {
   stageEl.style.setProperty('--entry-panel-width', panelWidth + 'px');
   stageEl.style.setProperty('--entry-from-x', Math.round(fromX) + 'px');
   stageEl.style.setProperty('--entry-from-y', Math.round(fromY) + 'px');
+  emitEntryStageDebugInfo_({
+    branch: 'desktop',
+    viewportWidth: viewportWidth,
+    viewportHeight: viewportHeight,
+    viewportScale: viewportScale,
+    viewportOffsetLeft: viewportOffsetLeft,
+    viewportOffsetTop: viewportOffsetTop,
+    panelWidthCalc: panelWidth,
+    panelStyleWidth: panelEl.style.width
+  });
+}
+
+function emitEntryStageDebugInfo_(meta) {
+  if (!ENTRY_STAGE_DEBUG_ENABLED_) return;
+  const stageEl = document.getElementById('entry-input-stage');
+  const panelEl = stageEl ? stageEl.querySelector('.entry-input-stage-panel') : null;
+  if (!panelEl) return;
+  const vv = window.visualViewport;
+  const rect = panelEl.getBoundingClientRect();
+  const cs = window.getComputedStyle(panelEl);
+  const payload = {
+    branch: String((meta && meta.branch) || ''),
+    innerWidth: window.innerWidth,
+    innerHeight: window.innerHeight,
+    visualViewportWidth: vv ? vv.width : null,
+    visualViewportHeight: vv ? vv.height : null,
+    visualViewportScale: vv ? vv.scale : null,
+    panelWidthCalc: meta ? meta.panelWidthCalc : null,
+    panelStyleWidth: panelEl.style.width,
+    panelRectWidth: rect.width,
+    panelComputedWidth: cs.width,
+    panelComputedMaxWidth: cs.maxWidth,
+    panelComputedTransform: cs.transform,
+    panelComputedBoxSizing: cs.boxSizing
+  };
+  renderEntryStageDebugOverlay_(payload);
+  if (typeof console !== 'undefined' && console && typeof console.log === 'function') {
+    console.log('[entry-stage-debug]', payload);
+  }
+}
+
+function showEntryStageDebugBoot_() {
+  if (!ENTRY_STAGE_DEBUG_ENABLED_) return;
+  renderEntryStageDebugOverlay_({
+    mode: 'boot',
+    message: 'STAGE DEBUG ON',
+    url: String(window.location.href || ''),
+    page: String(getQueryParam_('page') || ''),
+    stageDebug: String(getQueryParam_('stageDebug') || ''),
+    loaded: 'EntryForm.html loaded'
+  });
+}
+
+function renderEntryStageDebugOverlay_(payload) {
+  if (!ENTRY_STAGE_DEBUG_ENABLED_) return;
+  let el = document.getElementById('entry-stage-debug-overlay');
+  if (!el) {
+    el = document.createElement('pre');
+    el.id = 'entry-stage-debug-overlay';
+    el.style.position = 'fixed';
+    el.style.top = '50%';
+    el.style.left = '50%';
+    el.style.transform = 'translate(-50%, -50%)';
+    el.style.zIndex = '99999';
+    el.style.maxWidth = '96vw';
+    el.style.width = 'min(92vw, 960px)';
+    el.style.maxHeight = '70vh';
+    el.style.overflow = 'auto';
+    el.style.margin = '0';
+    el.style.padding = '12px 14px';
+    el.style.background = '#ffe066';
+    el.style.color = '#7a0000';
+    el.style.border = '2px solid #d90429';
+    el.style.borderRadius = '8px';
+    el.style.fontSize = '12px';
+    el.style.lineHeight = '1.35';
+    el.style.whiteSpace = 'pre-wrap';
+    el.style.pointerEvents = 'none';
+    document.body.appendChild(el);
+  }
+  if (payload && payload.mode === 'boot') {
+    el.textContent =
+      'STAGE DEBUG ON\n' +
+      '現在URL: ' + String(payload.url || '') + '\n' +
+      'page: ' + String(payload.page || '') + '\n' +
+      'stageDebug: ' + String(payload.stageDebug || '') + '\n' +
+      String(payload.loaded || 'EntryForm.html loaded');
+    return;
+  }
+  el.textContent = JSON.stringify(payload, null, 2);
 }
 
 function handleEntryInputStageViewportChange_() {
@@ -1504,6 +1918,11 @@ function isLineItemIndividualMode_() {
   return !isPointAllocationMode_() && !isExpenseAllocationMode_();
 }
 
+function isVerticalConfirmLayout_() {
+  const mode = String((entryDisplaySettings_ && entryDisplaySettings_.confirmLayout) || ENTRY_DISPLAY_SETTINGS_DEFAULTS_.confirmLayout || 'horizontal');
+  return mode === 'vertical';
+}
+
 function getPointModeLabel_() {
   return isPointAllocationMode_() ? '分配モード' : '個別入力モード';
 }
@@ -1882,8 +2301,21 @@ function removeEntryRow(idx) {
       entryInputStageState_.currentRow -= 1;
     }
   }
+  if (entryRows.length <= 1) {
+    entryRowDeleteMode_ = false;
+  }
   renderEntryRows();
   recalculateCosts();
+}
+
+function toggleEntryRowDeleteMode() {
+  entryRowDeleteMode_ = !entryRowDeleteMode_;
+  renderEntryRows();
+}
+
+function toggleExpenseRowDeleteMode() {
+  expenseRowDeleteMode_ = !expenseRowDeleteMode_;
+  renderExpenseArea();
 }
 
 function renderEntryRows() {
@@ -1900,9 +2332,16 @@ function renderEntryRows() {
   const pointMetaLabel = lineItemIndividualMode ? 'ポイント' : pointLabel;
   const expenseMetaLabel = lineItemIndividualMode ? '経費' : expenseLabel;
   const canDeleteEntryRows = entryRows.length > 1;
+  if (!canDeleteEntryRows && entryRowDeleteMode_) {
+    entryRowDeleteMode_ = false;
+  }
   const addEntryButtonHtml = `<button type="button" class="btn-append-row" onclick="addEntryRow(${Math.max(0, entryRows.length - 1)})" aria-label="商品行を追加">＋</button>`;
-  const entryTitleActionsHtml = `<div class="entry-lines-title-actions">${addEntryButtonHtml}</div>`;
-  const entryTableClass = 'entry-inline-table entry-product-table';
+  const deleteEntryModeClass = entryRowDeleteMode_ ? 'btn-delete-mode is-active' : 'btn-delete-mode';
+  const deleteEntryButtonHtml = canDeleteEntryRows
+    ? `<button type="button" class="${deleteEntryModeClass}" onclick="toggleEntryRowDeleteMode()" aria-label="商品行削除モード切替">−</button>`
+    : '';
+  const entryTitleActionsHtml = `<div class="entry-lines-title-actions">${addEntryButtonHtml}${deleteEntryButtonHtml}</div>`;
+  const entryTableClass = 'entry-inline-table entry-product-table entry-swipe-table' + (entryRowDeleteMode_ ? ' is-delete-mode' : '');
   let rowsHtml = '';
   entryRows.forEach((row, idx) => {
     const pointCell = lineItemIndividualMode
@@ -1923,8 +2362,8 @@ function renderEntryRows() {
       ? Math.max(0, roundYen(row.price) - roundYen(row.taxBasePrice))
       : 0;
     const canRemoveRow = canDeleteEntryRows && idx > 0;
-    const mainRowClass = 'entry-main-row';
-    const removeBtn = canRemoveRow
+    const mainRowClass = 'entry-main-row entry-swipe-delete-row';
+    const removeBtn = (entryRowDeleteMode_ && canRemoveRow)
       ? `<button type="button" class="entry-row-remove" onclick="removeEntryRow(${idx})" aria-label="商品${idx + 1}を削除">−</button>`
       : '';
     const metaRowClass = lineItemIndividualMode ? 'entry-meta-row is-individual' : 'entry-meta-row';
@@ -2195,7 +2634,10 @@ function renderPointArea() {
 
   const headerHtml = '<h3 class="mid-title panel-head-title">ポイント/割引</h3>';
 
-  document.getElementById('point-area').innerHTML = headerHtml + modeContent;
+  const pointAlignedContent = modeContent
+    ? `<div class="entry-point-align-wrap">${modeContent}</div>`
+    : '';
+  document.getElementById('point-area').innerHTML = headerHtml + pointAlignedContent;
   applyDetailPanelVisibility_();
   updateTopHelperButtons_();
 }
@@ -2217,6 +2659,9 @@ function renderExpenseArea() {
     expenseList = [createEmptyExpenseRow()];
   }
   const canDeleteExpenseRows = expenseList.length > 1;
+  if (!canDeleteExpenseRows && expenseRowDeleteMode_) {
+    expenseRowDeleteMode_ = false;
+  }
   if (entryInputStageState_.active && entryInputStageState_.scope === 'expense') {
     if (entryInputStageState_.expenseIdx < 0 || entryInputStageState_.expenseIdx >= expenseList.length) {
       closeEntryInputStage_();
@@ -2229,8 +2674,12 @@ function renderExpenseArea() {
   const expenseToggleBtnClass = expensePanelOpen ? 'btn-icon btn-icon-minus panel-head-toggle' : 'btn-icon btn-icon-plus panel-head-toggle';
   const expenseToggleLabel = expensePanelOpen ? '経費入力エリアを閉じる' : '経費入力エリアを開く';
   const addExpenseButtonHtml = `<button type="button" class="btn-append-row" onclick="addExpenseRow(${Math.max(0, expenseList.length - 1)})" aria-label="経費行を追加">＋</button>`;
+  const deleteExpenseModeClass = expenseRowDeleteMode_ ? 'btn-delete-mode is-active' : 'btn-delete-mode';
+  const deleteExpenseButtonHtml = canDeleteExpenseRows
+    ? `<button type="button" class="${deleteExpenseModeClass}" onclick="toggleExpenseRowDeleteMode()" aria-label="経費行削除モード切替">−</button>`
+    : '';
   const expenseTitleActionsHtml = (expensePanelOpen && isExpenseAllocationMode_())
-    ? `<div class="entry-lines-title-actions">${addExpenseButtonHtml}</div>`
+    ? `<div class="entry-lines-title-actions">${addExpenseButtonHtml}${deleteExpenseButtonHtml}</div>`
     : '';
   const expenseInputTotal = getActiveExpenseRows_().reduce((sum, ex) => sum + roundYen(ex.amount), 0);
   const expenseAllocTotal = entryRows.reduce((sum, row) => {
@@ -2246,8 +2695,8 @@ function renderExpenseArea() {
   if (expensePanelOpen) {
     expenseList.forEach((ex, idx) => {
       const canRemoveRow = canDeleteExpenseRows && idx > 0;
-      const rowClass = 'entry-main-row';
-      const removeBtn = canRemoveRow
+      const rowClass = 'entry-main-row entry-swipe-delete-row';
+      const removeBtn = (expenseRowDeleteMode_ && canRemoveRow)
         ? `<button type="button" class="entry-row-remove" onclick="removeExpenseRow(${idx})" aria-label="経費${idx + 1}を削除">−</button>`
         : '';
       rows += `
@@ -2267,7 +2716,7 @@ function renderExpenseArea() {
 
   let modeContent = '';
   if (expensePanelOpen && isExpenseAllocationMode_()) {
-    const expenseTableClass = 'entry-inline-table entry-expense-table';
+    const expenseTableClass = 'entry-inline-table entry-expense-table entry-swipe-table' + (expenseRowDeleteMode_ ? ' is-delete-mode' : '');
     modeContent =
       `<datalist id="expense-items">${options}</datalist>` +
       `<div class="entry-line-card section-card section-tone-expense">` +
@@ -2352,6 +2801,9 @@ function removeExpenseRow(idx) {
     } else if (entryInputStageState_.active && entryInputStageState_.scope === 'expense' && entryInputStageState_.expenseIdx > idx) {
       entryInputStageState_.expenseIdx -= 1;
     }
+  }
+  if (expenseList.length <= 1) {
+    expenseRowDeleteMode_ = false;
   }
   renderExpenseArea();
   recalculateCosts();
@@ -2786,6 +3238,7 @@ function renderFinalConfirm_(rows, expenses, commonInfo, pointMode, expenseMode)
   const totalExpenseInput = expenseRowsData.reduce((sum, ex) => sum + roundYen(ex.amount), 0);
   const expenseTotal = String(expenseMode || 'allocation') === 'individual' ? totalExpAlloc : totalExpenseInput;
   const hasExpenseRows = expenseRowsData.length > 0;
+  const verticalLayout = isVerticalConfirmLayout_();
 
   let pointExpenseBlock = '';
   if (hasExpenseRows) {
@@ -2800,6 +3253,44 @@ function renderFinalConfirm_(rows, expenses, commonInfo, pointMode, expenseMode)
         '</div>' +
       '</div>';
   }
+
+  const summaryTableHtml = verticalLayout
+    ? '<table class="summary-table confirm-summary-table is-vertical">' +
+        '<tbody class="summary-value-row">' +
+          '<tr><th>商品数</th><td class="count-cell">' + formatWithComma_(totalQty) + '</td></tr>' +
+          '<tr><th>総提示金額</th><td>' + formatYen_(totalPrice) + '</td></tr>' +
+          '<tr><th>ポイント合計</th><td>' + formatYen_(totalPoint) + '</td></tr>' +
+          '<tr><th>経費合計</th><td>' + formatYen_(expenseTotal) + '</td></tr>' +
+          '<tr><th>原価合計</th><td class="is-emphasis">' + formatYen_(totalCost) + '</td></tr>' +
+        '</tbody>' +
+      '</table>'
+    : '<table class="summary-table confirm-summary-table">' +
+        '<thead><tr><th>商品数</th><th>総提示金額</th><th>ポイント合計</th><th>経費合計</th><th>原価合計</th></tr></thead>' +
+        '<tbody><tr class="summary-value-row">' +
+          '<td class="count-cell">' + formatWithComma_(totalQty) + '</td>' +
+          '<td>' + formatYen_(totalPrice) + '</td>' +
+          '<td>' + formatYen_(totalPoint) + '</td>' +
+          '<td>' + formatYen_(expenseTotal) + '</td>' +
+          '<td class="is-emphasis">' + formatYen_(totalCost) + '</td>' +
+        '</tr></tbody>' +
+      '</table>';
+
+  const commonTableHtml = verticalLayout
+    ? '<table class="summary-table summary-meta-table is-vertical">' +
+        '<tbody class="summary-text-row">' +
+          '<tr><th>仕入日</th><td>' + escapeHtml(String(info.date || '').trim()) + '</td></tr>' +
+          '<tr><th>仕入先</th><td>' + escapeHtml(String(info.supplier || '').trim()) + '</td></tr>' +
+          '<tr><th>支払い方法</th><td>' + escapeHtml(String(info.payment || '').trim()) + '</td></tr>' +
+        '</tbody>' +
+      '</table>'
+    : '<table class="summary-table summary-meta-table">' +
+        '<thead><tr><th>仕入日</th><th>仕入先</th><th>支払い方法</th></tr></thead>' +
+        '<tbody><tr class="summary-text-row">' +
+          '<td>' + escapeHtml(String(info.date || '').trim()) + '</td>' +
+          '<td>' + escapeHtml(String(info.supplier || '').trim()) + '</td>' +
+          '<td>' + escapeHtml(String(info.payment || '').trim()) + '</td>' +
+        '</tr></tbody>' +
+      '</table>';
 
   document.getElementById('confirm-area').innerHTML =
     '<div class="confirm-block section-card section-tone-product">' +
@@ -2816,30 +3307,14 @@ function renderFinalConfirm_(rows, expenses, commonInfo, pointMode, expenseMode)
     '<div class="confirm-block section-card section-tone-summary">' +
       '<div class="confirm-title">集計</div>' +
       '<div class="summary-table-wrap">' +
-        '<table class="summary-table confirm-summary-table">' +
-          '<thead><tr><th>商品数</th><th>総提示金額</th><th>ポイント合計</th><th>経費合計</th><th>原価合計</th></tr></thead>' +
-          '<tbody><tr class="summary-value-row">' +
-            '<td class="count-cell">' + formatWithComma_(totalQty) + '</td>' +
-            '<td>' + formatYen_(totalPrice) + '</td>' +
-            '<td>' + formatYen_(totalPoint) + '</td>' +
-            '<td>' + formatYen_(expenseTotal) + '</td>' +
-            '<td class="is-emphasis">' + formatYen_(totalCost) + '</td>' +
-          '</tr></tbody>' +
-        '</table>' +
+        summaryTableHtml +
       '</div>' +
     '</div>' +
 
     '<div class="confirm-block section-card section-tone-common">' +
       '<div class="confirm-title">共通情報</div>' +
       '<div class="summary-table-wrap">' +
-        '<table class="summary-table summary-meta-table">' +
-          '<thead><tr><th>仕入日</th><th>仕入先</th><th>支払い方法</th></tr></thead>' +
-          '<tbody><tr class="summary-text-row">' +
-            '<td>' + escapeHtml(String(info.date || '').trim()) + '</td>' +
-            '<td>' + escapeHtml(String(info.supplier || '').trim()) + '</td>' +
-            '<td>' + escapeHtml(String(info.payment || '').trim()) + '</td>' +
-          '</tr></tbody>' +
-        '</table>' +
+        commonTableHtml +
       '</div>' +
     '</div>';
 }
@@ -2958,6 +3433,7 @@ function buildPostSubmitSlipPreviewHtml_(result) {
   const expenseInputTotal = roundYen(totals.expenseInputTotal || 0);
   const expenseTotal = Math.max(expenseInputTotal, expenseAllocTotal);
   const hasExpenseRows = expenses.length > 0;
+  const verticalLayout = isVerticalConfirmLayout_();
 
   let pointExpenseBlock = '';
   if (hasExpenseRows) {
@@ -2990,6 +3466,46 @@ function buildPostSubmitSlipPreviewHtml_(result) {
     pdfStatusHtml = '<div class="note-text">伝票PDF保存: 完了</div>';
   }
 
+  const postCommonTableHtml = verticalLayout
+    ? '<table class="summary-table summary-meta-table is-vertical">' +
+        '<tbody class="summary-text-row">' +
+          '<tr><th>伝票番号</th><td>' + escapeHtml(String(slip.slipNo || '')) + '</td></tr>' +
+          '<tr><th>仕入日</th><td>' + escapeHtml(String(slip.purchaseDate || '')) + '</td></tr>' +
+          '<tr><th>仕入先</th><td>' + escapeHtml(String(slip.supplier || '')) + '</td></tr>' +
+          '<tr><th>支払い方法</th><td>' + escapeHtml(String(slip.payment || '')) + '</td></tr>' +
+        '</tbody>' +
+      '</table>'
+    : '<table class="summary-table summary-meta-table">' +
+        '<thead><tr><th>伝票番号</th><th>仕入日</th><th>仕入先</th><th>支払い方法</th></tr></thead>' +
+        '<tbody><tr class="summary-text-row">' +
+          '<td>' + escapeHtml(String(slip.slipNo || '')) + '</td>' +
+          '<td>' + escapeHtml(String(slip.purchaseDate || '')) + '</td>' +
+          '<td>' + escapeHtml(String(slip.supplier || '')) + '</td>' +
+          '<td>' + escapeHtml(String(slip.payment || '')) + '</td>' +
+        '</tr></tbody>' +
+      '</table>';
+
+  const postSummaryTableHtml = verticalLayout
+    ? '<table class="summary-table confirm-summary-table is-vertical">' +
+        '<tbody class="summary-value-row">' +
+          '<tr><th>商品数</th><td class="count-cell">' + formatWithComma_(totals.qty || 0) + '</td></tr>' +
+          '<tr><th>総提示金額</th><td>' + formatYen_(totals.price || 0) + '</td></tr>' +
+          '<tr><th>ポイント合計</th><td>' + formatYen_(pointTotal) + '</td></tr>' +
+          '<tr><th>経費合計</th><td>' + formatYen_(expenseTotal) + '</td></tr>' +
+          '<tr><th>原価合計</th><td class="is-emphasis">' + formatYen_(totals.cost || 0) + '</td></tr>' +
+        '</tbody>' +
+      '</table>'
+    : '<table class="summary-table confirm-summary-table">' +
+        '<thead><tr><th>商品数</th><th>総提示金額</th><th>ポイント合計</th><th>経費合計</th><th>原価合計</th></tr></thead>' +
+        '<tbody><tr class="summary-value-row">' +
+          '<td class="count-cell">' + formatWithComma_(totals.qty || 0) + '</td>' +
+          '<td>' + formatYen_(totals.price || 0) + '</td>' +
+          '<td>' + formatYen_(pointTotal) + '</td>' +
+          '<td>' + formatYen_(expenseTotal) + '</td>' +
+          '<td class="is-emphasis">' + formatYen_(totals.cost || 0) + '</td>' +
+        '</tr></tbody>' +
+      '</table>';
+
   return '' +
     '<div class="confirm-block section-card section-tone-summary"><div class="result-success">' + message + '</div>' + pdfStatusHtml + '</div>' +
     '<div class="confirm-block section-card slip-block slip-block-summary section-tone-summary">' +
@@ -2999,15 +3515,7 @@ function buildPostSubmitSlipPreviewHtml_(result) {
     '<div class="confirm-block section-card slip-block slip-block-common section-tone-common">' +
       '<div class="confirm-title">共通情報</div>' +
       '<div class="summary-table-wrap">' +
-        '<table class="summary-table summary-meta-table">' +
-          '<thead><tr><th>伝票番号</th><th>仕入日</th><th>仕入先</th><th>支払い方法</th></tr></thead>' +
-          '<tbody><tr class="summary-text-row">' +
-            '<td>' + escapeHtml(String(slip.slipNo || '')) + '</td>' +
-            '<td>' + escapeHtml(String(slip.purchaseDate || '')) + '</td>' +
-            '<td>' + escapeHtml(String(slip.supplier || '')) + '</td>' +
-            '<td>' + escapeHtml(String(slip.payment || '')) + '</td>' +
-          '</tr></tbody>' +
-        '</table>' +
+        postCommonTableHtml +
       '</div>' +
     '</div>' +
     '<div class="confirm-block section-card slip-block slip-block-detail section-tone-product">' +
@@ -3023,16 +3531,7 @@ function buildPostSubmitSlipPreviewHtml_(result) {
     '<div class="confirm-block section-card slip-block slip-block-summary section-tone-summary">' +
       '<div class="confirm-title">集計</div>' +
       '<div class="summary-table-wrap">' +
-        '<table class="summary-table confirm-summary-table">' +
-          '<thead><tr><th>商品数</th><th>総提示金額</th><th>ポイント合計</th><th>経費合計</th><th>原価合計</th></tr></thead>' +
-          '<tbody><tr class="summary-value-row">' +
-            '<td class="count-cell">' + formatWithComma_(totals.qty || 0) + '</td>' +
-            '<td>' + formatYen_(totals.price || 0) + '</td>' +
-            '<td>' + formatYen_(pointTotal) + '</td>' +
-            '<td>' + formatYen_(expenseTotal) + '</td>' +
-            '<td class="is-emphasis">' + formatYen_(totals.cost || 0) + '</td>' +
-          '</tr></tbody>' +
-        '</table>' +
+        postSummaryTableHtml +
       '</div>' +
     '</div>' +
     '<div class="confirm-block section-card section-tone-common">' +
