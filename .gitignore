@@ -4,3 +4,5 @@ node_modules/
 .env.*
 *.log
 docs/.github_token.local
+
+apps/erp/backup/

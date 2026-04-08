@@ -26,6 +26,7 @@
             <div id="entry-top-helper-bar" class="header-toggle-bar"></div>
           </div>
           <datalist id="product-options"></datalist>
+          <datalist id="entry-product-template-options"></datalist>
           <div id="entry-lines"></div>
         </div>
 
@@ -40,6 +41,7 @@
         <div class="section">
           <div class="button-row">
             <button type="button" class="btn-main" onclick="showFinalConfirm()">最終確認へ進む</button>
+            <button type="button" class="btn-sub entry-btn-danger" onclick="confirmAndResetProductEntry_()">商品入力を初期化</button>
           </div>
         </div>
       </div>
@@ -93,6 +95,7 @@
   </div>
   <div id="entry-input-stage" class="entry-input-stage" style="display:none;"></div>
   <div id="entry-display-settings-modal" class="entry-display-settings-modal" style="display:none;"></div>
+  <div id="entry-product-template-modal" class="entry-product-template-modal" style="display:none;"></div>
 
   <script>
 function uiEscapeHtml_(value) {
@@ -170,8 +173,10 @@ let paymentCandidates = [];
 let commonPaymentCache = '';
 let pendingPayload = null;
 let postSubmitSlipData = null;
+let postSubmitShowPointExpense_ = true;
 let pointInputMode = 'allocation';   // allocation | individual
 let expenseInputMode = 'allocation'; // allocation | individual
+let detailToggleUsed_ = false;
 let detailPanelState = {
   expense: false,
   point: false,
@@ -179,6 +184,7 @@ let detailPanelState = {
 };
 const ENTRY_INPUT_STAGE_SCOPE_STEPS_ = {
   product: ['name', 'price', 'qty'],
+  template: ['name'],
   expense: ['name', 'amount'],
   point: ['value'],
   common: ['date', 'supplier', 'payment'],
@@ -198,25 +204,23 @@ let entryInputStageSuggestionActiveIndex_ = -1;
 let entryInputStageSuggestionVisible_ = false;
 let entryInputStageViewportRaf_ = 0;
 let entryStageBodyLockScrollY_ = 0;
-// rev: EntryForm.html rev-20260406-20
-const ENTRY_FORM_REV_ = 'rev-20260406-20';
-// rev: style.css.html rev-20260406-16
-const ENTRY_STYLE_REV_ = 'rev-20260406-16';
+// rev: EntryForm.html rev-20260407-29
+const ENTRY_FORM_REV_ = 'rev-20260408-37';
+// rev: style.css.html rev-20260407-19
+const ENTRY_STYLE_REV_ = 'rev-20260408-26';
 const ENTRY_DISPLAY_SETTINGS_STORAGE_KEY_ = 'entryDisplaySettings.v1';
-const ENTRY_DISPLAY_SETTINGS_DEFAULTS_STORAGE_KEY_ = 'entryDisplaySettings.defaults.v1';
-const ENTRY_DISPLAY_SETTINGS_TEMPLATES_STORAGE_KEY_ = 'entryDisplaySettings.templates.v1';
-const ENTRY_DISPLAY_SETTINGS_ACTIVE_TEMPLATE_KEY_ = 'entryDisplaySettings.activeTemplate.v1';
 const ENTRY_DISPLAY_SETTINGS_RADIUS_MIGRATION_KEY_ = 'entryDisplaySettings.radiusReset.rev20260406';
 const ENTRY_DISPLAY_SETTINGS_DEFAULTS_ = {
   h1FontPx: 22,
-  h2FontPx: 36,
+  h2FontPx: 28,
   thFontPx: 36,
   valueFontPx: 48,
-  helperFontPx: 36,
-  headerFontPx: 18,
+  dropdownFontPx: 28,
+  helperFontPx: 30,
+  headerFontPx: 24,
   footerFontPx: 36,
-  noteFontPx: 18,
-  buttonFontPx: 21,
+  noteFontPx: 22,
+  buttonFontPx: 48,
   borderWidth: 2,
   radiusScale: 100,
   fontWeight: 500,
@@ -229,9 +233,23 @@ const ENTRY_DISPLAY_SETTINGS_DEFAULTS_ = {
   commonColPct: 33
 };
 let entryDisplaySettings_ = null;
+let entryDisplaySettingsTemplateList_ = [];
+let entryDisplaySettingsActiveTemplateId_ = '';
+let entryDisplayTemplateSuggestions_ = [];
+let entryDisplayTemplateSuggestionActiveIndex_ = -1;
+let entryDisplayTemplateSuggestionVisible_ = false;
 let entryRowDeleteMode_ = false;
 let expenseRowDeleteMode_ = false;
+let entryAsyncStatusCount_ = 0;
+let entryAsyncStatusHideTimer_ = 0;
 const ENTRY_STAGE_DEBUG_ENABLED_ = String(getQueryParam_('stageDebug') || '') === '1';
+let entryProductTemplateState_ = {
+  selectedTemplateId: '',
+  selectedTemplateName: '',
+  createMode: false,
+  createName: '',
+  list: []
+};
 
 window.onload = function() {
   showEntryStageDebugBoot_();
@@ -248,6 +266,8 @@ window.onload = function() {
     renderExpenseArea();
     renderSummary();
     renderCommonInfo();
+    loadEntryProductTemplateList_();
+    loadDisplaySettingsTemplateList_();
     loadProductCandidates();
     loadExpenseItems();
     loadSupplierPaymentOptions();
@@ -281,6 +301,60 @@ function applyEntryFormRevisionLabel_() {
   const fileEl = document.getElementById('entry-fixed-header-file');
   if (!fileEl) return;
   fileEl.textContent = 'EntryForm.html (' + ENTRY_FORM_REV_ + ') / style.css (' + ENTRY_STYLE_REV_ + ')';
+}
+
+function ensureEntryAsyncStatusEl_() {
+  let el = document.getElementById('entry-async-status');
+  if (el) return el;
+  el = document.createElement('div');
+  el.id = 'entry-async-status';
+  el.className = 'entry-async-status';
+  el.style.display = 'none';
+  document.body.appendChild(el);
+  return el;
+}
+
+function showEntryAsyncStatus_(text, kind) {
+  const el = ensureEntryAsyncStatusEl_();
+  if (!el) return;
+  if (entryAsyncStatusHideTimer_) {
+    window.clearTimeout(entryAsyncStatusHideTimer_);
+    entryAsyncStatusHideTimer_ = 0;
+  }
+  el.textContent = String(text || '');
+  el.classList.remove('is-saving', 'is-done', 'is-error');
+  if (kind) {
+    el.classList.add('is-' + String(kind));
+  }
+  el.style.display = 'block';
+}
+
+function hideEntryAsyncStatus_() {
+  const el = document.getElementById('entry-async-status');
+  if (!el) return;
+  el.style.display = 'none';
+}
+
+function beginEntryAsyncStatus_(text, kind) {
+  entryAsyncStatusCount_ += 1;
+  showEntryAsyncStatus_(text || 'Now Loading...', kind || 'loading');
+  return { closed: false };
+}
+
+function endEntryAsyncStatus_(ticket, doneText, doneKind) {
+  if (!ticket || ticket.closed) return;
+  ticket.closed = true;
+  entryAsyncStatusCount_ = Math.max(0, entryAsyncStatusCount_ - 1);
+  if (entryAsyncStatusCount_ > 0) return;
+  if (!doneText) {
+    hideEntryAsyncStatus_();
+    return;
+  }
+  showEntryAsyncStatus_(doneText, doneKind || 'done');
+  entryAsyncStatusHideTimer_ = window.setTimeout(function() {
+    hideEntryAsyncStatus_();
+    entryAsyncStatusHideTimer_ = 0;
+  }, 1200);
 }
 
 window.addEventListener('resize', handleEntryInputStageViewportChange_);
@@ -354,16 +428,17 @@ function normalizeDisplaySettings_(input) {
     h2FontPx: clampDisplaySetting_(src.h2FontPx, 12, 96, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.h2FontPx),
     thFontPx: clampDisplaySetting_(src.thFontPx, 10, 96, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.thFontPx),
     valueFontPx: clampDisplaySetting_(src.valueFontPx, 10, 96, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.valueFontPx),
+    dropdownFontPx: clampDisplaySetting_(src.dropdownFontPx, 10, 96, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.dropdownFontPx),
     helperFontPx: clampDisplaySetting_(src.helperFontPx, 10, 96, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.helperFontPx),
     headerFontPx: clampDisplaySetting_(src.headerFontPx, 10, 96, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.headerFontPx),
     footerFontPx: clampDisplaySetting_(src.footerFontPx, 10, 96, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.footerFontPx),
     noteFontPx: clampDisplaySetting_(src.noteFontPx, 10, 96, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.noteFontPx),
     buttonFontPx: clampDisplaySetting_(src.buttonFontPx, 10, 96, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.buttonFontPx),
     borderWidth: clampDisplaySetting_(src.borderWidth, 1, 8, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.borderWidth),
-    radiusScale: clampDisplaySetting_(src.radiusScale, 50, 220, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.radiusScale),
+    radiusScale: ENTRY_DISPLAY_SETTINGS_DEFAULTS_.radiusScale,
     fontWeight: clampDisplaySetting_(src.fontWeight, 400, 700, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.fontWeight),
-    colAction: clampDisplaySetting_(src.colAction, 6, 18, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.colAction),
-    pointFormWidth: clampDisplaySetting_(src.pointFormWidth, 40, 100, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.pointFormWidth),
+    colAction: ENTRY_DISPLAY_SETTINGS_DEFAULTS_.colAction,
+    pointFormWidth: ENTRY_DISPLAY_SETTINGS_DEFAULTS_.pointFormWidth,
     productColItemPct: clampDisplaySetting_(src.productColItemPct, 40, 70, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.productColItemPct),
     productColPricePct: clampDisplaySetting_(src.productColPricePct, 10, 30, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.productColPricePct),
     productColQtyPct: clampDisplaySetting_(src.productColQtyPct, 8, 20, ENTRY_DISPLAY_SETTINGS_DEFAULTS_.productColQtyPct),
@@ -379,19 +454,8 @@ function normalizeDisplaySettings_(input) {
 }
 
 function loadDisplaySettings_() {
-  const defaultBase = loadDisplaySettingsDefaults_();
   try {
     const raw = window.localStorage.getItem(ENTRY_DISPLAY_SETTINGS_STORAGE_KEY_);
-    if (!raw) return normalizeDisplaySettings_(defaultBase);
-    return normalizeDisplaySettings_(Object.assign({}, defaultBase, JSON.parse(raw)));
-  } catch (err) {
-    return normalizeDisplaySettings_(defaultBase);
-  }
-}
-
-function loadDisplaySettingsDefaults_() {
-  try {
-    const raw = window.localStorage.getItem(ENTRY_DISPLAY_SETTINGS_DEFAULTS_STORAGE_KEY_);
     if (!raw) return normalizeDisplaySettings_(ENTRY_DISPLAY_SETTINGS_DEFAULTS_);
     return normalizeDisplaySettings_(Object.assign({}, ENTRY_DISPLAY_SETTINGS_DEFAULTS_, JSON.parse(raw)));
   } catch (err) {
@@ -407,37 +471,15 @@ function saveDisplaySettings_() {
   }
 }
 
-function saveDisplaySettingsAsDefaults_() {
-  entryDisplaySettings_ = normalizeDisplaySettings_(entryDisplaySettings_ || ENTRY_DISPLAY_SETTINGS_DEFAULTS_);
-  saveDisplaySettings_();
-  try {
-    window.localStorage.setItem(ENTRY_DISPLAY_SETTINGS_DEFAULTS_STORAGE_KEY_, JSON.stringify(entryDisplaySettings_));
-  } catch (err) {
-    // no-op
-  }
-}
-
-function restoreDisplaySettingsFactoryDefaults_() {
-  entryDisplaySettings_ = normalizeDisplaySettings_(ENTRY_DISPLAY_SETTINGS_DEFAULTS_);
-  applyDisplaySettings_();
-  saveDisplaySettings_();
-  try {
-    window.localStorage.removeItem(ENTRY_DISPLAY_SETTINGS_DEFAULTS_STORAGE_KEY_);
-  } catch (err) {
-    // no-op
-  }
-  openDisplaySettingsModal_();
-}
-
 function applyDisplaySettings_() {
   const settings = normalizeDisplaySettings_(entryDisplaySettings_ || ENTRY_DISPLAY_SETTINGS_DEFAULTS_);
   entryDisplaySettings_ = settings;
   const root = document.documentElement;
   root.style.setProperty('--entry-ui-border-width', settings.borderWidth + 'px');
-  root.style.setProperty('--entry-ui-radius-scale', String(settings.radiusScale / 100));
+  root.style.setProperty('--entry-ui-radius-scale', String(ENTRY_DISPLAY_SETTINGS_DEFAULTS_.radiusScale / 100));
   root.style.setProperty('--entry-ui-font-weight', String(settings.fontWeight));
   root.style.setProperty('--entry-ui-col-no', '0%');
-  root.style.setProperty('--entry-ui-col-action', settings.colAction + '%');
+  root.style.setProperty('--entry-ui-col-action', ENTRY_DISPLAY_SETTINGS_DEFAULTS_.colAction + '%');
   root.style.setProperty('--entry-ui-col-num', settings.productColPricePct + '%');
   root.style.setProperty('--entry-ui-col-qty', settings.productColQtyPct + '%');
   root.style.setProperty('--entry-ui-product-row1-scale', '1');
@@ -449,7 +491,7 @@ function applyDisplaySettings_() {
   root.style.setProperty('--entry-ui-title-scale', '1');
   root.style.setProperty('--entry-ui-summary-header-scale', '1');
   root.style.setProperty('--entry-ui-summary-value-scale', '1');
-  root.style.setProperty('--entry-ui-point-form-width', settings.pointFormWidth + '%');
+  root.style.setProperty('--entry-ui-point-form-width', ENTRY_DISPLAY_SETTINGS_DEFAULTS_.pointFormWidth + '%');
   root.style.setProperty('--entry-ui-product-row1-font-px', settings.valueFontPx + 'px');
   root.style.setProperty('--entry-ui-product-row2-font-px', settings.helperFontPx + 'px');
   root.style.setProperty('--entry-ui-expense-font-px', settings.valueFontPx + 'px');
@@ -459,6 +501,7 @@ function applyDisplaySettings_() {
   root.style.setProperty('--entry-ui-title-font-px', settings.h2FontPx + 'px');
   root.style.setProperty('--entry-ui-summary-header-font-px', settings.thFontPx + 'px');
   root.style.setProperty('--entry-ui-summary-value-font-px', settings.valueFontPx + 'px');
+  root.style.setProperty('--entry-ui-dropdown-font-px', settings.dropdownFontPx + 'px');
   root.style.setProperty('--entry-ui-h1-font-px', settings.h1FontPx + 'px');
   root.style.setProperty('--entry-ui-header-font-px', settings.headerFontPx + 'px');
   root.style.setProperty('--entry-ui-note-font-px', settings.noteFontPx + 'px');
@@ -512,82 +555,295 @@ function getDisplaySettingsModalField_(id) {
   return document.getElementById('entry-display-settings-' + id);
 }
 
-function loadDisplaySettingsTemplates_() {
-  try {
-    const raw = window.localStorage.getItem(ENTRY_DISPLAY_SETTINGS_TEMPLATES_STORAGE_KEY_);
-    const parsed = raw ? JSON.parse(raw) : {};
-    return parsed && typeof parsed === 'object' ? parsed : {};
-  } catch (err) {
-    return {};
-  }
+function getDisplaySettingsTemplateOptionHtml_(list, activeId) {
+  const templates = Array.isArray(list) ? list : [];
+  return ['<option value=""></option>'].concat(
+    templates.map(function(item) {
+      const name = String(item && item.templateName || '').trim();
+      if (!name) return '';
+      return '<option value="' + escapeHtml(name) + '"></option>';
+    }).filter(function(v) { return !!v; })
+  ).join('');
 }
 
-function saveDisplaySettingsTemplates_(templates) {
-  try {
-    window.localStorage.setItem(ENTRY_DISPLAY_SETTINGS_TEMPLATES_STORAGE_KEY_, JSON.stringify(templates || {}));
-  } catch (err) {
-    // no-op
+function createDisplaySettingsTemplateSuggestionList_(inputValue) {
+  const queryRaw = String(inputValue || '').trim();
+  const query = queryRaw.toLowerCase();
+  const source = (entryDisplaySettingsTemplateList_ || []).map(function(item) {
+    return String(item && item.templateName || '').trim();
+  }).filter(function(v) { return !!v; });
+  const seen = new Set();
+  const startsWith = [];
+  const includes = [];
+  source.forEach(function(value) {
+    const key = value.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    if (!query) {
+      startsWith.push(value);
+      return;
+    }
+    if (key.indexOf(query) === 0) {
+      startsWith.push(value);
+      return;
+    }
+    if (key.indexOf(query) >= 0) {
+      includes.push(value);
+    }
+  });
+  return startsWith.concat(includes).slice(0, 24);
+}
+
+function renderDisplaySettingsTemplateSuggestions_() {
+  const listEl = document.getElementById('entry-display-settings-template-suggestions');
+  if (!listEl) return;
+  if (!entryDisplayTemplateSuggestionVisible_ || !entryDisplayTemplateSuggestions_.length) {
+    listEl.innerHTML = '';
+    listEl.style.display = 'none';
+    return;
   }
+  const itemsHtml = entryDisplayTemplateSuggestions_.map(function(item, idx) {
+    const activeClass = idx === entryDisplayTemplateSuggestionActiveIndex_ ? ' is-active' : '';
+    return '<button type="button" class="entry-input-stage-suggestion-item' + activeClass + '" onmousedown="onDisplaySettingsTemplateSuggestionPick(' + idx + ', event)">' + escapeHtml(item) + '</button>';
+  }).join('');
+  listEl.innerHTML = itemsHtml;
+  listEl.style.display = 'flex';
+}
+
+function updateDisplaySettingsTemplateSuggestions_(value, opts) {
+  const options = opts || {};
+  const nextSuggestions = createDisplaySettingsTemplateSuggestionList_(value);
+  entryDisplayTemplateSuggestions_ = nextSuggestions;
+  const canShow = nextSuggestions.length > 0;
+  entryDisplayTemplateSuggestionVisible_ = !!options.forceOpen ? canShow : (canShow && options.visible !== false);
+  if (!entryDisplayTemplateSuggestionVisible_) {
+    entryDisplayTemplateSuggestionActiveIndex_ = -1;
+    renderDisplaySettingsTemplateSuggestions_();
+    return;
+  }
+  if (options.resetActive) {
+    entryDisplayTemplateSuggestionActiveIndex_ = -1;
+  } else if (entryDisplayTemplateSuggestionActiveIndex_ >= nextSuggestions.length) {
+    entryDisplayTemplateSuggestionActiveIndex_ = nextSuggestions.length - 1;
+  }
+  renderDisplaySettingsTemplateSuggestions_();
+}
+
+function closeDisplaySettingsTemplateSuggestions_() {
+  entryDisplayTemplateSuggestions_ = [];
+  entryDisplayTemplateSuggestionActiveIndex_ = -1;
+  entryDisplayTemplateSuggestionVisible_ = false;
+  renderDisplaySettingsTemplateSuggestions_();
+}
+
+function onDisplaySettingsTemplateSuggestionPick(index, event) {
+  if (event && typeof event.preventDefault === 'function') {
+    event.preventDefault();
+  }
+  const idx = Number(index);
+  if (!Number.isFinite(idx) || idx < 0 || idx >= entryDisplayTemplateSuggestions_.length) return;
+  const picked = entryDisplayTemplateSuggestions_[idx];
+  const inputEl = getDisplaySettingsModalField_('template-select');
+  if (inputEl) inputEl.value = picked;
+  closeDisplaySettingsTemplateSuggestions_();
+  applySelectedDisplayTemplate_();
+}
+
+function moveDisplaySettingsTemplateSuggestionSelection_(direction) {
+  if (!entryDisplayTemplateSuggestionVisible_ || !entryDisplayTemplateSuggestions_.length) return false;
+  const len = entryDisplayTemplateSuggestions_.length;
+  if (entryDisplayTemplateSuggestionActiveIndex_ < 0) {
+    entryDisplayTemplateSuggestionActiveIndex_ = direction > 0 ? 0 : len - 1;
+  } else {
+    entryDisplayTemplateSuggestionActiveIndex_ = (entryDisplayTemplateSuggestionActiveIndex_ + direction + len) % len;
+  }
+  renderDisplaySettingsTemplateSuggestions_();
+  return true;
+}
+
+function onDisplaySettingsTemplateSelectFocus_() {
+  const inputEl = getDisplaySettingsModalField_('template-select');
+  updateDisplaySettingsTemplateSuggestions_(inputEl ? inputEl.value : '', { forceOpen: true, resetActive: true });
+}
+
+function onDisplaySettingsTemplateSelectInput_(value) {
+  updateDisplaySettingsTemplateSuggestions_(value, { forceOpen: true, resetActive: true });
+}
+
+function onDisplaySettingsTemplateSelectBlur_() {
+  window.setTimeout(function() {
+    closeDisplaySettingsTemplateSuggestions_();
+  }, 120);
+}
+
+function onDisplaySettingsTemplateSelectKeydown_(event) {
+  if (!event) return;
+  if (event.key === 'ArrowDown') {
+    if (moveDisplaySettingsTemplateSuggestionSelection_(1)) {
+      event.preventDefault();
+      return;
+    }
+  }
+  if (event.key === 'ArrowUp') {
+    if (moveDisplaySettingsTemplateSuggestionSelection_(-1)) {
+      event.preventDefault();
+      return;
+    }
+  }
+  if (event.key === 'Escape') {
+    if (entryDisplayTemplateSuggestionVisible_) {
+      event.preventDefault();
+      closeDisplaySettingsTemplateSuggestions_();
+      return;
+    }
+  }
+  if (event.key !== 'Enter') return;
+  if (entryDisplayTemplateSuggestionVisible_ && entryDisplayTemplateSuggestionActiveIndex_ >= 0 && entryDisplayTemplateSuggestionActiveIndex_ < entryDisplayTemplateSuggestions_.length) {
+    event.preventDefault();
+    onDisplaySettingsTemplateSuggestionPick(entryDisplayTemplateSuggestionActiveIndex_);
+    return;
+  }
+  event.preventDefault();
+  applySelectedDisplayTemplate_();
+}
+
+function getDisplaySettingsTemplateByName_(templateName, list) {
+  const targetName = String(templateName || '').trim();
+  if (!targetName) return null;
+  const templates = Array.isArray(list) ? list : [];
+  for (let i = 0; i < templates.length; i++) {
+    const item = templates[i] || {};
+    if (String(item.templateName || '').trim() === targetName) return item;
+  }
+  return null;
+}
+
+function getDisplaySettingsActiveTemplateName_(list) {
+  const activeId = String(entryDisplaySettingsActiveTemplateId_ || '').trim();
+  if (!activeId) return '';
+  const templates = Array.isArray(list) ? list : [];
+  for (let i = 0; i < templates.length; i++) {
+    const item = templates[i] || {};
+    if (String(item.templateId || '').trim() !== activeId) continue;
+    return String(item.templateName || '').trim();
+  }
+  return '';
+}
+
+function renderDisplaySettingsTemplateDatalist_(list) {
+  const inputEl = getDisplaySettingsModalField_('template-select');
+  if (!inputEl) return;
+  updateDisplaySettingsTemplateSuggestions_(inputEl.value, { visible: entryDisplayTemplateSuggestionVisible_, resetActive: true });
+}
+
+function loadDisplaySettingsTemplateList_(callback) {
+  const ticket = beginEntryAsyncStatus_('Now Loading...');
+  google.script.run
+    .withSuccessHandler(function(list) {
+      entryDisplaySettingsTemplateList_ = Array.isArray(list) ? list : [];
+      endEntryAsyncStatus_(ticket);
+      if (typeof callback === 'function') callback(entryDisplaySettingsTemplateList_);
+    })
+    .withFailureHandler(function(err) {
+      showError(err);
+      entryDisplaySettingsTemplateList_ = [];
+      endEntryAsyncStatus_(ticket, '読み込みに失敗しました', 'error');
+      if (typeof callback === 'function') callback([]);
+    })
+    .getDisplaySettingsTemplateList();
 }
 
 function saveCurrentDisplaySettingsAsTemplate_() {
+  readDisplaySettingsFromModal_();
   const nameField = getDisplaySettingsModalField_('template-name');
   const name = String((nameField && nameField.value) || '').trim();
   if (!name) {
     alert('テンプレート名を入力してください');
     return;
   }
-  const templates = loadDisplaySettingsTemplates_();
-  templates[name] = normalizeDisplaySettings_(entryDisplaySettings_ || ENTRY_DISPLAY_SETTINGS_DEFAULTS_);
-  saveDisplaySettingsTemplates_(templates);
-  try {
-    window.localStorage.setItem(ENTRY_DISPLAY_SETTINGS_ACTIVE_TEMPLATE_KEY_, name);
-  } catch (err) {
-    // no-op
-  }
-  openDisplaySettingsModal_();
+  const payload = {
+    templateId: String(entryDisplaySettingsActiveTemplateId_ || '').trim(),
+    templateName: name,
+    settings: normalizeDisplaySettings_(entryDisplaySettings_ || ENTRY_DISPLAY_SETTINGS_DEFAULTS_)
+  };
+  const ticket = beginEntryAsyncStatus_('現在保存中...', 'saving');
+  google.script.run
+    .withSuccessHandler(function(saved) {
+      entryDisplaySettingsActiveTemplateId_ = String(saved && saved.templateId || '').trim();
+      const savedName = String(saved && saved.templateName || name).trim();
+      const selectEl = getDisplaySettingsModalField_('template-select');
+      const nameEl = getDisplaySettingsModalField_('template-name');
+      if (selectEl) selectEl.value = savedName;
+      if (nameEl) nameEl.value = savedName;
+      loadDisplaySettingsTemplateList_(function(list) {
+        renderDisplaySettingsTemplateDatalist_(list);
+        endEntryAsyncStatus_(ticket, '保存しました', 'done');
+      });
+    })
+    .withFailureHandler(function(err) {
+      showError(err);
+      endEntryAsyncStatus_(ticket, '保存に失敗しました', 'error');
+    })
+    .saveDisplaySettingsTemplate(payload);
 }
 
 function applySelectedDisplayTemplate_() {
-  const selectEl = getDisplaySettingsModalField_('template-select');
-  const name = String((selectEl && selectEl.value) || '').trim();
-  if (!name) return;
-  const templates = loadDisplaySettingsTemplates_();
-  if (!templates[name]) return;
-  entryDisplaySettings_ = normalizeDisplaySettings_(templates[name]);
-  applyDisplaySettings_();
-  saveDisplaySettings_();
-  try {
-    window.localStorage.setItem(ENTRY_DISPLAY_SETTINGS_ACTIVE_TEMPLATE_KEY_, name);
-  } catch (err) {
-    // no-op
+  const inputEl = getDisplaySettingsModalField_('template-select');
+  const templateName = String((inputEl && inputEl.value) || '').trim();
+  if (!templateName) {
+    entryDisplaySettingsActiveTemplateId_ = '';
+    return;
   }
-  openDisplaySettingsModal_();
+  const selected = getDisplaySettingsTemplateByName_(templateName, entryDisplaySettingsTemplateList_);
+  const templateId = String(selected && selected.templateId || '').trim();
+  if (!templateId) {
+    alert('候補からテンプレートを選択してください。');
+    return;
+  }
+  const ticket = beginEntryAsyncStatus_('Now Loading...');
+  google.script.run
+    .withSuccessHandler(function(template) {
+      const settings = normalizeDisplaySettings_((template && template.settings) || ENTRY_DISPLAY_SETTINGS_DEFAULTS_);
+      entryDisplaySettings_ = settings;
+      entryDisplaySettingsActiveTemplateId_ = String(template && template.templateId || '').trim();
+      applyDisplaySettings_();
+      saveDisplaySettings_();
+      const nameEl = getDisplaySettingsModalField_('template-name');
+      if (nameEl) nameEl.value = String(template && template.templateName || '').trim();
+      endEntryAsyncStatus_(ticket, '適用しました', 'done');
+    })
+    .withFailureHandler(function(err) {
+      showError(err);
+      endEntryAsyncStatus_(ticket, '適用に失敗しました', 'error');
+    })
+    .getDisplaySettingsTemplateById(templateId);
 }
 
 function deleteSelectedDisplayTemplate_() {
   const selectEl = getDisplaySettingsModalField_('template-select');
-  const name = String((selectEl && selectEl.value) || '').trim();
-  if (!name) return;
-  const templates = loadDisplaySettingsTemplates_();
-  if (!templates[name]) return;
-  delete templates[name];
-  saveDisplaySettingsTemplates_(templates);
-  try {
-    const active = String(window.localStorage.getItem(ENTRY_DISPLAY_SETTINGS_ACTIVE_TEMPLATE_KEY_) || '');
-    if (active === name) window.localStorage.removeItem(ENTRY_DISPLAY_SETTINGS_ACTIVE_TEMPLATE_KEY_);
-  } catch (err) {
-    // no-op
-  }
-  openDisplaySettingsModal_();
+  const templateName = String((selectEl && selectEl.value) || '').trim();
+  const selected = getDisplaySettingsTemplateByName_(templateName, entryDisplaySettingsTemplateList_);
+  const templateId = String(selected && selected.templateId || '').trim();
+  if (!templateId) return;
+  if (!confirm('選択中テンプレートを削除しますか？')) return;
+  google.script.run
+    .withSuccessHandler(function() {
+      if (entryDisplaySettingsActiveTemplateId_ === templateId) {
+        entryDisplaySettingsActiveTemplateId_ = '';
+      }
+      openDisplaySettingsModal_();
+    })
+    .withFailureHandler(showError)
+    .deleteDisplaySettingsTemplate(templateId);
 }
 
 function readDisplaySettingsFromModal_() {
   const next = Object.assign({}, entryDisplaySettings_ || ENTRY_DISPLAY_SETTINGS_DEFAULTS_);
   const keys = [
     'h1FontPx', 'h2FontPx', 'thFontPx', 'valueFontPx', 'helperFontPx',
+    'dropdownFontPx',
     'headerFontPx', 'footerFontPx', 'noteFontPx', 'buttonFontPx',
-    'borderWidth', 'radiusScale', 'colAction', 'pointFormWidth',
+    'borderWidth',
     'productColItemPct', 'productColPricePct', 'productColQtyPct', 'productColCostPct',
     'commonColPct'
   ];
@@ -607,7 +863,9 @@ function onDisplaySettingsInput_() {
 }
 
 function resetDisplaySettings_() {
-  entryDisplaySettings_ = loadDisplaySettingsDefaults_();
+  entryDisplaySettings_ = normalizeDisplaySettings_(ENTRY_DISPLAY_SETTINGS_DEFAULTS_);
+  entryDisplaySettingsActiveTemplateId_ = '';
+  saveDisplaySettings_();
   applyDisplaySettings_();
   openDisplaySettingsModal_();
 }
@@ -617,42 +875,36 @@ function openDisplaySettingsModal_() {
   if (!modal) return;
   const s = normalizeDisplaySettings_(entryDisplaySettings_ || ENTRY_DISPLAY_SETTINGS_DEFAULTS_);
   entryDisplaySettings_ = s;
-  const templates = loadDisplaySettingsTemplates_();
-  const templateNames = Object.keys(templates).sort();
-  let activeTemplateName = '';
-  try {
-    activeTemplateName = String(window.localStorage.getItem(ENTRY_DISPLAY_SETTINGS_ACTIVE_TEMPLATE_KEY_) || '').trim();
-  } catch (err) {
-    activeTemplateName = '';
-  }
-  if (!templateNames.includes(activeTemplateName)) {
-    activeTemplateName = templateNames.length ? templateNames[0] : '';
-  }
-  const templateOptionsHtml = ['<option value="">テンプレート未選択</option>'].concat(
-    templateNames.map(function(name) {
-      const selected = activeTemplateName === name ? ' selected' : '';
-      return '<option value="' + escapeHtml(name) + '"' + selected + '>' + escapeHtml(name) + '</option>';
-    })
-  ).join('');
+  const cachedList = Array.isArray(entryDisplaySettingsTemplateList_) ? entryDisplaySettingsTemplateList_ : [];
+  const templateOptionsHtml = getDisplaySettingsTemplateOptionHtml_(cachedList, entryDisplaySettingsActiveTemplateId_);
+  const activeTemplateName = getDisplaySettingsActiveTemplateName_(cachedList);
   modal.innerHTML = `
     <div class="entry-display-settings-panel" role="dialog" aria-modal="true" aria-label="表示調整">
-      <div class="entry-display-settings-title">表示調整</div>
+      <div class="entry-display-settings-head">
+        <div class="entry-display-settings-title">表示調整</div>
+        <button type="button" class="entry-input-stage-close entry-display-settings-close" aria-label="表示設定を閉じる" onclick="saveDisplaySettings_(); closeDisplaySettingsModal_()">×</button>
+      </div>
       <div class="entry-display-settings-grid">
+        <label>テンプレート選択
+          <input id="entry-display-settings-template-select" type="text" value="${escapeHtml(activeTemplateName)}" placeholder="候補から選択" autocomplete="off" onfocus="onDisplaySettingsTemplateSelectFocus_()" onblur="onDisplaySettingsTemplateSelectBlur_()" oninput="onDisplaySettingsTemplateSelectInput_(this.value)" onkeydown="onDisplaySettingsTemplateSelectKeydown_(event)" onchange="applySelectedDisplayTemplate_()">
+          <div id="entry-display-settings-template-suggestions" class="entry-input-stage-suggestions" style="display:none;"></div>
+        </label>
+        <div class="entry-display-settings-template-actions">
+          <button type="button" class="btn-sub entry-display-settings-btn-apply" onclick="applySelectedDisplayTemplate_()">適用</button>
+        </div>
         <label>h1文字サイズ(px)<input id="entry-display-settings-h1FontPx" type="number" min="12" max="96" step="1" value="${s.h1FontPx}" oninput="onDisplaySettingsInput_()"></label>
         <label>h2文字サイズ(px)<input id="entry-display-settings-h2FontPx" type="number" min="12" max="96" step="1" value="${s.h2FontPx}" oninput="onDisplaySettingsInput_()"></label>
         <label>th文字サイズ(px)<input id="entry-display-settings-thFontPx" type="number" min="10" max="96" step="1" value="${s.thFontPx}" oninput="onDisplaySettingsInput_()"></label>
         <label>値文字サイズ(px)<input id="entry-display-settings-valueFontPx" type="number" min="10" max="96" step="1" value="${s.valueFontPx}" oninput="onDisplaySettingsInput_()"></label>
+        <label>プルダウン文字サイズ(px)<input id="entry-display-settings-dropdownFontPx" type="number" min="10" max="96" step="1" value="${s.dropdownFontPx}" oninput="onDisplaySettingsInput_()"></label>
         <label>補助ラベル文字サイズ(px)<input id="entry-display-settings-helperFontPx" type="number" min="10" max="96" step="1" value="${s.helperFontPx}" oninput="onDisplaySettingsInput_()"></label>
         <label>ヘッダー文字サイズ(px)<input id="entry-display-settings-headerFontPx" type="number" min="10" max="96" step="1" value="${s.headerFontPx}" oninput="onDisplaySettingsInput_()"></label>
         <label>フッター文字サイズ(px)<input id="entry-display-settings-footerFontPx" type="number" min="10" max="96" step="1" value="${s.footerFontPx}" oninput="onDisplaySettingsInput_()"></label>
         <label>注記文字サイズ(px)<input id="entry-display-settings-noteFontPx" type="number" min="10" max="96" step="1" value="${s.noteFontPx}" oninput="onDisplaySettingsInput_()"></label>
         <label>ボタン文字サイズ(px)<input id="entry-display-settings-buttonFontPx" type="number" min="10" max="96" step="1" value="${s.buttonFontPx}" oninput="onDisplaySettingsInput_()"></label>
         <label>フォーム線の太さ(px)<input id="entry-display-settings-borderWidth" type="number" min="1" max="8" step="1" value="${s.borderWidth}" oninput="onDisplaySettingsInput_()"></label>
-        <label>角丸(%)<input id="entry-display-settings-radiusScale" type="number" min="50" max="220" step="1" value="${s.radiusScale}" oninput="onDisplaySettingsInput_()"></label>
-        <label>操作列幅(%)<input id="entry-display-settings-colAction" type="number" min="6" max="18" step="1" value="${s.colAction}" oninput="onDisplaySettingsInput_()"></label>
-        <label>ポイントフォーム横幅(%)<input id="entry-display-settings-pointFormWidth" type="number" min="40" max="100" step="1" value="${s.pointFormWidth}" oninput="onDisplaySettingsInput_()"></label>
         <label>商品列幅: 商品名(%)<input id="entry-display-settings-productColItemPct" type="number" min="40" max="70" step="1" value="${s.productColItemPct}" oninput="onDisplaySettingsInput_()"></label>
-        <label>商品列幅: 提示金額(%)<input id="entry-display-settings-productColPricePct" type="number" min="10" max="30" step="1" value="${s.productColPricePct}" oninput="onDisplaySettingsInput_()"></label>
+        <label>商品列幅: 基準売価(%)<input id="entry-display-settings-productColPricePct" type="number" min="10" max="30" step="1" value="${s.productColPricePct}" oninput="onDisplaySettingsInput_()"></label>
         <label>商品列幅: 個数(%)<input id="entry-display-settings-productColQtyPct" type="number" min="8" max="20" step="1" value="${s.productColQtyPct}" oninput="onDisplaySettingsInput_()"></label>
         <label>商品列幅: 原価(%)<input id="entry-display-settings-productColCostPct" type="number" min="10" max="30" step="1" value="${s.productColCostPct}" oninput="onDisplaySettingsInput_()"></label>
         <label>共通項目3等分幅(%)<input id="entry-display-settings-commonColPct" type="number" min="30" max="34" step="1" value="${s.commonColPct}" oninput="onDisplaySettingsInput_()"></label>
@@ -663,31 +915,39 @@ function openDisplaySettingsModal_() {
             <option value="700"${s.fontWeight === 700 ? ' selected' : ''}>太字</option>
           </select>
         </label>
-        <label>テンプレート選択
-          <select id="entry-display-settings-template-select">
-            ${templateOptionsHtml}
-          </select>
-        </label>
-        <div class="entry-display-settings-template-actions">
-          <button type="button" class="btn-sub" onclick="applySelectedDisplayTemplate_()">適用</button>
-          <button type="button" class="btn-sub" onclick="deleteSelectedDisplayTemplate_()">削除</button>
-        </div>
+        <div class="entry-display-settings-size-title">テンプレ保存</div>
         <label>テンプレート名
           <input id="entry-display-settings-template-name" type="text" value="${escapeHtml(activeTemplateName)}" placeholder="例: 標準A">
         </label>
-        <button type="button" class="btn-sub" onclick="saveCurrentDisplaySettingsAsTemplate_()">現在値をテンプレート保存</button>
+        <button type="button" class="btn-sub entry-display-settings-btn-save" onclick="saveCurrentDisplaySettingsAsTemplate_()">テンプレ保存</button>
       </div>
       <div class="entry-display-settings-actions">
-        <button type="button" class="btn-sub" onclick="resetDisplaySettings_()">初期値に戻す</button>
-        <button type="button" class="btn-sub" onclick="saveDisplaySettingsAsDefaults_(); openDisplaySettingsModal_();">この値を初期値として保存</button>
-        <button type="button" class="btn-sub" onclick="restoreDisplaySettingsFactoryDefaults_()">工場出荷値へ戻す</button>
-        <button type="button" class="btn-main" onclick="saveDisplaySettings_(); closeDisplaySettingsModal_();">閉じる</button>
+        <button type="button" class="btn-sub entry-display-settings-btn-reset" onclick="resetDisplaySettings_()">初期値に戻す</button>
       </div>
     </div>
   `;
   modal.onclick = handleDisplaySettingsBackdropClick_;
   modal.style.display = 'flex';
   document.body.classList.add('entry-display-settings-open');
+  if (templateOptionsHtml) {
+    updateDisplaySettingsTemplateSuggestions_(activeTemplateName, { visible: false, resetActive: true });
+  }
+
+  loadDisplaySettingsTemplateList_(function(list) {
+    const openModal = document.getElementById('entry-display-settings-modal');
+    if (!openModal || openModal.style.display === 'none') return;
+    renderDisplaySettingsTemplateDatalist_(list);
+    const latestActiveName = getDisplaySettingsActiveTemplateName_(list);
+    const selectEl = getDisplaySettingsModalField_('template-select');
+    const nameEl = getDisplaySettingsModalField_('template-name');
+    if (selectEl && !String(selectEl.value || '').trim()) {
+      selectEl.value = latestActiveName;
+    }
+    if (nameEl && !String(nameEl.value || '').trim()) {
+      nameEl.value = latestActiveName;
+    }
+    renderDisplaySettingsTemplateDatalist_(list);
+  });
 }
 
 function isStableStageInputMode_() {
@@ -784,6 +1044,7 @@ function handleFooterHomeClick() {
 }
 
 function handleFooterDetailToggleClick() {
+  detailToggleUsed_ = true;
   const shouldOpen = !(detailPanelState.expense && detailPanelState.point);
   detailPanelState.expense = shouldOpen;
   detailPanelState.point = shouldOpen;
@@ -1113,6 +1374,7 @@ function setEntryInputStageValue_(scope, step, value) {
 }
 
 function getEntryInputStageTitle_(scope) {
+  if (scope === 'template') return '商品入力テンプレ選択';
   if (scope === 'lineItem') return '商品個別入力';
   if (scope === 'expense') return '経費入力';
   if (scope === 'point') return 'ポイント/割引入力';
@@ -1121,6 +1383,7 @@ function getEntryInputStageTitle_(scope) {
 }
 
 function getEntryInputStageLabel_(scope, step) {
+  if (scope === 'template') return 'テンプレ名';
   if (scope === 'lineItem') {
     if (step === 'expense') return '経費';
     if (step === 'payment') return '支払方法';
@@ -1136,12 +1399,13 @@ function getEntryInputStageLabel_(scope, step) {
     if (step === 'supplier') return '仕入先';
     return '支払方法';
   }
-  if (step === 'price') return '提示金額';
+  if (step === 'price') return '基準売価';
   if (step === 'qty') return '個数';
   return '商品';
 }
 
 function getEntryInputStageActionLabel_(scope, step) {
+  if (scope === 'template') return '適用';
   if (scope === 'product') {
     return step === 'qty' ? '確定' : '次へ';
   }
@@ -1160,6 +1424,7 @@ function getEntryInputStageActionLabel_(scope, step) {
 }
 
 function getEntryInputStagePlaceholder_(scope, step) {
+  if (scope === 'template') return 'テンプレ名で検索';
   if (scope === 'lineItem') {
     if (step === 'expense') return '経費を入力';
     if (step === 'payment') return '支払方法を入力';
@@ -1175,12 +1440,15 @@ function getEntryInputStagePlaceholder_(scope, step) {
     if (step === 'supplier') return '仕入先を入力';
     return '支払方法を入力';
   }
-  if (step === 'price') return '提示金額を入力';
+  if (step === 'price') return '基準売価を入力';
   if (step === 'qty') return '個数を入力';
   return 'JAN / 商品名 / 商品マスタ番号';
 }
 
 function getEntryInputStageInputClass_(scope, step) {
+  if (scope === 'template') {
+    return 'inline-input entry-input-stage-input';
+  }
   if (scope === 'lineItem' && step === 'payment') {
     return 'inline-input entry-input-stage-input';
   }
@@ -1197,6 +1465,9 @@ function getEntryInputStageInputClass_(scope, step) {
 }
 
 function getEntryInputStageInputAttrs_(scope, step) {
+  if (scope === 'template') {
+    return 'type="text" list="entry-product-template-options"';
+  }
   if (scope === 'lineItem') {
     if (step === 'payment') return 'type="text"';
     return 'type="text" inputmode="numeric" pattern="\\d*"';
@@ -1222,6 +1493,7 @@ function isEntryInputStageDateField_(scope, step) {
 function isEntryInputStageAutocompleteField_(scope, step) {
   const targetScope = normalizeEntryInputStageScope_(scope);
   const targetStep = normalizeEntryInputStageStep_(targetScope, step);
+  if (targetScope === 'template' && targetStep === 'name') return true;
   if (targetScope === 'product' && targetStep === 'name') return true;
   if (targetScope === 'expense' && targetStep === 'name') return true;
   if (targetScope === 'common' && (targetStep === 'supplier' || targetStep === 'payment')) return true;
@@ -1231,6 +1503,11 @@ function isEntryInputStageAutocompleteField_(scope, step) {
 function getEntryInputStageAutocompleteSource_(scope, step) {
   const targetScope = normalizeEntryInputStageScope_(scope);
   const targetStep = normalizeEntryInputStageStep_(targetScope, step);
+  if (targetScope === 'template' && targetStep === 'name') {
+    return (entryProductTemplateState_.list || [])
+      .map(function(item) { return String(item && item.templateName || '').trim(); })
+      .filter(function(v) { return !!v; });
+  }
   if (targetScope === 'product' && targetStep === 'name') {
     const out = [];
     const seen = new Set();
@@ -1358,6 +1635,10 @@ function onEntryInputStageSuggestionPick(index, event) {
   }
   onEntryInputStageInput(picked);
   closeEntryInputStageSuggestions_();
+  const scope = normalizeEntryInputStageScope_(entryInputStageState_.scope);
+  if (scope === 'template') {
+    onEntryInputStageAction();
+  }
 }
 
 function moveEntryInputStageSuggestionSelection_(direction) {
@@ -1603,8 +1884,10 @@ function renderEntryInputStage_() {
 
   stageEl.innerHTML = `
     <div class="entry-input-stage-panel" role="group" aria-label="${label}">
-      <button type="button" class="entry-input-stage-close" aria-label="ステージ入力を閉じる" onclick="closeEntryInputStage_()">×</button>
-      <label class="entry-input-stage-label" for="entry-input-stage-field">${label}</label>
+      <div class="entry-input-stage-head">
+        <label class="entry-input-stage-label" for="entry-input-stage-field">${label}</label>
+        <button type="button" class="entry-input-stage-close" aria-label="ステージ入力を閉じる" onclick="closeEntryInputStage_()">×</button>
+      </div>
       ${fieldHtml}
       <div class="entry-input-stage-actions">
         <button type="button" class="btn-sub" onclick="onEntryInputStageBack()">戻る</button>
@@ -1691,6 +1974,15 @@ function onEntryInputStageInput(value) {
   const nextValue = String(value || '');
   setEntryInputStageValue_(scope, step, nextValue);
   updateEntryInputStageSuggestions_(scope, step, nextValue, { resetActive: true });
+  if (scope === 'template' && step === 'name') {
+    const exact = (entryProductTemplateState_.list || []).some(function(item) {
+      return String(item && item.templateName || '').trim() === nextValue.trim();
+    });
+    if (exact) {
+      applySelectedProductTemplateByName_(nextValue);
+      closeEntryInputStage_();
+    }
+  }
 }
 
 function onEntryInputStageItemDiscountInput(value) {
@@ -1745,6 +2037,13 @@ function commitEntryInputStageStep_() {
   const inputEl = document.getElementById('entry-input-stage-field');
   const value = inputEl ? String(inputEl.value || '') : getEntryInputStageValue_(scope, step);
   setEntryInputStageValue_(scope, step, value);
+
+  if (scope === 'template') {
+    const normalizedValue = String(value || '').trim();
+    setEntryInputStageValue_(scope, 'name', normalizedValue);
+    applySelectedProductTemplateByName_(normalizedValue);
+    return;
+  }
 
   if (scope === 'product') {
     const idx = entryInputStageState_.currentRow;
@@ -1830,6 +2129,25 @@ function onEntryInputStageAction() {
   if (!entryInputStageState_.active) return;
   const scope = normalizeEntryInputStageScope_(entryInputStageState_.scope);
   const step = normalizeEntryInputStageStep_(scope, entryInputStageState_.step);
+  if (scope === 'template') {
+    const inputEl = document.getElementById('entry-input-stage-field');
+    const nextName = String(inputEl && inputEl.value || '').trim();
+    if (!nextName) {
+      applySelectedProductTemplateByName_('');
+      closeEntryInputStage_();
+      return;
+    }
+    const exact = (entryProductTemplateState_.list || []).some(function(item) {
+      return String(item && item.templateName || '').trim() === nextName;
+    });
+    if (!exact) {
+      alert('候補からテンプレートを選択してください。');
+      return;
+    }
+    commitEntryInputStageStep_();
+    closeEntryInputStage_();
+    return;
+  }
   commitEntryInputStageStep_();
 
   if (scope === 'product') {
@@ -1894,6 +2212,11 @@ function onEntryInputStageBack() {
   if (!entryInputStageState_.active) return;
   const scope = normalizeEntryInputStageScope_(entryInputStageState_.scope);
   const step = normalizeEntryInputStageStep_(scope, entryInputStageState_.step);
+
+  if (scope === 'template') {
+    closeEntryInputStage_();
+    return;
+  }
 
   if (scope === 'product') {
     if (step === 'qty') {
@@ -2208,6 +2531,7 @@ function handleTaxToggleClick() {
 }
 
 function loadProductCandidates() {
+  const ticket = beginEntryAsyncStatus_('Now Loading...');
   google.script.run
     .withSuccessHandler(function(list) {
       productCandidates = Array.isArray(list) ? list : [];
@@ -2218,8 +2542,12 @@ function loadProductCandidates() {
           .join('');
       }
       renderEntryRows();
+      endEntryAsyncStatus_(ticket);
     })
-    .withFailureHandler(showError)
+    .withFailureHandler(function(err) {
+      showError(err);
+      endEntryAsyncStatus_(ticket, '読み込みに失敗しました', 'error');
+    })
     .getProductCandidates();
 }
 
@@ -2439,6 +2767,335 @@ function toggleExpenseRowDeleteMode() {
   renderExpenseArea();
 }
 
+function renderEntryProductTemplateDatalist_() {
+  const dl = document.getElementById('entry-product-template-options');
+  if (!dl) return;
+  const options = (entryProductTemplateState_.list || []).map(function(item) {
+    const name = String(item && item.templateName || '').trim();
+    if (!name) return '';
+    return '<option value="' + escapeHtml(name) + '"></option>';
+  }).filter(function(v) { return !!v; }).join('');
+  dl.innerHTML = options;
+}
+
+function loadEntryProductTemplateList_(callback) {
+  const ticket = beginEntryAsyncStatus_('Now Loading...');
+  google.script.run
+    .withSuccessHandler(function(list) {
+      entryProductTemplateState_.list = Array.isArray(list) ? list : [];
+      renderEntryProductTemplateDatalist_();
+      endEntryAsyncStatus_(ticket);
+      if (typeof callback === 'function') callback(entryProductTemplateState_.list);
+    })
+    .withFailureHandler(function(err) {
+      showError(err);
+      endEntryAsyncStatus_(ticket, '読み込みに失敗しました', 'error');
+      if (typeof callback === 'function') callback([]);
+    })
+    .getEntryProductTemplateList();
+}
+
+function openProductTemplateSelectStage(triggerEl) {
+  entryInputStageState_.active = true;
+  entryInputStageState_.scope = 'template';
+  entryInputStageState_.currentRow = -1;
+  entryInputStageState_.expenseIdx = -1;
+  entryInputStageState_.step = 'name';
+  entryInputStageState_.tempData = {
+    name: getProductTemplateDisplayName_() === 'テンプレ未選択'
+      ? ''
+      : String(entryProductTemplateState_.selectedTemplateName || '').trim()
+  };
+  entryInputStageState_.originRect = captureStageRect_(triggerEl);
+  renderEntryInputStage_();
+  loadEntryProductTemplateList_(function() {
+    if (!entryInputStageState_.active) return;
+    if (normalizeEntryInputStageScope_(entryInputStageState_.scope) !== 'template') return;
+    const inputEl = document.getElementById('entry-input-stage-field');
+    updateEntryInputStageSuggestions_('template', 'name', inputEl ? inputEl.value : '', { resetActive: true });
+  });
+}
+
+function applySelectedProductTemplateByName_(templateName) {
+  const targetName = String(templateName || '').trim();
+  if (!targetName) {
+    entryProductTemplateState_.selectedTemplateId = '';
+    entryProductTemplateState_.selectedTemplateName = '';
+    renderEntryRows();
+    return;
+  }
+  const found = (entryProductTemplateState_.list || []).find(function(item) {
+    return String(item && item.templateName || '').trim() === targetName;
+  });
+  if (!found || !String(found.templateId || '').trim()) {
+    alert('指定したテンプレートが見つかりません。候補から選択してください。');
+    return;
+  }
+  applySelectedProductTemplate_(String(found.templateId || '').trim());
+}
+
+function getProductTemplateDisplayName_() {
+  const name = String(entryProductTemplateState_.selectedTemplateName || '').trim();
+  return name || 'テンプレ未選択';
+}
+
+function onProductTemplateNameInput_(value) {
+  entryProductTemplateState_.createName = String(value || '');
+}
+
+function enterProductTemplateCreateMode_() {
+  entryProductTemplateState_.createMode = true;
+  entryProductTemplateState_.createName = getProductTemplateDisplayName_() === 'テンプレ未選択'
+    ? ''
+    : getProductTemplateDisplayName_();
+  renderEntryRows();
+}
+
+function buildProductTemplateInputValues_() {
+  const dateEl = document.getElementById('common-date');
+  const supplierEl = document.getElementById('common-supplier');
+  const paymentEl = document.getElementById('common-payment');
+  return {
+    entryRows: (entryRows || []).map(function(row) {
+      const src = row || {};
+      return {
+        productInput: String(src.productInput || ''),
+        priceBase: Math.max(0, roundYen((typeof src.taxBasePrice !== 'undefined') ? src.taxBasePrice : src.price)),
+        qty: Math.max(1, roundYen(src.qty || 1)),
+        itemDiscount: Math.max(0, roundYen(src.itemDiscount || 0)),
+        point: Math.max(0, roundYen(src.point || 0)),
+        expenseAlloc: Math.max(0, roundYen(src.expenseAlloc || 0)),
+        paymentMethod: String(src.paymentMethod || '')
+      };
+    }),
+    expenseList: (expenseList || []).map(function(ex) {
+      const src = ex || {};
+      return {
+        name: String(src.name || ''),
+        amount: Math.max(0, roundYen(src.amount || 0)),
+        memo: String(src.memo || '')
+      };
+    }),
+    pointTotal: Math.max(0, roundYen(pointTotal || 0)),
+    commonInfo: {
+      date: normalizeDateDigits_(String((dateEl && dateEl.value) || '').trim()),
+      supplier: String((supplierEl && supplierEl.value) || '').trim(),
+      payment: String((paymentEl && paymentEl.value) || '').trim()
+    },
+    pointMode: pointInputMode,
+    expenseMode: expenseInputMode,
+    taxEnabled: !!detailPanelState.tax
+  };
+}
+
+function onClickProductTemplateCreateOrSave_() {
+  if (!entryProductTemplateState_.createMode) {
+    enterProductTemplateCreateMode_();
+    return;
+  }
+  const templateName = String(entryProductTemplateState_.createName || '').trim();
+  if (!templateName) {
+    alert('テンプレ名を入力してください');
+    return;
+  }
+  const payload = {
+    templateId: String(entryProductTemplateState_.selectedTemplateId || '').trim(),
+    templateName: templateName,
+    inputValues: buildProductTemplateInputValues_()
+  };
+  const ticket = beginEntryAsyncStatus_('現在保存中...', 'saving');
+  google.script.run
+    .withSuccessHandler(function(res) {
+      const saved = res || {};
+      entryProductTemplateState_.selectedTemplateId = String(saved.templateId || '').trim();
+      entryProductTemplateState_.selectedTemplateName = String(saved.templateName || templateName).trim();
+      entryProductTemplateState_.createMode = false;
+      entryProductTemplateState_.createName = '';
+      loadEntryProductTemplateList_(function() {
+        renderEntryRows();
+        endEntryAsyncStatus_(ticket, '保存しました', 'done');
+      });
+    })
+    .withFailureHandler(function(err) {
+      showError(err);
+      endEntryAsyncStatus_(ticket, '保存に失敗しました', 'error');
+    })
+    .saveEntryProductTemplate(payload);
+}
+
+function closeProductTemplateModal_() {
+  const modal = document.getElementById('entry-product-template-modal');
+  if (!modal) return;
+  modal.style.display = 'none';
+  modal.innerHTML = '';
+}
+
+function renderProductTemplateSelectModal_() {
+  const modal = document.getElementById('entry-product-template-modal');
+  if (!modal) return;
+  const templates = Array.isArray(entryProductTemplateState_.list) ? entryProductTemplateState_.list : [];
+  const listHtml = templates.length
+    ? templates.map(function(item) {
+        const id = String(item.templateId || '').trim();
+        const idEnc = encodeURIComponent(id);
+        const rawName = String(item.templateName || '').trim();
+        const name = escapeHtml(rawName);
+        const nameEnc = encodeURIComponent(rawName);
+        const active = id && id === String(entryProductTemplateState_.selectedTemplateId || '').trim();
+        const activeClass = active ? ' is-active' : '';
+        const updated = escapeHtml(String(item.updatedAt || '').trim());
+        return '' +
+          '<div class="entry-product-template-list-item' + activeClass + '">' +
+            '<button type="button" class="entry-product-template-list-select" onclick="applySelectedProductTemplate_(decodeURIComponent(\'' + idEnc + '\'))">' +
+              '<span class="entry-product-template-list-name">' + name + '</span>' +
+              '<span class="entry-product-template-list-date">' + updated + '</span>' +
+            '</button>' +
+            '<button type="button" class="btn-delete-mode entry-product-template-delete-btn" onclick="deleteProductTemplate_(decodeURIComponent(\'' + idEnc + '\'), decodeURIComponent(\'' + nameEnc + '\'))">×</button>' +
+          '</div>';
+      }).join('')
+    : '<div class="note-text">保存済みテンプレートはありません。</div>';
+  modal.innerHTML = '' +
+    '<div class="entry-product-template-panel">' +
+      '<div class="entry-product-template-head">' +
+        '<div class="entry-product-template-title">商品入力テンプレ選択</div>' +
+        '<button type="button" class="entry-input-stage-close" aria-label="テンプレ一覧を閉じる" onclick="closeProductTemplateModal_()">×</button>' +
+      '</div>' +
+      '<div class="entry-product-template-list">' + listHtml + '</div>' +
+    '</div>';
+  modal.style.display = 'flex';
+  modal.onclick = function(event) {
+    if (!event || event.target !== modal) return;
+    closeProductTemplateModal_();
+  };
+}
+
+function onClickProductTemplateSelect_() {
+  const ticket = beginEntryAsyncStatus_('Now Loading...');
+  google.script.run
+    .withSuccessHandler(function(list) {
+      entryProductTemplateState_.list = Array.isArray(list) ? list : [];
+      renderProductTemplateSelectModal_();
+      endEntryAsyncStatus_(ticket);
+    })
+    .withFailureHandler(function(err) {
+      showError(err);
+      endEntryAsyncStatus_(ticket, '読み込みに失敗しました', 'error');
+    })
+    .getEntryProductTemplateList();
+}
+
+function applyProductTemplateInputValues_(inputValues) {
+  const values = inputValues || {};
+  const templateRows = Array.isArray(values.entryRows) ? values.entryRows : [];
+  entryRows = templateRows.map(function(raw) {
+    const r = createEmptyEntryRow();
+    const src = raw || {};
+    r.productInput = String(src.productInput || '').trim();
+    r.price = Math.max(0, roundYen(src.priceBase || 0));
+    r.qty = Math.max(1, roundYen(src.qty || 1));
+    r.itemDiscount = Math.max(0, roundYen(src.itemDiscount || 0));
+    r.point = Math.max(0, roundYen(src.point || 0));
+    r.expenseAlloc = Math.max(0, roundYen(src.expenseAlloc || 0));
+    r.paymentMethod = String(src.paymentMethod || '').trim();
+    const resolved = resolveProductByInput(r.productInput);
+    if (resolved) {
+      r.productNo = String(resolved.productNo || '').trim();
+      r.name = String(resolved.name || '').trim();
+    }
+    return r;
+  });
+  if (!entryRows.length) {
+    entryRows = [createEmptyEntryRow()];
+  }
+  const templateExpenses = Array.isArray(values.expenseList) ? values.expenseList : [];
+  expenseList = templateExpenses.map(function(ex) {
+    const src = ex || {};
+    return {
+      name: String(src.name || '').trim(),
+      amount: Math.max(0, roundYen(src.amount || 0)),
+      memo: String(src.memo || '').trim()
+    };
+  });
+  if (!expenseList.length) {
+    expenseList = [createEmptyExpenseRow()];
+  }
+  pointTotal = Math.max(0, roundYen(values.pointTotal || 0));
+  pointInputMode = String(values.pointMode || 'allocation') === 'individual' ? 'individual' : 'allocation';
+  expenseInputMode = String(values.expenseMode || 'allocation') === 'individual' ? 'individual' : 'allocation';
+  detailPanelState.expense = false;
+  detailPanelState.point = false;
+  detailPanelState.tax = false;
+  recalculateCosts();
+  if (values.taxEnabled) {
+    const hasTaxTargets = entryRows.some(function(row) {
+      return !!String(row && row.name || '').trim() && roundYen(row && row.price || 0) > 0;
+    });
+    if (hasTaxTargets) {
+      applyTaxToAll_();
+    }
+    detailPanelState.tax = true;
+  }
+  renderEntryRows();
+  renderExpenseArea();
+  renderPointArea();
+  renderSummary();
+  renderCommonInfo();
+  const info = values.commonInfo || {};
+  const dateInput = document.getElementById('common-date');
+  const supplierInput = document.getElementById('common-supplier');
+  const paymentInput = document.getElementById('common-payment');
+  if (dateInput) dateInput.value = normalizeDateDigits_(String(info.date || '').trim());
+  if (supplierInput) supplierInput.value = String(info.supplier || '').trim();
+  if (paymentInput) paymentInput.value = String(info.payment || '').trim();
+  applyDetailPanelVisibility_();
+  updateTopHelperButtons_();
+}
+
+function applySelectedProductTemplate_(templateId) {
+  const id = String(templateId || '').trim();
+  if (!id) return;
+  const ticket = beginEntryAsyncStatus_('Now Loading...');
+  google.script.run
+    .withSuccessHandler(function(template) {
+      const t = template || {};
+      entryProductTemplateState_.selectedTemplateId = String(t.templateId || '').trim();
+      entryProductTemplateState_.selectedTemplateName = String(t.templateName || '').trim();
+      entryProductTemplateState_.createMode = false;
+      entryProductTemplateState_.createName = '';
+      applyProductTemplateInputValues_(t.inputValues || {});
+      closeProductTemplateModal_();
+      endEntryAsyncStatus_(ticket, '適用しました', 'done');
+    })
+    .withFailureHandler(function(err) {
+      showError(err);
+      endEntryAsyncStatus_(ticket, '適用に失敗しました', 'error');
+    })
+    .getEntryProductTemplateById(id);
+}
+
+function deleteProductTemplate_(templateId, templateName) {
+  const id = String(templateId || '').trim();
+  if (!id) return;
+  const label = String(templateName || '').trim() || 'このテンプレ';
+  if (!confirm('テンプレート「' + label + '」を削除しますか？')) return;
+  const ticket = beginEntryAsyncStatus_('Now Loading...');
+  google.script.run
+    .withSuccessHandler(function() {
+      if (String(entryProductTemplateState_.selectedTemplateId || '') === id) {
+        entryProductTemplateState_.selectedTemplateId = '';
+        entryProductTemplateState_.selectedTemplateName = '';
+      }
+      onClickProductTemplateSelect_();
+      renderEntryRows();
+      endEntryAsyncStatus_(ticket, '削除しました', 'done');
+    })
+    .withFailureHandler(function(err) {
+      showError(err);
+      endEntryAsyncStatus_(ticket, '削除に失敗しました', 'error');
+    })
+    .deleteEntryProductTemplate(id);
+}
+
 function renderEntryRows() {
   if (entryInputStageState_.active) {
     const stageScope = normalizeEntryInputStageScope_(entryInputStageState_.scope);
@@ -2461,6 +3118,18 @@ function renderEntryRows() {
   const deleteEntryButtonHtml = canDeleteEntryRows
     ? `<button type="button" class="${deleteEntryModeClass}" onclick="toggleEntryRowDeleteMode()" aria-label="商品行削除モード切替">−</button>`
     : '';
+  const templateNameDisplay = escapeHtml(getProductTemplateDisplayName_());
+  const templateNameInputValue = escapeHtml(String(entryProductTemplateState_.createName || '').trim());
+  const templateNameFieldHtml = entryProductTemplateState_.createMode
+    ? `<input type="text" class="inline-input entry-product-template-name-input" value="${templateNameInputValue}" placeholder="テンプレ名を入力" oninput="onProductTemplateNameInput_(this.value)">`
+    : `<input type="text" class="inline-input entry-product-template-name-input entry-stage-trigger" list="entry-product-template-options" value="${templateNameDisplay}" readonly onfocus="this.blur(); openProductTemplateSelectStage(this)" onclick="openProductTemplateSelectStage(this)" placeholder="テンプレ未選択">`;
+  const templateCreateLabel = entryProductTemplateState_.createMode ? 'テンプレ保存' : 'テンプレ作成';
+  const productTemplateUiHtml = `
+    <div class="entry-product-template-ui" aria-label="商品入力テンプレートUI">
+      ${templateNameFieldHtml}
+      <button type="button" class="btn-sub entry-product-template-btn entry-product-template-btn-create" onclick="onClickProductTemplateCreateOrSave_()">${templateCreateLabel}</button>
+    </div>
+  `;
   const entryTitleActionsHtml = `<div class="entry-lines-title-actions">${addEntryButtonHtml}${deleteEntryButtonHtml}</div>`;
   const entryTableClass = 'entry-inline-table entry-product-table entry-swipe-table' + (entryRowDeleteMode_ ? ' is-delete-mode' : '');
   let rowsHtml = '';
@@ -2541,15 +3210,16 @@ function renderEntryRows() {
   });
 
   document.getElementById('entry-lines').innerHTML = `
-    <div class="entry-lines-title-row">
+    <div class="entry-lines-title-row has-template">
       <h2 class="mid-title">商品入力</h2>
+      ${productTemplateUiHtml}
       ${entryTitleActionsHtml}
     </div>
     <div class="entry-line-card section-card section-tone-product">
       <table class="${entryTableClass}">
         <tr>
           <th class="col-item">商品</th>
-          <th class="col-num">提示金額</th>
+          <th class="col-num">基準売価</th>
           <th class="col-qty">個数</th>
           <th class="col-num">原価</th>
           <th class="col-action"></th>
@@ -2572,7 +3242,7 @@ function getActiveEntryRows() {
       throw new Error(`商品${i + 1} の商品名を入力してください`);
     }
     if (roundYen(row.price) <= 0) {
-      throw new Error(`商品${i + 1} の提示金額を入力してください`);
+      throw new Error(`商品${i + 1} の基準売価を入力してください`);
     }
     if (roundYen(row.qty) <= 0) {
       throw new Error(`商品${i + 1} の個数を入力してください`);
@@ -2940,12 +3610,17 @@ function onExpenseModeChange(mode) {
 }
 
 function loadExpenseItems() {
+  const ticket = beginEntryAsyncStatus_('Now Loading...');
   google.script.run
     .withSuccessHandler(function(list) {
       expenseCandidates = (list || []).slice();
       renderExpenseArea();
+      endEntryAsyncStatus_(ticket);
     })
-    .withFailureHandler(showError)
+    .withFailureHandler(function(err) {
+      showError(err);
+      endEntryAsyncStatus_(ticket, '読み込みに失敗しました', 'error');
+    })
     .getExpenseItems();
 }
 
@@ -2978,7 +3653,7 @@ function renderSummary() {
       <table class="entry-inline-table entry-summary-table">
         <tr>
           <th>商品数</th>
-          <th>総提示金額</th>
+          <th>総基準売価</th>
           <th>ポイント合計</th>
           <th>経費合計</th>
           <th>原価合計</th>
@@ -3040,20 +3715,41 @@ function renderSupplierPaymentDatalists_() {
 }
 
 function loadSupplierPaymentOptions() {
+  const ticket = beginEntryAsyncStatus_('Now Loading...');
+  let remain = 2;
+  let hasError = false;
+  function completeOne(isError) {
+    hasError = hasError || !!isError;
+    remain -= 1;
+    if (remain > 0) return;
+    if (hasError) {
+      endEntryAsyncStatus_(ticket, '読み込みに失敗しました', 'error');
+      return;
+    }
+    endEntryAsyncStatus_(ticket);
+  }
   google.script.run
     .withSuccessHandler(function(list) {
       supplierCandidates = list || [];
       renderSupplierPaymentDatalists_();
+      completeOne(false);
     })
-    .withFailureHandler(showError)
+    .withFailureHandler(function(err) {
+      showError(err);
+      completeOne(true);
+    })
     .getSupplierList();
 
   google.script.run
     .withSuccessHandler(function(list) {
       paymentCandidates = list || [];
       renderSupplierPaymentDatalists_();
+      completeOne(false);
     })
-    .withFailureHandler(showError)
+    .withFailureHandler(function(err) {
+      showError(err);
+      completeOne(true);
+    })
     .getPaymentList();
 }
 
@@ -3140,11 +3836,16 @@ function restoreDraftIfNeeded_() {
   const token = getQueryParam_('token');
   if (!token) return;
 
+  const ticket = beginEntryAsyncStatus_('Now Loading...');
   google.script.run
     .withSuccessHandler(function(payload) {
       applyDraftPayload_(payload);
+      endEntryAsyncStatus_(ticket);
     })
-    .withFailureHandler(showError)
+    .withFailureHandler(function(err) {
+      showError(err);
+      endEntryAsyncStatus_(ticket, '読み込みに失敗しました', 'error');
+    })
     .getEntryDraftForConfirm(token);
 }
 
@@ -3282,6 +3983,37 @@ function showResultPage_() {
   updateTopHelperButtons_();
 }
 
+function confirmAndResetProductEntry_() {
+  const ok = confirm('商品入力内容を初期化します。よろしいですか？');
+  if (!ok) return;
+  if (entryInputStageState_.active) {
+    closeEntryInputStage_();
+  }
+  entryRows = [createEmptyEntryRow()];
+  expenseList = [createEmptyExpenseRow()];
+  pointTotal = 0;
+  detailPanelState.expense = false;
+  detailPanelState.point = false;
+  detailPanelState.tax = false;
+  pointInputMode = 'allocation';
+  expenseInputMode = 'allocation';
+  entryRowDeleteMode_ = false;
+  expenseRowDeleteMode_ = false;
+  detailToggleUsed_ = false;
+  postSubmitShowPointExpense_ = true;
+  entryProductTemplateState_.selectedTemplateId = '';
+  entryProductTemplateState_.selectedTemplateName = '';
+  entryProductTemplateState_.createMode = false;
+  entryProductTemplateState_.createName = '';
+  renderEntryRows();
+  renderExpenseArea();
+  renderPointArea();
+  renderSummary();
+  renderCommonInfo();
+  applyDetailPanelVisibility_();
+  updateTopHelperButtons_();
+}
+
 function showFinalConfirm() {
   try {
     if (entryInputStageState_.active) {
@@ -3309,15 +4041,18 @@ function showFinalConfirm() {
       amount: roundYen(ex.amount),
       memo: String(ex.memo || '').trim()
     }));
+    const showPointExpense = detailToggleUsed_ === true;
+    postSubmitShowPointExpense_ = showPointExpense;
     pendingPayload = {
       entries: payloadEntries,
       commonInfo: { date: date, supplier: supplier, payment: payment },
       expenses: payloadExpenses,
       pointMode: pointInputMode,
-      expenseMode: expenseInputMode
+      expenseMode: expenseInputMode,
+      showPointExpense: showPointExpense
     };
 
-    renderFinalConfirm_(activeRows, payloadExpenses, pendingPayload.commonInfo, pendingPayload.pointMode, pendingPayload.expenseMode);
+    renderFinalConfirm_(activeRows, payloadExpenses, pendingPayload.commonInfo, pendingPayload.pointMode, pendingPayload.expenseMode, pendingPayload.showPointExpense);
     showConfirmPage_();
     scrollAppBodyToTop_();
   } catch (err) {
@@ -3325,10 +4060,11 @@ function showFinalConfirm() {
   }
 }
 
-function renderFinalConfirm_(rows, expenses, commonInfo, pointMode, expenseMode) {
+function renderFinalConfirm_(rows, expenses, commonInfo, pointMode, expenseMode, showPointExpense) {
   const activeRows = Array.isArray(rows) ? rows : [];
   const expenseRowsData = Array.isArray(expenses) ? expenses : [];
   const info = commonInfo || {};
+  const showPointExpenseDetail = showPointExpense !== false;
   const verticalLayout = isVerticalConfirmLayout_();
   const lineItemIndividualMode =
     String(pointMode || 'allocation') === 'individual' &&
@@ -3338,14 +4074,20 @@ function renderFinalConfirm_(rows, expenses, commonInfo, pointMode, expenseMode)
   activeRows.forEach(function(row, idx) {
     const rowPayment = String(row.paymentMethod || info.payment || '').trim();
     const itemDiscount = Math.max(0, roundYen(row.itemDiscount || 0));
-    const metaInfo = '個別値引き: ' + formatYen_(itemDiscount) +
-      ' ／ ポイント/割引: ' + formatYen_(roundYen(row.point)) +
-      ' ／ 経費: ' + formatYen_(roundYen(row.expenseAlloc)) +
-      (lineItemIndividualMode ? (' ／ 支払い方法: ' + escapeHtml(rowPayment || '未入力')) : '');
+    let metaInfo = '個別値引き: ' + formatYen_(itemDiscount);
+    if (showPointExpenseDetail) {
+      metaInfo += ' ／ ポイント/割引: ' + formatYen_(roundYen(row.point));
+      metaInfo += ' ／ 経費: ' + formatYen_(roundYen(row.expenseAlloc));
+    }
+    if (lineItemIndividualMode) {
+      metaInfo += ' ／ 支払い方法: ' + escapeHtml(rowPayment || '未入力');
+    }
     if (verticalLayout) {
       const qtyText = formatWithComma_(roundYen(row.qty)) + '点';
       const showMainLabels = idx === 0;
-      const verticalRow3Html = '<tr class="detail-meta-row detail-vertical-extra-row">' +
+      const verticalRow3Html = !showPointExpenseDetail
+        ? ''
+        : '<tr class="detail-meta-row detail-vertical-extra-row">' +
           '<td colspan="5" class="detail-meta-cell">' +
             '<div class="entry-meta-grid entry-meta-grid-normal confirm-detail-meta-grid">' +
               '<div class="entry-meta-item"><div class="entry-meta-label">ポイント/割引</div><span class="entry-meta-value">' + formatYen_(roundYen(row.point)) + '</span></div>' +
@@ -3362,7 +4104,7 @@ function renderFinalConfirm_(rows, expenses, commonInfo, pointMode, expenseMode)
               '<div class="inline-input confirm-inline-box">' + escapeHtml(String(row.name || '').trim()) + '</div>' +
             '</div>' +
             '<div class="confirm-detail-main-item">' +
-              '<div class="entry-meta-label">' + (showMainLabels ? '提示金額' : '&nbsp;') + '</div>' +
+              '<div class="entry-meta-label">' + (showMainLabels ? '基準売価' : '&nbsp;') + '</div>' +
               '<div class="inline-input confirm-inline-box is-numeric">' + formatYen_(roundYen(row.price)) + '</div>' +
             '</div>' +
           '</div>' +
@@ -3412,7 +4154,7 @@ function renderFinalConfirm_(rows, expenses, commonInfo, pointMode, expenseMode)
   const dateDisplay = formatDateSlashDisplay_(String(info.date || '').trim());
 
   let pointExpenseBlock = '';
-  if (hasExpenseRows) {
+  if (hasExpenseRows && showPointExpenseDetail) {
     pointExpenseBlock =
       '<div class="confirm-block section-card slip-block slip-block-expense section-tone-expense">' +
         '<h2 class="confirm-title">経費</h2>' +
@@ -3429,19 +4171,19 @@ function renderFinalConfirm_(rows, expenses, commonInfo, pointMode, expenseMode)
     ? '<table class="summary-table confirm-summary-table is-vertical">' +
         '<tbody class="summary-value-row">' +
           '<tr><th>商品数</th><td class="count-unit-cell">' + formatWithComma_(totalQty) + '点</td></tr>' +
-          '<tr><th>総提示金額</th><td>' + formatYen_(totalPrice) + '</td></tr>' +
-          '<tr><th>ポイント合計</th><td>' + formatYen_(totalPoint) + '</td></tr>' +
-          '<tr><th>経費合計</th><td>' + formatYen_(expenseTotal) + '</td></tr>' +
+          '<tr><th>総基準売価</th><td>' + formatYen_(totalPrice) + '</td></tr>' +
+          (showPointExpenseDetail ? ('<tr><th>ポイント合計</th><td>' + formatYen_(totalPoint) + '</td></tr>') : '') +
+          (showPointExpenseDetail ? ('<tr><th>経費合計</th><td>' + formatYen_(expenseTotal) + '</td></tr>') : '') +
           '<tr><th>原価合計</th><td class="is-emphasis">' + formatYen_(totalCost) + '</td></tr>' +
         '</tbody>' +
       '</table>'
     : '<table class="summary-table confirm-summary-table">' +
-        '<thead><tr><th>商品数</th><th>総提示金額</th><th>ポイント合計</th><th>経費合計</th><th>原価合計</th></tr></thead>' +
+        '<thead><tr><th>商品数</th><th>総基準売価</th>' + (showPointExpenseDetail ? '<th>ポイント合計</th><th>経費合計</th>' : '') + '<th>原価合計</th></tr></thead>' +
         '<tbody><tr class="summary-value-row">' +
           '<td class="count-unit-cell">' + formatWithComma_(totalQty) + '点</td>' +
           '<td>' + formatYen_(totalPrice) + '</td>' +
-          '<td>' + formatYen_(totalPoint) + '</td>' +
-          '<td>' + formatYen_(expenseTotal) + '</td>' +
+          (showPointExpenseDetail ? ('<td>' + formatYen_(totalPoint) + '</td>') : '') +
+          (showPointExpenseDetail ? ('<td>' + formatYen_(expenseTotal) + '</td>') : '') +
           '<td class="is-emphasis">' + formatYen_(totalCost) + '</td>' +
         '</tr></tbody>' +
       '</table>';
@@ -3466,7 +4208,7 @@ function renderFinalConfirm_(rows, expenses, commonInfo, pointMode, expenseMode)
   const detailTableHtml = verticalLayout
     ? '<table class="confirm-detail-table is-vertical"><tbody>' + detailRows + '</tbody></table>'
     : '<table class="confirm-detail-table">' +
-        '<tr><th>商品名</th><th>提示金額</th><th>原価</th><th>個数</th><th>単価</th></tr>' +
+        '<tr><th>商品名</th><th>基準売価</th><th>原価</th><th>個数</th><th>単価</th></tr>' +
         detailRows +
       '</table>';
 
@@ -3509,6 +4251,7 @@ function submitEntries() {
   const statusEl = document.getElementById('submit-status');
   if (submitBtn) submitBtn.disabled = true;
   if (statusEl) statusEl.textContent = '登録中...';
+  const ticket = beginEntryAsyncStatus_('現在保存中...', 'saving');
 
   google.script.run
     .withSuccessHandler(function(res) {
@@ -3524,6 +4267,7 @@ function submitEntries() {
       detailPanelState.expense = false;
       detailPanelState.point = false;
       detailPanelState.tax = false;
+      detailToggleUsed_ = false;
 
       renderEntryRows();
       renderExpenseArea();
@@ -3534,11 +4278,13 @@ function submitEntries() {
       loadProductCandidates();
       loadExpenseItems();
       renderPostSubmitSlipPreview_(result);
+      endEntryAsyncStatus_(ticket, '保存しました', 'done');
     })
     .withFailureHandler(function(err) {
       if (submitBtn) submitBtn.disabled = false;
       if (statusEl) statusEl.textContent = '';
       showError(err);
+      endEntryAsyncStatus_(ticket, '保存に失敗しました', 'error');
     })
     .registerEntries(pendingPayload.entries, pendingPayload.commonInfo, pendingPayload.expenses);
 }
@@ -3556,6 +4302,8 @@ function renderPostSubmitSlipPreview_(result) {
 
 function startNewEntry() {
   postSubmitSlipData = null;
+  postSubmitShowPointExpense_ = true;
+  detailToggleUsed_ = false;
   const statusBox = document.getElementById('entry-status');
   if (statusBox) {
     statusBox.innerHTML = '';
@@ -3567,6 +4315,7 @@ function startNewEntry() {
 function buildPostSubmitSlipPreviewHtml_(result) {
   const data = result || {};
   const slip = data.slipData || {};
+  const showPointExpenseDetail = postSubmitShowPointExpense_ !== false;
   const lines = Array.isArray(slip.lines) ? slip.lines : [];
   const expenses = Array.isArray(slip.expenses) ? slip.expenses : [];
   const totals = slip.totals || {};
@@ -3586,9 +4335,14 @@ function buildPostSubmitSlipPreviewHtml_(result) {
 
   const lineRows = lines.map(function(line) {
     const rowPayment = String(line.paymentMethod || slip.payment || '').trim();
-    const metaInfo = 'ポイント/割引: ' + formatYen_(line.point || 0) +
-      ' ／ 経費: ' + formatYen_(line.expenseAlloc || 0) +
-      (lineItemIndividualMode ? (' ／ 支払い方法: ' + escapeHtml(rowPayment || '未入力')) : '');
+    let metaInfo = '';
+    if (showPointExpenseDetail) {
+      metaInfo += 'ポイント/割引: ' + formatYen_(line.point || 0);
+      metaInfo += ' ／ 経費: ' + formatYen_(line.expenseAlloc || 0);
+    }
+    if (lineItemIndividualMode) {
+      metaInfo += (metaInfo ? ' ／ ' : '') + '支払い方法: ' + escapeHtml(rowPayment || '未入力');
+    }
     return '<tr>' +
       '<td>' + escapeHtml(String(line.name || '')) + '</td>' +
       '<td>' + formatYen_(line.price || 0) + '</td>' +
@@ -3609,7 +4363,7 @@ function buildPostSubmitSlipPreviewHtml_(result) {
   const verticalLayout = isVerticalConfirmLayout_();
 
   let pointExpenseBlock = '';
-  if (hasExpenseRows) {
+  if (hasExpenseRows && showPointExpenseDetail) {
     let expenseRows = '';
     expenseRows = expenses.map(function(ex) {
       return '<tr>' +
@@ -3660,19 +4414,19 @@ function buildPostSubmitSlipPreviewHtml_(result) {
     ? '<table class="summary-table confirm-summary-table is-vertical">' +
         '<tbody class="summary-value-row">' +
           '<tr><th>商品数</th><td class="count-cell">' + formatWithComma_(totals.qty || 0) + '</td></tr>' +
-          '<tr><th>総提示金額</th><td>' + formatYen_(totals.price || 0) + '</td></tr>' +
-          '<tr><th>ポイント合計</th><td>' + formatYen_(pointTotal) + '</td></tr>' +
-          '<tr><th>経費合計</th><td>' + formatYen_(expenseTotal) + '</td></tr>' +
+          '<tr><th>総基準売価</th><td>' + formatYen_(totals.price || 0) + '</td></tr>' +
+          (showPointExpenseDetail ? ('<tr><th>ポイント合計</th><td>' + formatYen_(pointTotal) + '</td></tr>') : '') +
+          (showPointExpenseDetail ? ('<tr><th>経費合計</th><td>' + formatYen_(expenseTotal) + '</td></tr>') : '') +
           '<tr><th>原価合計</th><td class="is-emphasis">' + formatYen_(totals.cost || 0) + '</td></tr>' +
         '</tbody>' +
       '</table>'
     : '<table class="summary-table confirm-summary-table">' +
-        '<thead><tr><th>商品数</th><th>総提示金額</th><th>ポイント合計</th><th>経費合計</th><th>原価合計</th></tr></thead>' +
+        '<thead><tr><th>商品数</th><th>総基準売価</th>' + (showPointExpenseDetail ? '<th>ポイント合計</th><th>経費合計</th>' : '') + '<th>原価合計</th></tr></thead>' +
         '<tbody><tr class="summary-value-row">' +
           '<td class="count-cell">' + formatWithComma_(totals.qty || 0) + '</td>' +
           '<td>' + formatYen_(totals.price || 0) + '</td>' +
-          '<td>' + formatYen_(pointTotal) + '</td>' +
-          '<td>' + formatYen_(expenseTotal) + '</td>' +
+          (showPointExpenseDetail ? ('<td>' + formatYen_(pointTotal) + '</td>') : '') +
+          (showPointExpenseDetail ? ('<td>' + formatYen_(expenseTotal) + '</td>') : '') +
           '<td class="is-emphasis">' + formatYen_(totals.cost || 0) + '</td>' +
         '</tr></tbody>' +
       '</table>';
@@ -3693,7 +4447,7 @@ function buildPostSubmitSlipPreviewHtml_(result) {
       '<h2 class="confirm-title">商品明細</h2>' +
       '<div class="table-wrap">' +
         '<table>' +
-          '<tr><th>商品名</th><th>提示金額</th><th>原価</th><th>個数</th><th>単価</th></tr>' +
+          '<tr><th>商品名</th><th>基準売価</th><th>原価</th><th>個数</th><th>単価</th></tr>' +
           lineRows +
         '</table>' +
       '</div>' +
@@ -3862,7 +4616,7 @@ function buildSlipPrintHtml_(data) {
           '<div class="section-head">集計（最重要）</div>' +
           '<div class="totals-main-grid">' +
             '<div class="total-block">' +
-              '<div class="total-label">総提示金額</div>' +
+              '<div class="total-label">総基準売価</div>' +
               '<div class="total-value">' + formatYen_(totalPrice) + '</div>' +
             '</div>' +
             '<div class="total-block">' +
@@ -3884,7 +4638,7 @@ function buildSlipPrintHtml_(data) {
               '<col class="w-name"><col class="w-price"><col class="w-point"><col class="w-exp"><col class="w-cost"><col class="w-qty"><col class="w-unit">' +
             '</colgroup>' +
             '<thead>' +
-              '<tr><th>商品名</th><th>提示金額</th><th>ポイント</th><th>経費</th><th>原価</th><th>個数</th><th>単価</th></tr>' +
+              '<tr><th>商品名</th><th>基準売価</th><th>ポイント</th><th>経費</th><th>原価</th><th>個数</th><th>単価</th></tr>' +
             '</thead>' +
             '<tbody>' + lineRows + '</tbody>' +
           '</table>' +

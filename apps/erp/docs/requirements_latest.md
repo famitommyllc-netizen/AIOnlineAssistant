@@ -1,5 +1,5 @@
 # Requirements (Latest)
-- Updated: 2026-03-24 17:18:07 JST
+- Updated: 2026-03-30 09:06:59 JST
 
 ## 1. 運用目的
 - GAS + Spreadsheetで、仕入・売上・在庫・経費を一元管理する。
@@ -25,6 +25,11 @@
 - 仕入方法
 
 ## 4. 更新履歴
+- 2026-03-30:
+- UI統一運用の最新ルール/チェックリストを追加。
+- 参照先:
+  - `docs/ui_consistency_standards_latest.md`
+  - `docs/ui_consistency_checklist_latest.md`
 - 2026-03-24:
 - 仕入日入力（`#common-date` + `#common-date-picker` 補助方式）を現行確定仕様として固定。
 - 参照先: `docs/purchase_date_input_spec_20260324.md`

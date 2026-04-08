@@ -1,0 +1,3549 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <style>
+    <?!= HtmlService.createHtmlOutputFromFile('style.css').getContent(); ?>
+  </style>
+  <style>
+    /* B pattern only: list-first, full-width, low-card density */
+    body.entry-b-layout {
+      --app-shell-max-width: 100%;
+      --list-header-font-size: 13px;
+      --list-cell-font-size: 16px;
+      --list-label-font-size: 13px;
+      --list-helper-font-size: 12px;
+      --list-row-height: 52px;
+      --list-padding-y: 10px;
+      --list-padding-x: 8px;
+      background: #f8fafc;
+    }
+
+    body.entry-b-layout .entry-scroll-body {
+      padding: 4px 0 8px;
+    }
+
+    body.entry-b-layout #entry-page,
+    body.entry-b-layout #confirm-page,
+    body.entry-b-layout #result-page {
+      max-width: 100%;
+    }
+
+    body.entry-b-layout .section {
+      margin: 0;
+      max-width: none;
+      padding: 10px 10px;
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+      background: transparent;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    body.entry-b-layout #entry-page .section + .section {
+      margin-top: 0;
+    }
+
+    body.entry-b-layout .section-header-row {
+      margin-bottom: 8px;
+    }
+
+    body.entry-b-layout .section-title,
+    body.entry-b-layout .mid-title {
+      margin: 0 0 8px 0 !important;
+      font-size: 12px !important;
+      line-height: 1.2 !important;
+      font-weight: 700 !important;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #64748b !important;
+    }
+
+    body.entry-b-layout .entry-line-card,
+    body.entry-b-layout .section-card,
+    body.entry-b-layout .confirm-block {
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+      padding: 0;
+      margin-top: 0;
+    }
+
+    body.entry-b-layout .entry-inline-table {
+      width: 100%;
+      min-width: 0;
+      table-layout: fixed;
+      border-collapse: collapse;
+      margin-top: 0;
+      background: transparent;
+    }
+
+    body.entry-b-layout .entry-inline-table th,
+    body.entry-b-layout .entry-inline-table td {
+      border-left: 0;
+      border-right: 0;
+      border-top: 0;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 8px 6px;
+      vertical-align: middle;
+      background: transparent;
+    }
+
+    body.entry-b-layout .entry-inline-table th {
+      background: transparent;
+      color: #64748b;
+      font-size: 12px !important;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    body.entry-b-layout .entry-inline-table .col-no,
+    body.entry-b-layout .entry-inline-table th.col-no,
+    body.entry-b-layout .entry-inline-table td.col-no {
+      width: 42px !important;
+      min-width: 42px;
+      max-width: 42px;
+      text-align: center;
+      padding-left: 0;
+      padding-right: 0;
+    }
+
+    body.entry-b-layout .entry-inline-table .col-action,
+    body.entry-b-layout .entry-inline-table th.col-action,
+    body.entry-b-layout .entry-inline-table td.col-action {
+      width: 52px !important;
+      min-width: 52px;
+      max-width: 52px;
+      text-align: right;
+    }
+
+    body.entry-b-layout .entry-inline-table .col-num {
+      width: 88px;
+    }
+
+    body.entry-b-layout .entry-inline-table .append-row .append-cell,
+    body.entry-b-layout .entry-inline-table .append-row .append-action-cell {
+      border-bottom: 0;
+      background: transparent;
+    }
+
+    body.entry-b-layout .entry-inline-table .append-cell {
+      padding: 8px 0 0;
+    }
+
+    body.entry-b-layout .entry-inline-table .append-action-cell {
+      padding: 8px 0 0 !important;
+      text-align: right;
+    }
+
+    body.entry-b-layout .btn-append-row {
+      width: 40px;
+      height: 40px;
+      min-width: 40px;
+      min-height: 40px;
+      border-radius: 12px;
+      background: #0f766e;
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    body.entry-b-layout .entry-row-remove {
+      width: 34px;
+      height: 34px;
+      min-width: 34px;
+      min-height: 34px;
+      border-radius: 10px;
+      font-size: 18px;
+    }
+
+    body.entry-b-layout label,
+    body.entry-b-layout .row-label,
+    body.entry-b-layout .inline-label,
+    body.entry-b-layout .form-label,
+    body.entry-b-layout .note-text,
+    body.entry-b-layout .note-subtle {
+      font-size: 13px !important;
+      line-height: 1.3 !important;
+    }
+
+    body.entry-b-layout input,
+    body.entry-b-layout select,
+    body.entry-b-layout textarea,
+    body.entry-b-layout .input-main,
+    body.entry-b-layout .input-select,
+    body.entry-b-layout .form-input,
+    body.entry-b-layout .inline-input,
+    body.entry-b-layout .inline-number {
+      font-size: 16px !important;
+      min-height: 50px !important;
+      height: auto !important;
+      padding: 10px 10px !important;
+      border-radius: 12px !important;
+    }
+
+    body.entry-b-layout .inline-value {
+      min-height: 50px;
+      padding: 10px 10px;
+      border-radius: 12px;
+      justify-content: flex-end;
+      background: #f8fafc;
+    }
+
+    body.entry-b-layout .entry-meta-row td {
+      padding: 6px 4px;
+      background: transparent;
+    }
+
+    body.entry-b-layout .entry-meta-grid {
+      gap: 6px;
+    }
+
+    body.entry-b-layout .entry-meta-label {
+      font-size: 11px;
+      color: #94a3b8;
+    }
+
+    body.entry-b-layout .entry-meta-value {
+      font-size: 12px;
+      color: #334155;
+    }
+
+    body.entry-b-layout .entry-meta-item .inline-value,
+    body.entry-b-layout .entry-meta-item .inline-number {
+      min-height: 28px;
+      font-size: 12px !important;
+      padding: 2px 6px !important;
+      border-radius: 8px;
+    }
+
+    body.entry-b-layout .summary-table,
+    body.entry-b-layout .summary-table th,
+    body.entry-b-layout .summary-table td {
+      font-size: 13px !important;
+    }
+
+    body.entry-b-layout .summary-table th {
+      background: #f8fafc;
+      color: #64748b;
+      border-color: #e2e8f0;
+    }
+
+    body.entry-b-layout .summary-table td {
+      border-color: #e2e8f0;
+    }
+
+    body.entry-b-layout .btn-main,
+    body.entry-b-layout .btn-sub,
+    body.entry-b-layout .btn-link,
+    body.entry-b-layout button {
+      min-height: 50px !important;
+      font-size: 16px !important;
+      border-radius: 12px !important;
+      padding: 10px 12px !important;
+    }
+
+    body.entry-b-layout .point-input-row {
+      max-width: none;
+    }
+
+    body.entry-b-layout .b-panel-summary {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      margin-bottom: 8px;
+      border: 1px solid #dbeafe;
+      border-radius: 12px;
+      background: #eff6ff;
+      color: #1e293b;
+      min-width: 0;
+    }
+
+    body.entry-b-layout .b-panel-summary.is-collapsed {
+      margin-bottom: 0;
+      background: #f8fafc;
+      border-color: #e2e8f0;
+    }
+
+    body.entry-b-layout .b-panel-chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: #e2e8f0;
+      color: #334155;
+      font-size: 11px;
+      line-height: 1;
+      font-weight: 700;
+      white-space: nowrap;
+      flex: 0 0 auto;
+    }
+
+    body.entry-b-layout .b-panel-total {
+      display: inline-flex;
+      align-items: center;
+      font-size: 15px;
+      line-height: 1;
+      font-weight: 800;
+      color: #0f172a;
+      white-space: nowrap;
+      flex: 0 0 auto;
+      margin-left: auto;
+    }
+
+    body.entry-b-layout .b-panel-hint {
+      font-size: 12px;
+      line-height: 1.25;
+      color: #64748b;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1 1 auto;
+      min-width: 0;
+      text-align: right;
+    }
+
+    body.entry-b-layout .b-panel-input-row {
+      margin-top: 4px;
+    }
+
+    body.entry-b-layout .b-panel-note {
+      margin-top: 6px;
+    }
+
+    @media (max-width: 768px) {
+      body.entry-b-layout .section {
+        margin: 0 !important;
+        padding: 8px 6px !important;
+        border-radius: 0 !important;
+      }
+
+      body.entry-b-layout .entry-scroll-body {
+        padding: 2px 0 8px;
+      }
+
+      body.entry-b-layout .entry-inline-table th,
+      body.entry-b-layout .entry-inline-table td {
+        font-size: 13px !important;
+        padding: 8px 4px !important;
+      }
+
+      body.entry-b-layout .entry-inline-table .col-no,
+      body.entry-b-layout .entry-inline-table th.col-no,
+      body.entry-b-layout .entry-inline-table td.col-no {
+        width: 38px !important;
+        min-width: 38px;
+        max-width: 38px;
+      }
+
+      body.entry-b-layout .entry-inline-table .col-action,
+      body.entry-b-layout .entry-inline-table th.col-action,
+      body.entry-b-layout .entry-inline-table td.col-action {
+        width: 48px !important;
+        min-width: 48px;
+        max-width: 48px;
+      }
+
+      body.entry-b-layout .b-panel-summary {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        grid-template-areas:
+          "chip total"
+          "hint hint";
+        align-items: center;
+        row-gap: 4px;
+      }
+
+      body.entry-b-layout .b-panel-chip {
+        grid-area: chip;
+      }
+
+      body.entry-b-layout .b-panel-total {
+        grid-area: total;
+        justify-self: end;
+      }
+
+      body.entry-b-layout .b-panel-hint {
+        grid-area: hint;
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+<body class="entry-b-layout">
+  <div id="entry-app-shell" class="entry-app-shell">
+    <header id="entry-fixed-header" class="entry-fixed-header">
+      <div class="entry-fixed-header-inner">
+        <div class="entry-fixed-header-title-wrap">
+          <div class="entry-fixed-header-title">仕入入力</div>
+          <div class="entry-fixed-header-file">EntryFormB.html</div>
+        </div>
+        <div id="entry-fixed-header-state" class="entry-fixed-header-state">Bモード</div>
+      </div>
+    </header>
+
+    <main id="entry-scroll-body" class="entry-scroll-body">
+      <div id="entry-page">
+        <div class="section">
+          <div class="section-header-row">
+            <h2 class="section-title">仕入入力</h2>
+            <div id="entry-top-helper-bar" class="header-toggle-bar"></div>
+          </div>
+          <datalist id="product-options"></datalist>
+          <div id="entry-lines"></div>
+        </div>
+
+        <div id="expense-area" class="section"></div>
+        <div id="point-area" class="section"></div>
+        <div id="summary-area" class="section"></div>
+
+        <div class="section">
+          <h3 class="mid-title">共通項目</h3>
+          <div id="common-info"></div>
+        </div>
+        <div class="section">
+          <div class="button-row">
+            <button type="button" class="btn-main" onclick="showFinalConfirm()">最終確認へ進む</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="confirm-page" style="display:none;">
+        <div class="section">
+          <h2 class="section-title">仕入登録 最終確認</h2>
+          <div class="note-text">内容を確認し、問題なければ登録してください。</div>
+          <div id="confirm-area"></div>
+          <div class="button-row">
+            <button type="button" id="confirm-submit-btn" class="btn-main" onclick="submitEntries()">登録実行</button>
+            <button type="button" class="btn-sub" onclick="hideFinalConfirm()">戻る</button>
+            <span id="submit-status"></span>
+          </div>
+        </div>
+      </div>
+
+      <div id="result-page" style="display:none;">
+        <div class="section">
+          <h2 class="section-title">仕入登録 完了</h2>
+          <div id="entry-status"></div>
+          <div class="button-row">
+            <button type="button" class="btn-main" onclick="startNewEntry()">新しく仕入入力する</button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer id="entry-fixed-footer" class="entry-fixed-footer">
+      <nav class="entry-bottom-nav" aria-label="Entry 操作">
+        <button type="button" id="footer-home-btn" class="entry-bottom-nav-btn" onclick="handleFooterHomeClick()">
+          <span class="entry-bottom-nav-icon">H</span>
+          <span class="entry-bottom-nav-label">ホーム</span>
+        </button>
+        <button type="button" id="footer-variant-btn" class="entry-bottom-nav-btn" onclick="handleUiVariantToggleClick()">
+          <span class="entry-bottom-nav-icon">AB</span>
+          <span class="entry-bottom-nav-label">A/B</span>
+        </button>
+        <button type="button" id="footer-detail-btn" class="entry-bottom-nav-btn" onclick="handleFooterDetailToggleClick()">
+          <span class="entry-bottom-nav-icon">DP</span>
+          <span class="entry-bottom-nav-label">経費/点</span>
+        </button>
+        <button type="button" id="footer-tax-btn" class="entry-bottom-nav-btn" onclick="handleTaxToggleClick()">
+          <span class="entry-bottom-nav-icon">TX</span>
+          <span class="entry-bottom-nav-label">外税</span>
+        </button>
+        <button type="button" id="footer-individual-btn" class="entry-bottom-nav-btn" onclick="handleIndividualModeToggleClick()">
+          <span class="entry-bottom-nav-icon">IND</span>
+          <span class="entry-bottom-nav-label">個別</span>
+        </button>
+      </nav>
+    </footer>
+  </div>
+  <div id="entry-input-stage" class="entry-input-stage" style="display:none;"></div>
+
+  <script>
+function uiEscapeHtml_(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function uiBuildOpButtons_(idx, opts) {
+  var o = opts || {};
+  if (!o.show) {
+    return '<div class="inline-value">固定</div>';
+  }
+
+  var addLabel = uiEscapeHtml_(o.addLabel || '＋行追加');
+  var removeLabel = uiEscapeHtml_(o.removeLabel || '−削除');
+  var addFn = String(o.onAdd || '');
+  var removeFn = String(o.onRemove || '');
+
+  var addBtn = addFn
+    ? '<button type="button" class="btn-main" onclick="' + addFn + '(' + idx + ')">' + addLabel + '</button>'
+    : '';
+  var removeBtn = removeFn
+    ? '<button type="button" class="btn-sub" onclick="' + removeFn + '(' + idx + ')">' + removeLabel + '</button>'
+    : '';
+
+  return '<div class="inline-actions">' + addBtn + removeBtn + '</div>';
+}
+
+function uiBuildInputTable_(config) {
+  var c = config || {};
+  var title = c.title ? '<div class="entry-line-title">' + uiEscapeHtml_(c.title) + '</div>' : '';
+  var toolbar = c.toolbarHtml ? '<div class="entry-card-toolbar">' + String(c.toolbarHtml) + '</div>' : '';
+  var head = (title || toolbar) ? '<div class="entry-card-head">' + title + toolbar + '</div>' : '';
+  var columns = Array.isArray(c.columns) ? c.columns : [];
+  var includeOps = c.includeOps !== false;
+  var bodyHtml = String(c.bodyHtml || '');
+  var note = c.note ? '<div class="note-text" style="margin-top:0.45em;">' + uiEscapeHtml_(c.note) + '</div>' : '';
+
+  var header = '<th class="col-no">No</th>';
+  for (var i = 0; i < columns.length; i++) {
+    var col = columns[i] || {};
+    var cls = col.className ? ' ' + uiEscapeHtml_(col.className) : '';
+    header += '<th class="' + cls.trim() + '">' + uiEscapeHtml_(col.label || '') + '</th>';
+  }
+  if (includeOps) {
+    header += '<th class="col-action">操作</th>';
+  }
+
+  return '' +
+    '<div class="entry-line-card unified-entry-card">' +
+      head +
+      '<div class="inline-scroll">' +
+        '<table class="entry-inline-table unified-input-table">' +
+          '<tr>' + header + '</tr>' +
+          bodyHtml +
+        '</table>' +
+      '</div>' +
+      note +
+    '</div>';
+}
+  </script>
+<script>
+let entryRows = [];
+let expenseList = [];
+let pointTotal = 0;
+let productCandidates = [];
+let expenseCandidates = [];
+let supplierCandidates = [];
+let paymentCandidates = [];
+let commonPaymentCache = '';
+let pendingPayload = null;
+let postSubmitSlipData = null;
+let entryViewVariant = 'A';
+let pointInputMode = 'allocation';   // allocation | individual
+let expenseInputMode = 'allocation'; // allocation | individual
+let detailPanelState = {
+  expense: false,
+  point: false,
+  tax: false
+};
+const ENTRY_INPUT_STAGE_SCOPE_STEPS_ = {
+  product: ['name', 'price', 'qty'],
+  expense: ['name', 'amount'],
+  point: ['value'],
+  common: ['date', 'supplier', 'payment'],
+  lineItem: ['point', 'expense', 'payment']
+};
+let entryInputStageState_ = {
+  active: false,
+  scope: 'product',
+  currentRow: -1,
+  expenseIdx: -1,
+  step: 'name',
+  tempData: null,
+  originRect: null
+};
+const ENTRY_VIEW_VARIANT_STORAGE_KEY_ = 'erp.entryForm.viewVariant';
+const ENTRY_PAGE_DEFAULT_VARIANT_ = 'B';
+const ENTRY_PAGE_ROUTE_ = 'entry_b';
+const ENTRY_ALT_PAGE_ROUTE_ = 'entry_a';
+let entryInputStageViewportRaf_ = 0;
+let entryStageBodyLockScrollY_ = 0;
+
+window.onload = function() {
+  try {
+    if (typeof uiBuildInputTable_ !== 'function') {
+      throw new Error('共通UI関数が読み込まれていません');
+    }
+
+    initializeEntryViewVariant_();
+    entryRows = [createEmptyEntryRow()];
+    expenseList = [createEmptyExpenseRow()];
+    initializeDetailPanels_();
+    renderEntryRows();
+    renderPointArea();
+    renderExpenseArea();
+    renderSummary();
+    renderCommonInfo();
+    loadProductCandidates();
+    loadExpenseItems();
+    loadSupplierPaymentOptions();
+    restoreDraftIfNeeded_();
+    setEntryScreenState_('entry');
+    applyDetailPanelVisibility_();
+    updateTopHelperButtons_();
+    const scrollBodyEl = document.getElementById('entry-scroll-body');
+    if (scrollBodyEl) {
+      scrollBodyEl.addEventListener('scroll', handleEntryInputStageViewportChange_, { passive: true });
+    }
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleEntryInputStageViewportChange_, { passive: true });
+      window.visualViewport.addEventListener('scroll', handleEntryInputStageViewportChange_, { passive: true });
+    }
+    document.addEventListener('pointerdown', handleStageTriggerPointerDown_, true);
+    document.addEventListener('touchstart', handleStageTriggerTouchStart_, { passive: false, capture: true });
+  } catch (err) {
+    const msg = err && err.message ? err.message : String(err);
+    const target = document.getElementById('entry-status');
+    if (target) {
+      target.innerHTML = `<div class="note-text" style="color:#b00020;">初期化エラー: ${escapeHtml(msg)}</div>`;
+    }
+    showResultPage_();
+  }
+};
+
+window.addEventListener('resize', handleEntryInputStageViewportChange_);
+window.addEventListener('scroll', handleEntryInputStageViewportChange_, true);
+
+function getStageTriggerElementFromEventTarget_(target) {
+  if (!target || typeof target.closest !== 'function') return null;
+  const triggerEl = target.closest('.entry-stage-trigger');
+  if (!triggerEl) return null;
+  if (!triggerEl.hasAttribute('readonly')) return null;
+  return triggerEl;
+}
+
+function openStageTriggerWithoutFocus_(triggerEl) {
+  if (!triggerEl) return;
+  if (triggerEl.dataset && triggerEl.dataset.stageTriggerOpening === '1') return;
+  if (triggerEl.dataset) {
+    triggerEl.dataset.stageTriggerOpening = '1';
+  }
+  window.setTimeout(function() {
+    if (triggerEl.dataset) {
+      delete triggerEl.dataset.stageTriggerOpening;
+    }
+    if (typeof triggerEl.blur === 'function') {
+      try {
+        triggerEl.blur();
+      } catch (err) {
+        // no-op
+      }
+    }
+    if (typeof triggerEl.click === 'function') {
+      triggerEl.click();
+    }
+  }, 0);
+}
+
+function handleStageTriggerPointerDown_(event) {
+  if (!isInputStabilityVariantB_()) return;
+  const triggerEl = getStageTriggerElementFromEventTarget_(event && event.target);
+  if (!triggerEl) return;
+  if (event && typeof event.preventDefault === 'function') {
+    event.preventDefault();
+  }
+  openStageTriggerWithoutFocus_(triggerEl);
+}
+
+function handleStageTriggerTouchStart_(event) {
+  if (!isInputStabilityVariantB_()) return;
+  const triggerEl = getStageTriggerElementFromEventTarget_(event && event.target);
+  if (!triggerEl) return;
+  if (event && typeof event.preventDefault === 'function') {
+    event.preventDefault();
+  }
+  openStageTriggerWithoutFocus_(triggerEl);
+}
+
+function isIOSMobile_() {
+  const ua = String((window.navigator && window.navigator.userAgent) || '').toLowerCase();
+  const platform = String((window.navigator && window.navigator.platform) || '').toLowerCase();
+  const touchPoints = Number((window.navigator && window.navigator.maxTouchPoints) || 0);
+  const isAppleMobileUa = /iphone|ipad|ipod/.test(ua);
+  const isIPadDesktopMode = platform === 'macintel' && touchPoints > 1;
+  return (isAppleMobileUa || isIPadDesktopMode) && window.innerWidth <= 1024;
+}
+
+function normalizeEntryViewVariant_(value) {
+  const variant = String(value || '').trim().toUpperCase();
+  return variant === 'B' ? 'B' : 'A';
+}
+
+function persistEntryViewVariant_(variant) {
+  try {
+    window.localStorage.setItem(ENTRY_VIEW_VARIANT_STORAGE_KEY_, normalizeEntryViewVariant_(variant));
+  } catch (err) {
+    // no-op
+  }
+}
+
+function applyEntryViewVariant_(variant, options) {
+  const normalized = normalizeEntryViewVariant_(variant);
+  const opts = options || {};
+  entryViewVariant = normalized;
+  document.body.setAttribute('data-ui-variant', normalized.toLowerCase());
+  document.body.setAttribute('data-footer-mode', 'consolidated');
+  const headerStateEl = document.getElementById('entry-fixed-header-state');
+  if (headerStateEl) {
+    headerStateEl.textContent = normalized === 'B' ? 'Bモード' : 'Aモード';
+  }
+  if (!opts.skipPersist) {
+    persistEntryViewVariant_(normalized);
+  }
+  renderTopHelperButtons_();
+  updateTopHelperButtons_();
+}
+
+function initializeEntryViewVariant_() {
+  const queryParamVariant = String(getQueryParam_('ab') || getQueryParam_('variant')).trim();
+  const queryVariant = normalizeEntryViewVariant_(queryParamVariant);
+  if (queryParamVariant) {
+    applyEntryViewVariant_(queryVariant);
+    return;
+  }
+  const pageDefaultRaw = String(ENTRY_PAGE_DEFAULT_VARIANT_ || '').trim().toUpperCase();
+  if (pageDefaultRaw === 'A' || pageDefaultRaw === 'B') {
+    applyEntryViewVariant_(pageDefaultRaw, { skipPersist: true });
+    return;
+  }
+  if (isIOSMobile_()) {
+    applyEntryViewVariant_('B', { skipPersist: true });
+    return;
+  }
+  let storedRaw = '';
+  try {
+    storedRaw = String(window.localStorage.getItem(ENTRY_VIEW_VARIANT_STORAGE_KEY_) || '').trim();
+  } catch (err) {
+    storedRaw = '';
+  }
+  if (storedRaw) {
+    applyEntryViewVariant_(normalizeEntryViewVariant_(storedRaw), { skipPersist: true });
+    return;
+  }
+  const defaultVariant = 'A';
+  applyEntryViewVariant_(defaultVariant, { skipPersist: true });
+}
+
+function handleUiVariantToggleClick() {
+  if (ENTRY_PAGE_ROUTE_ && ENTRY_ALT_PAGE_ROUTE_) {
+    navigateToWebAppPage_(ENTRY_ALT_PAGE_ROUTE_, {});
+    return;
+  }
+  const nextVariant = normalizeEntryViewVariant_(entryViewVariant) === 'A' ? 'B' : 'A';
+  applyEntryViewVariant_(nextVariant);
+  renderExpenseArea();
+  renderPointArea();
+  applyDetailPanelVisibility_();
+  if (entryInputStageState_.active) {
+    renderEntryInputStage_();
+  }
+  updateTopHelperButtons_();
+}
+
+function isUiVariantB_() {
+  return normalizeEntryViewVariant_(entryViewVariant) === 'B';
+}
+
+function isInputStabilityVariantB_() {
+  return isUiVariantB_();
+}
+
+function isFooterConsolidatedMode_() {
+  return true;
+}
+
+function renderTopHelperButtons_() {
+  const helperBar = document.getElementById('entry-top-helper-bar');
+  if (!helperBar) return;
+  if (isFooterConsolidatedMode_()) {
+    helperBar.innerHTML = '';
+    return;
+  }
+  helperBar.innerHTML = '' +
+    '<button type="button" id="helper-variant-btn" class="header-toggle-btn" onclick="handleUiVariantToggleClick()"></button>' +
+    '<button type="button" id="helper-individual-btn" class="header-toggle-btn" onclick="handleIndividualModeToggleClick()"></button>' +
+    '<button type="button" id="helper-tax-btn" class="header-toggle-btn" onclick="handleTaxToggleClick()"></button>';
+}
+
+function setEntryScreenState_(screen) {
+  const normalized = String(screen || 'entry').trim() || 'entry';
+  document.body.setAttribute('data-entry-screen', normalized);
+  updateTopHelperButtons_();
+}
+
+function scrollAppBodyToTop_() {
+  const scrollEl = document.getElementById('entry-scroll-body');
+  if (scrollEl) {
+    scrollEl.scrollTop = 0;
+    return;
+  }
+  window.scrollTo(0, 0);
+}
+
+function isWebAppRuntimeUrl_() {
+  return /\/(exec|dev)(?:$|[?#])/i.test(String(window.location.href || ''));
+}
+
+function navigateToWebAppPage_(page, params) {
+  const fallbackUrl = String(buildWebAppPageUrl_(page, params || {}) || '').trim();
+  if (isWebAppRuntimeUrl_()) {
+    if (!fallbackUrl) {
+      showError(new Error('ページ遷移URLを作成できませんでした。'));
+      return;
+    }
+    window.location.href = fallbackUrl;
+    return;
+  }
+  const canUseGasRun = (typeof google !== 'undefined') &&
+    google &&
+    google.script &&
+    google.script.run &&
+    typeof google.script.run.getWebAppPageUrl === 'function';
+  if (!canUseGasRun) {
+    if (!fallbackUrl) {
+      showError(new Error('ページ遷移URLを作成できませんでした。'));
+      return;
+    }
+    window.location.href = fallbackUrl;
+    return;
+  }
+  google.script.run
+    .withSuccessHandler(function(url) {
+      const resolvedUrl = String(url || '').trim();
+      const targetUrl = resolvedUrl || fallbackUrl;
+      if (!targetUrl) {
+        showError(new Error('ページ遷移URLを取得できませんでした。'));
+        return;
+      }
+      try {
+        if (window.top && window.top !== window.self) {
+          window.top.location.href = targetUrl;
+          return;
+        }
+      } catch (err) {
+        // no-op
+      }
+      window.location.href = targetUrl;
+    })
+    .withFailureHandler(function(err) {
+      if (fallbackUrl) {
+        window.location.href = fallbackUrl;
+        return;
+      }
+      showError(err || new Error('ページ遷移URLを取得できませんでした。'));
+    })
+    .getWebAppPageUrl(page, params || {});
+}
+
+function handleFooterHomeClick() {
+  navigateToWebAppPage_('home', {});
+}
+
+function handleFooterDetailToggleClick() {
+  const shouldOpen = !(detailPanelState.expense && detailPanelState.point);
+  detailPanelState.expense = shouldOpen;
+  detailPanelState.point = shouldOpen;
+  renderExpenseArea();
+  renderPointArea();
+  applyDetailPanelVisibility_();
+  updateTopHelperButtons_();
+}
+
+function createEmptyEntryRow() {
+  return {
+    productInput: '',
+    productNo: '',
+    name: '',
+    price: 0,
+    qty: 1,
+    point: 0,
+    expenseAlloc: 0,
+    paymentMethod: '',
+    baseCost: 0,
+    cost: 0,
+    unitPrice: 0
+  };
+}
+
+function normalizeEntryInputStageScope_(scope) {
+  const target = String(scope || '').trim();
+  if (Object.prototype.hasOwnProperty.call(ENTRY_INPUT_STAGE_SCOPE_STEPS_, target)) {
+    return target;
+  }
+  return 'product';
+}
+
+function normalizeEntryInputStageStep_(scope, step) {
+  const targetScope = normalizeEntryInputStageScope_(scope);
+  const target = String(step || '').trim();
+  const steps = ENTRY_INPUT_STAGE_SCOPE_STEPS_[targetScope] || ['name'];
+  return steps.includes(target) ? target : steps[0];
+}
+
+function captureStageRect_(el) {
+  if (!el || typeof el.getBoundingClientRect !== 'function') return null;
+  const rect = el.getBoundingClientRect();
+  return {
+    left: rect.left,
+    top: rect.top,
+    width: rect.width,
+    height: rect.height
+  };
+}
+
+function clampStageValue_(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function getEntryInputStageAnchorElement_() {
+  const scope = normalizeEntryInputStageScope_(entryInputStageState_.scope);
+  if (scope === 'expense') return document.getElementById('expense-area');
+  if (scope === 'point') return document.getElementById('point-area');
+  if (scope === 'common') return document.getElementById('common-info');
+  return document.getElementById('entry-lines');
+}
+
+function applyEntryInputStagePosition_(stageEl) {
+  if (!stageEl) return;
+  const panelEl = stageEl.querySelector('.entry-input-stage-panel');
+  if (!panelEl) return;
+  const isMobile = window.innerWidth <= 768;
+  const vv = window.visualViewport;
+  const layoutWidth = Math.max(0, window.innerWidth || (vv ? vv.width : 0));
+  const vvWidth = vv ? Math.max(0, vv.width) : window.innerWidth;
+  const vvHeight = vv ? Math.max(0, vv.height) : window.innerHeight;
+
+  if (isMobile && isInputStabilityVariantB_()) {
+    stageEl.style.inset = 'auto';
+    stageEl.style.left = '0px';
+    stageEl.style.top = '0px';
+    stageEl.style.width = layoutWidth + 'px';
+    stageEl.style.height = vvHeight + 'px';
+    stageEl.style.setProperty('--entry-stage-height', Math.round(vvHeight) + 'px');
+
+    const safeMargin = 8;
+    const panelWidth = Math.max(0, Math.min(layoutWidth - (safeMargin * 2), Math.min(layoutWidth * 0.92, 720)));
+    const left = Math.round(layoutWidth / 2);
+    const top = safeMargin;
+    const panelMaxHeight = Math.max(0, vvHeight - (safeMargin * 2));
+
+    panelEl.style.left = left + 'px';
+    panelEl.style.top = top + 'px';
+    panelEl.style.width = panelWidth + 'px';
+    panelEl.style.maxHeight = panelMaxHeight + 'px';
+    panelEl.style.transform = 'translateX(-50%)';
+    return;
+  }
+  if (isMobile) {
+    stageEl.style.removeProperty('inset');
+    stageEl.style.removeProperty('left');
+    stageEl.style.removeProperty('top');
+    stageEl.style.removeProperty('width');
+    stageEl.style.removeProperty('height');
+    stageEl.style.setProperty('--entry-stage-height', '100dvh');
+    panelEl.style.left = '50%';
+    panelEl.style.top = '50%';
+    panelEl.style.width = 'min(92vw, 720px)';
+    panelEl.style.maxHeight = '80vh';
+    panelEl.style.transform = 'translate(-50%, -50%)';
+    return;
+  }
+  stageEl.style.removeProperty('inset');
+  stageEl.style.removeProperty('left');
+  stageEl.style.removeProperty('top');
+  stageEl.style.removeProperty('width');
+  stageEl.style.removeProperty('height');
+  stageEl.style.setProperty('--entry-stage-height', '100dvh');
+  panelEl.style.removeProperty('left');
+  panelEl.style.removeProperty('top');
+  panelEl.style.removeProperty('width');
+  panelEl.style.removeProperty('max-height');
+  panelEl.style.removeProperty('transform');
+
+  const anchorEl = getEntryInputStageAnchorElement_();
+  const anchorRect = captureStageRect_(anchorEl) || {
+    left: 8,
+    top: 8,
+    width: Math.max(0, window.innerWidth - 16),
+    height: 0
+  };
+  const panelWidth = Math.min(window.innerWidth * 0.92, 720);
+  const rootStyles = window.getComputedStyle(document.documentElement);
+  const topOffsetRaw = parseFloat(String(rootStyles.getPropertyValue('--entry-top-offset') || '').trim());
+  const topOffset = Number.isFinite(topOffsetRaw) ? topOffsetRaw : 0;
+  const safeMargin = 8;
+  const left = clampStageValue_(
+    anchorRect.left + ((anchorRect.width - panelWidth) / 2),
+    safeMargin,
+    Math.max(safeMargin, window.innerWidth - panelWidth - safeMargin)
+  );
+  const top = clampStageValue_(
+    anchorRect.top + 8 + topOffset,
+    safeMargin,
+    Math.max(safeMargin, window.innerHeight - 260)
+  );
+  const originRect = entryInputStageState_.originRect || anchorRect;
+  const fromX = (originRect.left + (originRect.width / 2)) - (left + (panelWidth / 2));
+  const fromY = (originRect.top + (originRect.height / 2)) - (top + 20);
+
+  stageEl.style.setProperty('--entry-panel-left', left + 'px');
+  stageEl.style.setProperty('--entry-panel-top', top + 'px');
+  stageEl.style.setProperty('--entry-panel-width', panelWidth + 'px');
+  stageEl.style.setProperty('--entry-from-x', Math.round(fromX) + 'px');
+  stageEl.style.setProperty('--entry-from-y', Math.round(fromY) + 'px');
+}
+
+function handleEntryInputStageViewportChange_() {
+  if (entryInputStageViewportRaf_) return;
+  entryInputStageViewportRaf_ = window.requestAnimationFrame(function() {
+    entryInputStageViewportRaf_ = 0;
+    if (!entryInputStageState_.active) return;
+    const stageEl = document.getElementById('entry-input-stage');
+    if (!stageEl || !stageEl.classList.contains('is-open')) return;
+    applyEntryInputStagePosition_(stageEl);
+  });
+}
+
+function buildProductInputStageTemp_(row) {
+  const src = row || {};
+  const nameValue = String(src.productInput || src.name || '').trim();
+  const priceRaw = roundYen(src.price || 0);
+  const qtyRaw = Math.max(1, roundYen(src.qty || 1));
+  return {
+    name: nameValue,
+    price: priceRaw > 0 ? String(priceRaw) : '',
+    qty: String(qtyRaw)
+  };
+}
+
+function buildExpenseInputStageTemp_(row) {
+  const src = row || {};
+  const amount = Math.max(0, roundYen(src.amount || 0));
+  return {
+    name: String(src.name || '').trim(),
+    amount: amount > 0 ? String(amount) : ''
+  };
+}
+
+function buildPointInputStageTemp_() {
+  const value = Math.max(0, roundYen(pointTotal || 0));
+  return {
+    value: value > 0 ? String(value) : ''
+  };
+}
+
+function buildLineItemInputStageTemp_(row) {
+  const src = row || {};
+  const point = Math.max(0, roundYen(src.point || 0));
+  const expense = Math.max(0, roundYen(src.expenseAlloc || 0));
+  return {
+    point: point > 0 ? String(point) : '',
+    expense: expense > 0 ? String(expense) : '',
+    payment: String(src.paymentMethod || '').trim()
+  };
+}
+
+function buildCommonInputStageTemp_() {
+  const dateEl = document.getElementById('common-date');
+  const supplierEl = document.getElementById('common-supplier');
+  const paymentEl = document.getElementById('common-payment');
+  return {
+    date: normalizeDateDigits_(String((dateEl && dateEl.value) || '').trim()),
+    supplier: String((supplierEl && supplierEl.value) || '').trim(),
+    payment: String((paymentEl && paymentEl.value) || '').trim()
+  };
+}
+
+function getEntryInputStageValue_(scope, step) {
+  const targetScope = normalizeEntryInputStageScope_(scope);
+  const targetStep = normalizeEntryInputStageStep_(targetScope, step);
+  const temp = entryInputStageState_.tempData || {};
+  return String(temp[targetStep] || '');
+}
+
+function setEntryInputStageValue_(scope, step, value) {
+  const targetScope = normalizeEntryInputStageScope_(scope);
+  const targetStep = normalizeEntryInputStageStep_(targetScope, step);
+  if (!entryInputStageState_.tempData) {
+    entryInputStageState_.tempData = {};
+  }
+  entryInputStageState_.tempData[targetStep] = String(value || '');
+}
+
+function getEntryInputStageTitle_(scope) {
+  if (scope === 'lineItem') return '商品個別入力';
+  if (scope === 'expense') return '経費入力';
+  if (scope === 'point') return 'ポイント/割引入力';
+  if (scope === 'common') return '共通項目入力';
+  return '商品入力';
+}
+
+function getEntryInputStageLabel_(scope, step) {
+  if (scope === 'lineItem') {
+    if (step === 'expense') return '経費';
+    if (step === 'payment') return '支払方法';
+    return 'ポイント/割引';
+  }
+  if (scope === 'expense') {
+    if (step === 'amount') return '金額';
+    return '経費名';
+  }
+  if (scope === 'point') return 'ポイント/割引';
+  if (scope === 'common') {
+    if (step === 'date') return '仕入日';
+    if (step === 'supplier') return '仕入先';
+    return '支払方法';
+  }
+  if (step === 'price') return '提示金額';
+  if (step === 'qty') return '個数';
+  return '商品';
+}
+
+function getEntryInputStageActionLabel_(scope, step) {
+  if (scope === 'product') {
+    return step === 'qty' ? '確定' : '次へ';
+  }
+  if (scope === 'expense') {
+    return step === 'amount' ? '確定' : '次へ';
+  }
+  if (scope === 'lineItem') {
+    return step === 'payment' ? '確定' : '次へ';
+  }
+  if (scope === 'common') {
+    if (step === 'date') return '次へ';
+    if (step === 'supplier') return isLineItemIndividualMode_() ? '確定' : '次へ';
+    return '確定';
+  }
+  return '確定';
+}
+
+function getEntryInputStagePlaceholder_(scope, step) {
+  if (scope === 'lineItem') {
+    if (step === 'expense') return '経費を入力';
+    if (step === 'payment') return '支払方法を入力';
+    return 'ポイント/割引を入力';
+  }
+  if (scope === 'expense') {
+    if (step === 'amount') return '経費金額を入力';
+    return '経費名を入力';
+  }
+  if (scope === 'point') return 'ポイント/割引を入力';
+  if (scope === 'common') {
+    if (step === 'date') return 'YYYYMMDD';
+    if (step === 'supplier') return '仕入先を入力';
+    return '支払方法を入力';
+  }
+  if (step === 'price') return '提示金額を入力';
+  if (step === 'qty') return '個数を入力';
+  return 'JAN / 商品名 / 商品マスタ番号';
+}
+
+function getEntryInputStageInputClass_(scope, step) {
+  if (scope === 'lineItem' && step === 'payment') {
+    return 'inline-input entry-input-stage-input';
+  }
+  if (scope === 'product' && step === 'name') {
+    return 'inline-input entry-input-stage-input';
+  }
+  if (scope === 'expense' && step === 'name') {
+    return 'inline-input entry-input-stage-input';
+  }
+  if (scope === 'common' && (step === 'supplier' || step === 'payment')) {
+    return 'inline-input entry-input-stage-input';
+  }
+  return 'inline-number entry-input-stage-input';
+}
+
+function getEntryInputStageInputAttrs_(scope, step) {
+  if (scope === 'lineItem') {
+    if (step === 'payment') return 'type="text" list="payment-options"';
+    return 'type="text" inputmode="numeric" pattern="\\d*"';
+  }
+  if (scope === 'product' && step === 'name') {
+    return 'type="text" list="product-options"';
+  }
+  if (scope === 'expense' && step === 'name') {
+    return 'type="text" list="expense-items"';
+  }
+  if (scope === 'common') {
+    if (step === 'supplier') return 'type="text" list="supplier-options"';
+    if (step === 'payment') return 'type="text" list="payment-options"';
+    return 'type="text" inputmode="numeric" pattern="\\d*"';
+  }
+  return 'type="text" inputmode="numeric" pattern="\\d*"';
+}
+
+function focusEntryInputStage_() {
+  if (isInputStabilityVariantB_()) return;
+  window.setTimeout(function() {
+    const inputEl = document.getElementById('entry-input-stage-field');
+    if (!inputEl) return;
+    try {
+      inputEl.focus({ preventScroll: true });
+    } catch (err) {
+      try {
+        inputEl.focus();
+      } catch (err2) {
+        // no-op
+      }
+    }
+    if (typeof inputEl.setSelectionRange === 'function') {
+      const len = String(inputEl.value || '').length;
+      try {
+        inputEl.setSelectionRange(len, len);
+      } catch (err3) {
+        // no-op
+      }
+    }
+  }, 0);
+}
+
+function handleEntryInputStageFieldFocus_() {
+  if (!isInputStabilityVariantB_()) return;
+  handleEntryInputStageViewportChange_();
+  window.setTimeout(function() {
+    handleEntryInputStageViewportChange_();
+  }, 120);
+}
+
+function handleEntryInputStageFieldBlur_() {
+  if (!isInputStabilityVariantB_()) return;
+  handleEntryInputStageViewportChange_();
+}
+
+function lockEntryStageBodyForMobile_() {
+  if (window.innerWidth > 768) return;
+  if (isInputStabilityVariantB_()) return;
+  if (document.body.classList.contains('entry-stage-active')) return;
+  entryStageBodyLockScrollY_ = window.scrollY || window.pageYOffset || 0;
+  document.body.style.top = '-' + entryStageBodyLockScrollY_ + 'px';
+  document.body.style.position = 'fixed';
+  document.body.style.left = '0';
+  document.body.style.right = '0';
+  document.body.style.width = '100%';
+}
+
+function unlockEntryStageBodyForMobile_() {
+  const top = String(document.body.style.top || '');
+  document.body.style.top = '';
+  document.body.style.position = '';
+  document.body.style.left = '';
+  document.body.style.right = '';
+  document.body.style.width = '';
+  if (window.innerWidth > 768) return;
+  if (isInputStabilityVariantB_()) return;
+  let restoreY = entryStageBodyLockScrollY_;
+  if (top) {
+    const parsed = Math.abs(parseInt(top, 10));
+    if (Number.isFinite(parsed)) {
+      restoreY = parsed;
+    }
+  }
+  window.scrollTo(0, restoreY);
+  entryStageBodyLockScrollY_ = 0;
+}
+
+function closeEntryInputStage_() {
+  entryInputStageState_.active = false;
+  entryInputStageState_.scope = 'product';
+  entryInputStageState_.currentRow = -1;
+  entryInputStageState_.expenseIdx = -1;
+  entryInputStageState_.step = 'name';
+  entryInputStageState_.tempData = null;
+  entryInputStageState_.originRect = null;
+  unlockEntryStageBodyForMobile_();
+  document.body.classList.remove('entry-stage-active');
+  document.body.classList.remove('entry-stage-mobile-b');
+  const stageEl = document.getElementById('entry-input-stage');
+  if (!stageEl) return;
+  stageEl.classList.remove('is-open');
+  stageEl.style.display = 'none';
+  stageEl.style.removeProperty('inset');
+  stageEl.style.removeProperty('left');
+  stageEl.style.removeProperty('top');
+  stageEl.style.removeProperty('width');
+  stageEl.style.removeProperty('height');
+  stageEl.style.setProperty('--entry-stage-height', '100dvh');
+  stageEl.innerHTML = '';
+}
+
+function renderEntryInputStage_() {
+  const stageEl = document.getElementById('entry-input-stage');
+  if (!stageEl) return;
+  if (!entryInputStageState_.active) {
+    closeEntryInputStage_();
+    return;
+  }
+
+  const scope = normalizeEntryInputStageScope_(entryInputStageState_.scope);
+  entryInputStageState_.scope = scope;
+  const step = normalizeEntryInputStageStep_(scope, entryInputStageState_.step);
+  entryInputStageState_.step = step;
+  if (scope === 'product') {
+    if (entryInputStageState_.currentRow < 0 || entryInputStageState_.currentRow >= entryRows.length) {
+      closeEntryInputStage_();
+      return;
+    }
+  }
+  if (scope === 'expense') {
+    if (entryInputStageState_.expenseIdx < 0 || entryInputStageState_.expenseIdx >= expenseList.length) {
+      closeEntryInputStage_();
+      return;
+    }
+  }
+  if (scope === 'lineItem') {
+    if (entryInputStageState_.currentRow < 0 || entryInputStageState_.currentRow >= entryRows.length) {
+      closeEntryInputStage_();
+      return;
+    }
+  }
+  if (scope === 'common') {
+    const isPaymentField = step === 'payment';
+    if (isPaymentField && isLineItemIndividualMode_()) {
+      closeEntryInputStage_();
+      return;
+    }
+  }
+
+  const label = getEntryInputStageLabel_(scope, step);
+  const actionLabel = getEntryInputStageActionLabel_(scope, step);
+  const value = escapeHtml(getEntryInputStageValue_(scope, step));
+  const placeholder = getEntryInputStagePlaceholder_(scope, step);
+  const inputClass = getEntryInputStageInputClass_(scope, step);
+  const inputAttrs = getEntryInputStageInputAttrs_(scope, step);
+
+  stageEl.innerHTML = `
+    <div class="entry-input-stage-panel" role="group" aria-label="${label}">
+      <label class="entry-input-stage-label" for="entry-input-stage-field">${label}</label>
+      <input id="entry-input-stage-field" class="${inputClass}" ${inputAttrs} value="${value}" placeholder="${placeholder}" autocapitalize="off" autocorrect="off" spellcheck="false" onfocus="handleEntryInputStageFieldFocus_()" onblur="handleEntryInputStageFieldBlur_()" oninput="onEntryInputStageInput(this.value)" onkeydown="onEntryInputStageKeydown(event)">
+      <div class="entry-input-stage-actions">
+        <button type="button" class="btn-sub" onclick="onEntryInputStageBack()">戻る</button>
+        <button type="button" class="btn-main" onclick="onEntryInputStageAction()">${actionLabel}</button>
+      </div>
+    </div>
+  `;
+  applyEntryInputStagePosition_(stageEl);
+  stageEl.style.display = 'flex';
+  stageEl.classList.add('is-open');
+  lockEntryStageBodyForMobile_();
+  document.body.classList.add('entry-stage-active');
+  document.body.classList.toggle('entry-stage-mobile-b', isInputStabilityVariantB_() && window.innerWidth <= 768);
+  focusEntryInputStage_();
+}
+
+function openEntryInputStage(rowIdx, step, triggerEl) {
+  if (rowIdx < 0 || rowIdx >= entryRows.length) return;
+  entryInputStageState_.active = true;
+  entryInputStageState_.scope = 'product';
+  entryInputStageState_.currentRow = rowIdx;
+  entryInputStageState_.expenseIdx = -1;
+  entryInputStageState_.step = normalizeEntryInputStageStep_('product', step);
+  entryInputStageState_.tempData = buildProductInputStageTemp_(entryRows[rowIdx]);
+  entryInputStageState_.originRect = captureStageRect_(triggerEl);
+  renderEntryInputStage_();
+}
+
+function openExpenseInputStage(idx, step, triggerEl) {
+  if (idx < 0 || idx >= expenseList.length) return;
+  entryInputStageState_.active = true;
+  entryInputStageState_.scope = 'expense';
+  entryInputStageState_.currentRow = -1;
+  entryInputStageState_.expenseIdx = idx;
+  entryInputStageState_.step = normalizeEntryInputStageStep_('expense', step);
+  entryInputStageState_.tempData = buildExpenseInputStageTemp_(expenseList[idx]);
+  entryInputStageState_.originRect = captureStageRect_(triggerEl);
+  renderEntryInputStage_();
+}
+
+function openPointInputStage(triggerEl) {
+  entryInputStageState_.active = true;
+  entryInputStageState_.scope = 'point';
+  entryInputStageState_.currentRow = -1;
+  entryInputStageState_.expenseIdx = -1;
+  entryInputStageState_.step = 'value';
+  entryInputStageState_.tempData = buildPointInputStageTemp_();
+  entryInputStageState_.originRect = captureStageRect_(triggerEl);
+  renderEntryInputStage_();
+}
+
+function openLineItemInputStage(rowIdx, step, triggerEl) {
+  if (rowIdx < 0 || rowIdx >= entryRows.length) return;
+  if (!isLineItemIndividualMode_()) return;
+  entryInputStageState_.active = true;
+  entryInputStageState_.scope = 'lineItem';
+  entryInputStageState_.currentRow = rowIdx;
+  entryInputStageState_.expenseIdx = -1;
+  entryInputStageState_.step = normalizeEntryInputStageStep_('lineItem', step);
+  entryInputStageState_.tempData = buildLineItemInputStageTemp_(entryRows[rowIdx]);
+  entryInputStageState_.originRect = captureStageRect_(triggerEl);
+  renderEntryInputStage_();
+}
+
+function openCommonInputStage(field, triggerEl) {
+  const step = normalizeEntryInputStageStep_('common', field);
+  if (step === 'payment' && isLineItemIndividualMode_()) return;
+  entryInputStageState_.active = true;
+  entryInputStageState_.scope = 'common';
+  entryInputStageState_.currentRow = -1;
+  entryInputStageState_.expenseIdx = -1;
+  entryInputStageState_.step = step;
+  entryInputStageState_.tempData = buildCommonInputStageTemp_();
+  entryInputStageState_.originRect = captureStageRect_(triggerEl);
+  renderEntryInputStage_();
+}
+
+function onEntryInputStageInput(value) {
+  if (!entryInputStageState_.active) return;
+  const scope = normalizeEntryInputStageScope_(entryInputStageState_.scope);
+  const step = normalizeEntryInputStageStep_(scope, entryInputStageState_.step);
+  setEntryInputStageValue_(scope, step, value);
+}
+
+function onEntryInputStageKeydown(event) {
+  if (!event) return;
+  if (event.key !== 'Enter') return;
+  event.preventDefault();
+  onEntryInputStageAction();
+}
+
+function commitEntryInputStageStep_() {
+  if (!entryInputStageState_.active) return;
+  const scope = normalizeEntryInputStageScope_(entryInputStageState_.scope);
+  const step = normalizeEntryInputStageStep_(scope, entryInputStageState_.step);
+  const inputEl = document.getElementById('entry-input-stage-field');
+  const value = inputEl ? String(inputEl.value || '') : getEntryInputStageValue_(scope, step);
+  setEntryInputStageValue_(scope, step, value);
+
+  if (scope === 'product') {
+    const idx = entryInputStageState_.currentRow;
+    const row = entryRows[idx];
+    if (!row) return;
+    if (step === 'name') {
+      onProductInput(idx, value);
+      return;
+    }
+    if (step === 'price') {
+      onPriceInput(idx, value);
+      return;
+    }
+    onQtyInput(idx, value);
+    return;
+  }
+
+  if (scope === 'expense') {
+    const idx = entryInputStageState_.expenseIdx;
+    const row = expenseList[idx];
+    if (!row) return;
+    if (step === 'name') {
+      onExpenseNameInput(idx, value);
+      return;
+    }
+    onExpenseAmountBlur(idx, value);
+    return;
+  }
+
+  if (scope === 'lineItem') {
+    const idx = entryInputStageState_.currentRow;
+    const row = entryRows[idx];
+    if (!row) return;
+    if (step === 'point') {
+      onPointInput(idx, value);
+      return;
+    }
+    if (step === 'expense') {
+      onExpenseAllocInput(idx, value);
+      return;
+    }
+    onRowPaymentInput(idx, value);
+    return;
+  }
+
+  if (scope === 'common') {
+    const target = normalizeEntryInputStageStep_('common', step);
+    const normalizedValue = target === 'date'
+      ? normalizeDateDigits_(value)
+      : String(value || '').trim();
+    setEntryInputStageValue_(scope, target, normalizedValue);
+    if (target === 'date') {
+      const dateInput = document.getElementById('common-date');
+      if (dateInput) dateInput.value = normalizedValue;
+      syncDatePickerFromText_('common-date', 'common-date-picker');
+      return;
+    }
+    if (target === 'supplier') {
+      const supplierInput = document.getElementById('common-supplier');
+      if (supplierInput) supplierInput.value = normalizedValue;
+      return;
+    }
+    const paymentInput = document.getElementById('common-payment');
+    if (paymentInput) paymentInput.value = normalizedValue;
+    return;
+  }
+
+  pointTotal = Math.max(0, roundYen(value || 0));
+  recalculateCosts();
+}
+
+function onEntryInputStageAction() {
+  if (!entryInputStageState_.active) return;
+  const scope = normalizeEntryInputStageScope_(entryInputStageState_.scope);
+  const step = normalizeEntryInputStageStep_(scope, entryInputStageState_.step);
+  commitEntryInputStageStep_();
+
+  if (scope === 'product') {
+    if (step === 'name') {
+      entryInputStageState_.step = 'price';
+      renderEntryInputStage_();
+      return;
+    }
+    if (step === 'price') {
+      entryInputStageState_.step = 'qty';
+      renderEntryInputStage_();
+      return;
+    }
+    closeEntryInputStage_();
+    return;
+  }
+
+  if (scope === 'expense') {
+    if (step === 'name') {
+      entryInputStageState_.step = 'amount';
+      renderEntryInputStage_();
+      return;
+    }
+    closeEntryInputStage_();
+    return;
+  }
+
+  if (scope === 'lineItem') {
+    if (step === 'point') {
+      entryInputStageState_.step = 'expense';
+      renderEntryInputStage_();
+      return;
+    }
+    if (step === 'expense') {
+      entryInputStageState_.step = 'payment';
+      renderEntryInputStage_();
+      return;
+    }
+    closeEntryInputStage_();
+    return;
+  }
+
+  if (scope === 'common') {
+    if (step === 'date') {
+      entryInputStageState_.step = 'supplier';
+      renderEntryInputStage_();
+      return;
+    }
+    if (step === 'supplier' && !isLineItemIndividualMode_()) {
+      entryInputStageState_.step = 'payment';
+      renderEntryInputStage_();
+      return;
+    }
+    closeEntryInputStage_();
+    return;
+  }
+
+  closeEntryInputStage_();
+}
+
+function onEntryInputStageBack() {
+  if (!entryInputStageState_.active) return;
+  const scope = normalizeEntryInputStageScope_(entryInputStageState_.scope);
+  const step = normalizeEntryInputStageStep_(scope, entryInputStageState_.step);
+
+  if (scope === 'product') {
+    if (step === 'qty') {
+      entryInputStageState_.step = 'price';
+      renderEntryInputStage_();
+      return;
+    }
+    if (step === 'price') {
+      entryInputStageState_.step = 'name';
+      renderEntryInputStage_();
+      return;
+    }
+    closeEntryInputStage_();
+    return;
+  }
+
+  if (scope === 'expense') {
+    if (step === 'amount') {
+      entryInputStageState_.step = 'name';
+      renderEntryInputStage_();
+      return;
+    }
+    closeEntryInputStage_();
+    return;
+  }
+
+  if (scope === 'lineItem') {
+    if (step === 'payment') {
+      entryInputStageState_.step = 'expense';
+      renderEntryInputStage_();
+      return;
+    }
+    if (step === 'expense') {
+      entryInputStageState_.step = 'point';
+      renderEntryInputStage_();
+      return;
+    }
+    closeEntryInputStage_();
+    return;
+  }
+
+  if (scope === 'common') {
+    if (step === 'payment') {
+      entryInputStageState_.step = 'supplier';
+      renderEntryInputStage_();
+      return;
+    }
+    if (step === 'supplier') {
+      entryInputStageState_.step = 'date';
+      renderEntryInputStage_();
+      return;
+    }
+    closeEntryInputStage_();
+    return;
+  }
+
+  closeEntryInputStage_();
+}
+
+function createEmptyExpenseRow() {
+  return {
+    name: '',
+    amount: '',
+    memo: ''
+  };
+}
+
+function toNumber(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function roundYen(v) {
+  return Math.round(toNumber(v));
+}
+
+function escapeHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function formatWithComma_(value) {
+  return String(Math.round(toNumber(value))).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+function formatYen_(value) {
+  return formatWithComma_(value) + '円';
+}
+
+function getQueryParam_(name) {
+  try {
+    const url = new URL(window.location.href);
+    return String(url.searchParams.get(name) || '').trim();
+  } catch (err) {
+    const query = String(window.location.search || '').replace(/^\?/, '');
+    if (!query) return '';
+    const pairs = query.split('&');
+    for (let i = 0; i < pairs.length; i++) {
+      const parts = pairs[i].split('=');
+      if (decodeURIComponent(parts[0] || '') !== String(name || '')) continue;
+      return decodeURIComponent(parts[1] || '').trim();
+    }
+    return '';
+  }
+}
+
+function buildWebAppPageUrl_(page, params) {
+  try {
+    const url = new URL(window.location.href);
+    url.searchParams.set('page', String(page || 'entry'));
+    const p = params || {};
+    Object.keys(p).forEach(key => {
+      if (p[key] === undefined || p[key] === null || String(p[key]).trim() === '') {
+        url.searchParams.delete(key);
+        return;
+      }
+      url.searchParams.set(key, String(p[key]));
+    });
+    return url.toString();
+  } catch (err) {
+    const p = params || {};
+    const query = ['page=' + encodeURIComponent(String(page || 'entry'))];
+    Object.keys(p).forEach(key => {
+      if (p[key] === undefined || p[key] === null || String(p[key]).trim() === '') return;
+      query.push(encodeURIComponent(key) + '=' + encodeURIComponent(String(p[key])));
+    });
+    return String(window.location.pathname || '') + '?' + query.join('&');
+  }
+}
+
+function isPointAllocationMode_() {
+  return pointInputMode !== 'individual';
+}
+
+function isExpenseAllocationMode_() {
+  return expenseInputMode !== 'individual';
+}
+
+function isLineItemIndividualMode_() {
+  return !isPointAllocationMode_() && !isExpenseAllocationMode_();
+}
+
+function getPointModeLabel_() {
+  return isPointAllocationMode_() ? '分配モード' : '個別入力モード';
+}
+
+function getExpenseModeLabel_() {
+  return isExpenseAllocationMode_() ? '分配モード' : '個別入力モード';
+}
+
+function initializeDetailPanels_() {
+  detailPanelState = {
+    expense: false,
+    point: false,
+    tax: false
+  };
+  applyDetailPanelVisibility_();
+  updateTopHelperButtons_();
+}
+
+function applyDetailPanelVisibility_() {
+  const expenseEl = document.getElementById('expense-area');
+  const pointEl = document.getElementById('point-area');
+  if (!expenseEl || !pointEl) return;
+  if (isFooterConsolidatedMode_()) {
+    expenseEl.style.display = detailPanelState.expense ? 'block' : 'none';
+    pointEl.style.display = detailPanelState.point ? 'block' : 'none';
+    return;
+  }
+  expenseEl.style.display = 'block';
+  pointEl.style.display = 'block';
+}
+
+function toggleExpensePanelVisibility_() {
+  detailPanelState.expense = !detailPanelState.expense;
+  renderExpenseArea();
+}
+
+function togglePointPanelVisibility_() {
+  detailPanelState.point = !detailPanelState.point;
+  renderPointArea();
+}
+
+function updateTopHelperButtons_() {
+  const variantBtn = document.getElementById('helper-variant-btn');
+  const individualBtn = document.getElementById('helper-individual-btn');
+  const taxBtn = document.getElementById('helper-tax-btn');
+  const footerHomeBtn = document.getElementById('footer-home-btn');
+  const footerVariantBtn = document.getElementById('footer-variant-btn');
+  const footerDetailBtn = document.getElementById('footer-detail-btn');
+  const footerTaxBtn = document.getElementById('footer-tax-btn');
+  const footerIndividualBtn = document.getElementById('footer-individual-btn');
+  const isVariantB = normalizeEntryViewVariant_(entryViewVariant) === 'B';
+  const isIndividual = isLineItemIndividualMode_();
+  const detailsOpen = !!detailPanelState.expense || !!detailPanelState.point;
+  const currentScreen = String(document.body.getAttribute('data-entry-screen') || 'entry').trim() || 'entry';
+
+  if (variantBtn) {
+    variantBtn.textContent = '表示：' + (isVariantB ? 'B' : 'A');
+    variantBtn.classList.toggle('is-open', isVariantB);
+    variantBtn.setAttribute('aria-pressed', isVariantB ? 'true' : 'false');
+    variantBtn.title = isVariantB ? 'A表示に切り替え' : 'B表示に切り替え';
+  }
+  if (individualBtn) {
+    individualBtn.textContent = '個別モード：' + (isIndividual ? 'ON' : 'OFF');
+    individualBtn.classList.toggle('is-open', isIndividual);
+    individualBtn.setAttribute('aria-pressed', isIndividual ? 'true' : 'false');
+  }
+  if (taxBtn) {
+    taxBtn.textContent = '外税：' + (detailPanelState.tax ? 'ON' : 'OFF');
+    taxBtn.classList.toggle('is-open', detailPanelState.tax);
+    taxBtn.classList.toggle('is-on', detailPanelState.tax);
+    taxBtn.setAttribute('aria-pressed', detailPanelState.tax ? 'true' : 'false');
+  }
+
+  if (footerHomeBtn) {
+    footerHomeBtn.classList.toggle('is-active', currentScreen === 'entry');
+    footerHomeBtn.setAttribute('aria-pressed', currentScreen === 'entry' ? 'true' : 'false');
+  }
+  if (footerVariantBtn) {
+    footerVariantBtn.classList.toggle('is-active', isVariantB);
+    footerVariantBtn.setAttribute('aria-pressed', isVariantB ? 'true' : 'false');
+    footerVariantBtn.setAttribute('title', isVariantB ? 'Aに切替' : 'Bに切替');
+  }
+  if (footerDetailBtn) {
+    footerDetailBtn.classList.toggle('is-active', detailsOpen);
+    footerDetailBtn.setAttribute('aria-pressed', detailsOpen ? 'true' : 'false');
+    footerDetailBtn.setAttribute('title', detailsOpen ? '経費/ポイントを閉じる' : '経費/ポイントを開く');
+  }
+  if (footerTaxBtn) {
+    footerTaxBtn.classList.toggle('is-active', detailPanelState.tax);
+    footerTaxBtn.setAttribute('aria-pressed', detailPanelState.tax ? 'true' : 'false');
+  }
+  if (footerIndividualBtn) {
+    footerIndividualBtn.classList.toggle('is-active', isIndividual);
+    footerIndividualBtn.setAttribute('aria-pressed', isIndividual ? 'true' : 'false');
+  }
+}
+
+function setLineItemIndividualMode_(enabled) {
+  const wasLineItemIndividualMode = isLineItemIndividualMode_();
+  const currentDate = normalizeDateDigits_(String((document.getElementById('common-date') && document.getElementById('common-date').value) || '').trim());
+  const currentSupplier = String((document.getElementById('common-supplier') && document.getElementById('common-supplier').value) || '').trim();
+  const currentPayment = String((document.getElementById('common-payment') && document.getElementById('common-payment').value) || '').trim();
+
+  const shouldUseIndividual = !!enabled;
+  if (!wasLineItemIndividualMode && shouldUseIndividual) {
+    commonPaymentCache = currentPayment;
+  }
+  pointInputMode = shouldUseIndividual ? 'individual' : 'allocation';
+  expenseInputMode = shouldUseIndividual ? 'individual' : 'allocation';
+
+  if (shouldUseIndividual) {
+    entryRows.forEach(function(row) {
+      row.point = 0;
+      row.expenseAlloc = 0;
+    });
+  } else {
+    pointTotal = entryRows.reduce(function(sum, row) {
+      if (!String(row.name || '').trim() || roundYen(row.price) <= 0) return sum;
+      return sum + Math.max(0, roundYen(row.point || 0));
+    }, 0);
+  }
+
+  recalculateCosts();
+  renderPointArea();
+  renderExpenseArea();
+  renderCommonInfo();
+  const dateInput = document.getElementById('common-date');
+  const datePicker = document.getElementById('common-date-picker');
+  const supplierInput = document.getElementById('common-supplier');
+  const paymentInput = document.getElementById('common-payment');
+  if (dateInput) dateInput.value = currentDate;
+  if (dateInput && datePicker) syncDatePickerFromText_('common-date', 'common-date-picker');
+  if (supplierInput) supplierInput.value = currentSupplier;
+  if (paymentInput) {
+    paymentInput.value = shouldUseIndividual ? '' : (currentPayment || commonPaymentCache);
+  }
+  updateTopHelperButtons_();
+}
+
+function handleIndividualModeToggleClick() {
+  const nextIndividual = !isLineItemIndividualMode_();
+  const nextLabel = nextIndividual ? 'ON' : 'OFF';
+  const shouldSwitch = confirm('個別モードを「' + nextLabel + '」に切り替えますか？');
+  if (!shouldSwitch) return;
+  setLineItemIndividualMode_(nextIndividual);
+  applyDetailPanelVisibility_();
+}
+
+function handleExpenseToggleClick() {
+  handleIndividualModeToggleClick();
+}
+
+function handlePointToggleClick() {
+  handleIndividualModeToggleClick();
+}
+
+function handleTaxToggleClick() {
+  if (!detailPanelState.tax) {
+    const shouldApply = confirm('外税を適用しますか？');
+    if (!shouldApply) return;
+    const applied = applyTaxToAll_();
+    if (!applied) return;
+    detailPanelState.tax = true;
+    updateTopHelperButtons_();
+    return;
+  }
+
+  const shouldRemove = confirm('外税を解除しますか？');
+  if (!shouldRemove) return;
+  removeTaxFromAll_();
+  detailPanelState.tax = false;
+  updateTopHelperButtons_();
+}
+
+function loadProductCandidates() {
+  google.script.run
+    .withSuccessHandler(function(list) {
+      productCandidates = Array.isArray(list) ? list : [];
+      const dl = document.getElementById('product-options');
+      if (dl) {
+        dl.innerHTML = productCandidates
+          .map(item => `<option value="${escapeHtml(item.label || '')}"></option>`)
+          .join('');
+      }
+      renderEntryRows();
+    })
+    .withFailureHandler(showError)
+    .getProductCandidates();
+}
+
+function resolveProductByInput(input) {
+  const text = String(input || '').trim();
+  if (!text) return null;
+
+  for (let i = 0; i < productCandidates.length; i++) {
+    const item = productCandidates[i];
+    const label = String(item.label || '').trim();
+    const no = String(item.productNo || '').trim();
+    const jan = String(item.jan || '').trim();
+    const name = String(item.name || '').trim();
+    if (text === label || text === name || (no && text === no) || (jan && text === jan)) {
+      return {
+        productNo: no,
+        name: name,
+        label: label || name,
+        isKnown: true
+      };
+    }
+  }
+
+  const split = text.split('：');
+  if (split.length >= 2) {
+    const tokenPart = split[0].trim();
+    const namePart = split.slice(1).join('：').trim();
+    for (let j = 0; j < productCandidates.length; j++) {
+      const item2 = productCandidates[j];
+      const itemNo = String(item2.productNo || '').trim();
+      const itemJan = String(item2.jan || '').trim();
+      if ((itemNo === tokenPart || itemJan === tokenPart) && String(item2.name || '').trim() === namePart) {
+        return {
+          productNo: itemNo,
+          name: namePart,
+          label: String(item2.label || text),
+          isKnown: true
+        };
+      }
+    }
+  }
+
+  return {
+    productNo: '',
+    name: text,
+    label: text,
+    isKnown: false
+  };
+}
+
+function onProductInput(idx, value) {
+  const row = entryRows[idx];
+  if (!row) return;
+
+  row.productInput = String(value || '').trim();
+  const matched = resolveProductByInput(row.productInput);
+  if (!matched) {
+    row.productNo = '';
+    row.name = '';
+  } else {
+    row.productNo = matched.productNo;
+    row.name = matched.name;
+  }
+  recalculateCosts();
+}
+
+function cacheProductInput(idx, value) {
+  const row = entryRows[idx];
+  if (!row) return;
+  row.productInput = String(value || '');
+}
+
+function onPriceInput(idx, value) {
+  const row = entryRows[idx];
+  if (!row) return;
+  row.price = Math.max(0, roundYen(value));
+  recalculateCosts();
+}
+
+function cachePriceInput(idx, value) {
+  const row = entryRows[idx];
+  if (!row) return;
+  row.price = String(value || '');
+}
+
+function onQtyInput(idx, value) {
+  const row = entryRows[idx];
+  if (!row) return;
+  row.qty = Math.max(1, roundYen(value || 1));
+  recalculateCosts();
+}
+
+function cacheQtyInput(idx, value) {
+  const row = entryRows[idx];
+  if (!row) return;
+  row.qty = String(value || '');
+}
+
+function cachePointInput(idx, value) {
+  const row = entryRows[idx];
+  if (!row) return;
+  row.point = String(value || '');
+}
+
+function recalculateCostsWithFocusId_(focusId, cursorPos) {
+  recalculateCosts();
+  if (!focusId) return;
+  window.setTimeout(function() {
+    const el = document.getElementById(String(focusId));
+    if (!el) return;
+    try {
+      el.focus({ preventScroll: true });
+    } catch (err) {
+      try {
+        el.focus();
+      } catch (err2) {
+        // no-op
+      }
+    }
+    if (typeof cursorPos === 'number' && typeof el.setSelectionRange === 'function') {
+      const len = String(el.value || '').length;
+      const pos = Math.max(0, Math.min(cursorPos, len));
+      try {
+        el.setSelectionRange(pos, pos);
+      } catch (err3) {
+        // no-op
+      }
+    }
+  }, 0);
+}
+
+function onPointInputLive(idx, value, cursorPos) {
+  const row = entryRows[idx];
+  if (!row) return;
+  row.point = String(value || '');
+  recalculateCostsWithFocusId_('entry-point-' + idx, cursorPos);
+}
+
+function onPointInput(idx, value) {
+  const row = entryRows[idx];
+  if (!row) return;
+  row.point = Math.max(0, roundYen(value));
+  recalculateCosts();
+}
+
+function cacheExpenseAllocInput(idx, value) {
+  const row = entryRows[idx];
+  if (!row) return;
+  row.expenseAlloc = String(value || '');
+}
+
+function onExpenseAllocInputLive(idx, value, cursorPos) {
+  const row = entryRows[idx];
+  if (!row) return;
+  row.expenseAlloc = String(value || '');
+  recalculateCostsWithFocusId_('entry-expense-alloc-' + idx, cursorPos);
+}
+
+function onExpenseAllocInput(idx, value) {
+  const row = entryRows[idx];
+  if (!row) return;
+  row.expenseAlloc = Math.max(0, roundYen(value));
+  recalculateCosts();
+}
+
+function cacheRowPaymentInput(idx, value) {
+  const row = entryRows[idx];
+  if (!row) return;
+  row.paymentMethod = String(value || '');
+}
+
+function onRowPaymentInput(idx, value) {
+  const row = entryRows[idx];
+  if (!row) return;
+  row.paymentMethod = String(value || '').trim();
+}
+
+function addEntryRow(afterIdx) {
+  const pos = Math.max(0, Math.min(afterIdx + 1, entryRows.length));
+  entryRows.splice(pos, 0, createEmptyEntryRow());
+  if (entryInputStageState_.active && entryInputStageState_.currentRow >= pos) {
+    entryInputStageState_.currentRow += 1;
+  }
+  renderEntryRows();
+  recalculateCosts();
+}
+
+function removeEntryRow(idx) {
+  const removingActive = entryInputStageState_.active && entryInputStageState_.currentRow === idx;
+  if (entryRows.length <= 1) {
+    entryRows[0] = createEmptyEntryRow();
+    if (removingActive) {
+      closeEntryInputStage_();
+    }
+  } else {
+    entryRows.splice(idx, 1);
+    if (removingActive) {
+      closeEntryInputStage_();
+    } else if (entryInputStageState_.active && entryInputStageState_.currentRow > idx) {
+      entryInputStageState_.currentRow -= 1;
+    }
+  }
+  renderEntryRows();
+  recalculateCosts();
+}
+
+function renderEntryRows() {
+  if (entryInputStageState_.active) {
+    const stageScope = normalizeEntryInputStageScope_(entryInputStageState_.scope);
+    const needsRowIndex = stageScope === 'product' || stageScope === 'lineItem';
+    if (needsRowIndex && (entryInputStageState_.currentRow >= entryRows.length || entryInputStageState_.currentRow < 0)) {
+      closeEntryInputStage_();
+    }
+  }
+  const lineItemIndividualMode = isLineItemIndividualMode_();
+  const pointLabel = isPointAllocationMode_() ? 'ポイント分配' : 'ポイント個別';
+  const expenseLabel = isExpenseAllocationMode_() ? '経費分配' : '経費個別';
+  const pointMetaLabel = lineItemIndividualMode ? 'ポイント' : pointLabel;
+  const expenseMetaLabel = lineItemIndividualMode ? '経費' : expenseLabel;
+  const addEntryButtonRow = `
+      <tr class="append-row">
+        <td colspan="5" class="append-cell"></td>
+        <td class="append-action-cell">
+          <button type="button" class="btn-append-row" onclick="addEntryRow(${Math.max(0, entryRows.length - 1)})" aria-label="商品行を追加">＋</button>
+        </td>
+      </tr>
+  `;
+  let rowsHtml = '';
+  entryRows.forEach((row, idx) => {
+    const pointCell = lineItemIndividualMode
+      ? `<input type="text" id="entry-point-${idx}" class="inline-number entry-meta-input entry-stage-trigger" inputmode="numeric" pattern="\\d*" value="${escapeHtml(row.point || '')}" readonly onfocus="this.blur(); openLineItemInputStage(${idx}, 'point', this)" onclick="openLineItemInputStage(${idx}, 'point', this)" placeholder="ポイント">`
+      : (!isPointAllocationMode_()
+        ? `<input type="text" id="entry-point-${idx}" class="inline-number entry-meta-input" inputmode="numeric" pattern="\\d*" value="${row.point || ''}" oninput="onPointInputLive(${idx}, this.value, this.selectionStart)" onblur="onPointInput(${idx}, this.value)" placeholder="ポイント">`
+        : `<span class="entry-meta-value">${formatYen_(row.point || 0)}</span>`);
+    const expenseCell = lineItemIndividualMode
+      ? `<input type="text" id="entry-expense-alloc-${idx}" class="inline-number entry-meta-input entry-stage-trigger" inputmode="numeric" pattern="\\d*" value="${escapeHtml(row.expenseAlloc || '')}" readonly onfocus="this.blur(); openLineItemInputStage(${idx}, 'expense', this)" onclick="openLineItemInputStage(${idx}, 'expense', this)" placeholder="経費">`
+      : (!isExpenseAllocationMode_()
+        ? `<input type="text" id="entry-expense-alloc-${idx}" class="inline-number entry-meta-input" inputmode="numeric" pattern="\\d*" value="${row.expenseAlloc || ''}" oninput="onExpenseAllocInputLive(${idx}, this.value, this.selectionStart)" onblur="onExpenseAllocInput(${idx}, this.value)" placeholder="経費">`
+        : `<span class="entry-meta-value">${formatYen_(row.expenseAlloc || 0)}</span>`);
+    const paymentValue = String(row.paymentMethod || '').trim();
+    const paymentCell = lineItemIndividualMode
+      ? `<input type="text" id="entry-payment-${idx}" class="inline-input entry-meta-input entry-meta-payment-input entry-stage-trigger" list="payment-options" value="${escapeHtml(paymentValue)}" readonly onfocus="this.blur(); openLineItemInputStage(${idx}, 'payment', this)" onclick="openLineItemInputStage(${idx}, 'payment', this)" placeholder="支払方法">`
+      : '';
+    const taxAmount = (typeof row.taxBasePrice !== 'undefined')
+      ? Math.max(0, roundYen(row.price) - roundYen(row.taxBasePrice))
+      : 0;
+    const canRemoveRow = idx > 0;
+    const rowDeleteButton = canRemoveRow
+      ? `<button type="button" class="btn-icon btn-icon-minus entry-row-remove" onclick="removeEntryRow(${idx})" aria-label="商品${idx + 1}を削除">−</button>`
+      : '';
+    const metaRowClass = lineItemIndividualMode ? 'entry-meta-row is-individual' : 'entry-meta-row';
+    const metaGridClass = lineItemIndividualMode
+      ? 'entry-meta-grid entry-meta-grid-individual'
+      : 'entry-meta-grid entry-meta-grid-normal';
+
+    rowsHtml += `
+      <tr class="entry-main-row">
+        <td class="col-no">${idx + 1}</td>
+        <td class="col-item">
+          <input type="text" class="inline-input entry-product-input entry-stage-trigger" list="product-options" value="${escapeHtml(row.productInput || '')}" title="${escapeHtml(row.productInput || '')}" readonly onfocus="this.blur(); openEntryInputStage(${idx}, 'name', this)" onclick="openEntryInputStage(${idx}, 'name', this)" placeholder="JAN / 商品名 / 商品マスタ番号">
+        </td>
+        <td class="col-num">
+          <input type="text" class="inline-number entry-stage-trigger" inputmode="numeric" pattern="\\d*" value="${row.price || ''}" readonly onfocus="this.blur(); openEntryInputStage(${idx}, 'price', this)" onclick="openEntryInputStage(${idx}, 'price', this)">
+        </td>
+        <td class="col-num">
+          <input type="text" class="inline-number entry-stage-trigger" inputmode="numeric" pattern="\\d*" value="${row.qty || 1}" readonly onfocus="this.blur(); openEntryInputStage(${idx}, 'qty', this)" onclick="openEntryInputStage(${idx}, 'qty', this)">
+        </td>
+        <td class="col-num"><div class="inline-value">${row.cost || 0}</div></td>
+        <td class="col-action">
+          ${rowDeleteButton}
+        </td>
+      </tr>
+      <tr class="${metaRowClass}">
+        <td colspan="5">
+          <div class="${metaGridClass}">
+            <div class="entry-meta-item">
+              <div class="entry-meta-label">単価</div>
+              <span class="entry-meta-value">${formatYen_(row.unitPrice || 0)}</span>
+            </div>
+            <div class="entry-meta-item">
+              <div class="entry-meta-label">${pointMetaLabel}</div>
+              ${pointCell}
+            </div>
+            <div class="entry-meta-item">
+              <div class="entry-meta-label">${expenseMetaLabel}</div>
+              ${expenseCell}
+            </div>
+            ${lineItemIndividualMode ? `
+            <div class="entry-meta-item">
+              <div class="entry-meta-label">支払方法</div>
+              ${paymentCell}
+            </div>` : ''}
+            <div class="entry-meta-item">
+              <div class="entry-meta-label">外税</div>
+              <span class="entry-meta-value">${formatYen_(taxAmount)}</span>
+            </div>
+          </div>
+        </td>
+        <td class="col-action"></td>
+      </tr>
+    `;
+  });
+
+  document.getElementById('entry-lines').innerHTML = `
+    <h3 class="mid-title">商品入力</h3>
+    <div class="entry-line-card section-card">
+      <table class="entry-inline-table">
+        <tr>
+          <th class="col-no">No</th>
+          <th class="col-item">商品</th>
+          <th class="col-num">提示金額</th>
+          <th class="col-num">個数</th>
+          <th class="col-num">原価</th>
+          <th class="col-action"></th>
+        </tr>
+        ${rowsHtml}
+        ${addEntryButtonRow}
+      </table>
+    </div>
+  `;
+}
+
+function getActiveEntryRows() {
+  const lineItemIndividualMode = isLineItemIndividualMode_();
+  const active = [];
+  for (let i = 0; i < entryRows.length; i++) {
+    const row = entryRows[i];
+    const hasAnyInput = !!String(row.productInput || '').trim() || roundYen(row.price) > 0;
+    if (!hasAnyInput) continue;
+
+    if (!String(row.name || '').trim()) {
+      throw new Error(`商品${i + 1} の商品名を入力してください`);
+    }
+    if (roundYen(row.price) <= 0) {
+      throw new Error(`商品${i + 1} の提示金額を入力してください`);
+    }
+    if (roundYen(row.qty) <= 0) {
+      throw new Error(`商品${i + 1} の個数を入力してください`);
+    }
+    if (lineItemIndividualMode && !String(row.paymentMethod || '').trim()) {
+      throw new Error(`商品${i + 1} の支払い方法を入力してください`);
+    }
+
+    active.push(row);
+  }
+  if (!active.length) {
+    throw new Error('商品行が空です');
+  }
+  return active;
+}
+
+function getActiveExpenseRows_() {
+  return expenseList.filter(ex => String(ex.name || '').trim() && roundYen(ex.amount) > 0);
+}
+
+function recalculateCosts() {
+  const pointAllocation = isPointAllocationMode_();
+  const expenseAllocation = isExpenseAllocationMode_();
+
+  entryRows.forEach(row => {
+    row.price = Math.max(0, roundYen(row.price));
+    row.qty = Math.max(1, roundYen(row.qty || 1));
+    if (pointAllocation) {
+      row.point = 0;
+    } else {
+      row.point = Math.max(0, roundYen(row.point || 0));
+    }
+    if (expenseAllocation) {
+      row.expenseAlloc = 0;
+    } else {
+      row.expenseAlloc = Math.max(0, roundYen(row.expenseAlloc || 0));
+    }
+    row.baseCost = row.price;
+    row.cost = row.price;
+    row.unitPrice = row.qty > 0 ? Math.round(row.price / row.qty) : row.price;
+  });
+
+  const targetRows = entryRows.filter(row => String(row.name || '').trim() && row.price > 0);
+  if (!targetRows.length) {
+    renderEntryRows();
+    if (!pointAllocation) {
+      renderPointArea();
+    }
+    renderSummary();
+    return;
+  }
+
+  if (pointAllocation) {
+    pointTotal = Math.max(0, roundYen(pointTotal || 0));
+    const totalPrice = targetRows.reduce((sum, row) => sum + roundYen(row.price), 0);
+    let remainPoint = pointTotal;
+
+    targetRows.forEach((row, idx) => {
+      let pointAlloc = 0;
+      if (totalPrice > 0 && remainPoint > 0) {
+        if (idx === targetRows.length - 1) {
+          pointAlloc = remainPoint;
+        } else {
+          pointAlloc = Math.round(pointTotal * (row.price / totalPrice));
+          pointAlloc = Math.min(pointAlloc, remainPoint);
+        }
+      }
+      remainPoint -= pointAlloc;
+      row.point = pointAlloc;
+      row.baseCost = Math.max(0, row.price - pointAlloc);
+    });
+  } else {
+    targetRows.forEach(row => {
+      row.point = Math.max(0, roundYen(row.point || 0));
+      row.baseCost = Math.max(0, row.price - row.point);
+    });
+    pointTotal = targetRows.reduce((sum, row) => sum + roundYen(row.point), 0);
+  }
+
+  const totalExpenseInput = getActiveExpenseRows_().reduce((sum, ex) => sum + roundYen(ex.amount), 0);
+  if (expenseAllocation) {
+    const totalBaseCost = targetRows.reduce((sum, row) => sum + roundYen(row.baseCost), 0);
+    let remainExpense = totalExpenseInput;
+
+    targetRows.forEach((row, idx) => {
+      let alloc = 0;
+      if (totalExpenseInput > 0 && totalBaseCost > 0) {
+        if (idx === targetRows.length - 1) {
+          alloc = remainExpense;
+        } else {
+          alloc = Math.round(totalExpenseInput * (row.baseCost / totalBaseCost));
+          alloc = Math.min(alloc, remainExpense);
+        }
+      }
+      remainExpense -= alloc;
+      row.expenseAlloc = alloc;
+      row.cost = Math.max(0, roundYen(row.baseCost) + alloc);
+      row.unitPrice = row.qty > 0 ? Math.round(row.cost / row.qty) : row.cost;
+    });
+  } else {
+    targetRows.forEach(row => {
+      row.expenseAlloc = Math.max(0, roundYen(row.expenseAlloc || 0));
+      row.cost = Math.max(0, roundYen(row.baseCost) + row.expenseAlloc);
+      row.unitPrice = row.qty > 0 ? Math.round(row.cost / row.qty) : row.cost;
+    });
+  }
+
+  renderEntryRows();
+  if (!pointAllocation) {
+    renderPointArea();
+  }
+  renderSummary();
+}
+
+function getTaxRate_() {
+  const rateInput = document.getElementById('tax-rate');
+  return toNumber((rateInput && rateInput.value) || '10') / 100;
+}
+
+function applyTaxToAll_() {
+  const rate = getTaxRate_();
+  const targets = entryRows.filter(row => String(row.name || '').trim() && roundYen(row.price) > 0);
+  if (!targets.length) {
+    alert('税加算対象の商品がありません');
+    return false;
+  }
+
+  targets.forEach(row => {
+    row.taxBasePrice = roundYen(row.price);
+    row.price = Math.floor(row.taxBasePrice * (1 + rate));
+  });
+  recalculateCosts();
+  return true;
+}
+
+function removeTaxFromAll_() {
+  entryRows.forEach(row => {
+    if (typeof row.taxBasePrice !== 'undefined') {
+      row.price = roundYen(row.taxBasePrice);
+      delete row.taxBasePrice;
+    }
+  });
+  recalculateCosts();
+}
+
+function renderPointArea() {
+  const isVariantB = isFooterConsolidatedMode_();
+  const pointTotalFromRows = entryRows.reduce((sum, row) => {
+    if (!String(row.name || '').trim() || roundYen(row.price) <= 0) return sum;
+    return sum + Math.max(0, roundYen(row.point || 0));
+  }, 0);
+  if (!isPointAllocationMode_()) {
+    pointTotal = pointTotalFromRows;
+  }
+
+  const pointPanelOpen = !!detailPanelState.point;
+  if (entryInputStageState_.active && entryInputStageState_.scope === 'point' && !pointPanelOpen) {
+    closeEntryInputStage_();
+  }
+  const pointToggleBtnClass = pointPanelOpen ? 'btn-icon btn-icon-minus panel-head-toggle' : 'btn-icon btn-icon-plus panel-head-toggle';
+  const pointToggleLabel = pointPanelOpen ? 'ポイント入力エリアを閉じる' : 'ポイント入力エリアを開く';
+  const pointModeLabel = isPointAllocationMode_() ? '按分入力' : '個別入力';
+  const pointDisplayTotal = isPointAllocationMode_() ? pointTotal : pointTotalFromRows;
+  const pointSummaryClass = pointPanelOpen ? 'b-panel-summary' : 'b-panel-summary is-collapsed';
+  const pointSummaryHint = pointPanelOpen ? '詳細入力を表示中' : 'フッター「経費/点」で詳細入力を開きます';
+  const pointSummaryHtml = `
+    <div class="${pointSummaryClass}">
+      <span class="b-panel-chip">${pointModeLabel}</span>
+      <span class="b-panel-total">${formatYen_(pointDisplayTotal)}</span>
+      <span class="b-panel-hint">${pointSummaryHint}</span>
+    </div>
+  `;
+
+  let modeContent = '';
+  if (pointPanelOpen && isPointAllocationMode_()) {
+    modeContent = pointSummaryHtml + `
+      <div class="entry-line-card section-card">
+        <div class="point-input-row b-panel-input-row">
+          <input type="text" id="point-total-display" class="inline-number point-stage-trigger entry-stage-trigger" inputmode="numeric" pattern="\\d*" value="${pointTotal || ''}" readonly onfocus="this.blur(); openPointInputStage(this)" onclick="openPointInputStage(this)" aria-label="ポイント/割引入力">
+          <span class="point-input-unit">pt / 円</span>
+        </div>
+      </div>
+    `;
+  } else if (pointPanelOpen) {
+    modeContent = pointSummaryHtml + `
+      <div class="entry-line-card section-card">
+        <div class="entry-line-title">ポイント個別入力</div>
+        <div class="note-text">商品入力テーブルの2行目（補助情報）で入力してください。</div>
+        <div class="note-text b-panel-note">現在のポイント合計: ${formatYen_(pointTotalFromRows)}</div>
+      </div>
+    `;
+  } else {
+    modeContent = pointSummaryHtml;
+  }
+
+  const headerHtml = isVariantB
+    ? '<h3 class="mid-title panel-head-title">ポイント/割引</h3>'
+    : `<div class="panel-head-row"><h3 class="mid-title panel-head-title">ポイント/割引</h3><button type="button" class="${pointToggleBtnClass}" onclick="togglePointPanelVisibility_()" aria-label="${pointToggleLabel}">${pointPanelOpen ? '−' : '＋'}</button></div>`;
+
+  document.getElementById('point-area').innerHTML = headerHtml + modeContent;
+  applyDetailPanelVisibility_();
+  updateTopHelperButtons_();
+}
+
+function updatePointTotal() {
+  const input = document.getElementById('point-total') || document.getElementById('point-total-display');
+  if (!input) return;
+  pointTotal = Math.max(0, roundYen(input.value || 0));
+  recalculateCosts();
+}
+
+function onPointModeChange(mode) {
+  const useIndividual = String(mode || 'allocation') === 'individual';
+  setLineItemIndividualMode_(useIndividual);
+}
+
+function renderExpenseArea() {
+  const isVariantB = isFooterConsolidatedMode_();
+  if (!expenseList.length) {
+    expenseList = [createEmptyExpenseRow()];
+  }
+  if (entryInputStageState_.active && entryInputStageState_.scope === 'expense') {
+    if (entryInputStageState_.expenseIdx < 0 || entryInputStageState_.expenseIdx >= expenseList.length) {
+      closeEntryInputStage_();
+    }
+  }
+  const expensePanelOpen = !!detailPanelState.expense;
+  if (entryInputStageState_.active && entryInputStageState_.scope === 'expense' && !expensePanelOpen) {
+    closeEntryInputStage_();
+  }
+  const expenseToggleBtnClass = expensePanelOpen ? 'btn-icon btn-icon-minus panel-head-toggle' : 'btn-icon btn-icon-plus panel-head-toggle';
+  const expenseToggleLabel = expensePanelOpen ? '経費入力エリアを閉じる' : '経費入力エリアを開く';
+  const expenseInputTotal = getActiveExpenseRows_().reduce((sum, ex) => sum + roundYen(ex.amount), 0);
+  const expenseAllocTotal = entryRows.reduce((sum, row) => {
+    if (!String(row.name || '').trim() || roundYen(row.price) <= 0) return sum;
+    return sum + roundYen(row.expenseAlloc || 0);
+  }, 0);
+  const expenseModeLabel = isExpenseAllocationMode_() ? '按分入力' : '個別入力';
+  const expenseDisplayTotal = isExpenseAllocationMode_() ? expenseInputTotal : expenseAllocTotal;
+  const expenseSummaryClass = expensePanelOpen ? 'b-panel-summary' : 'b-panel-summary is-collapsed';
+  const expenseSummaryHint = expensePanelOpen ? '詳細入力を表示中' : 'フッター「経費/点」で詳細入力を開きます';
+  const expenseSummaryHtml = `
+    <div class="${expenseSummaryClass}">
+      <span class="b-panel-chip">${expenseModeLabel}</span>
+      <span class="b-panel-total">${formatYen_(expenseDisplayTotal)}</span>
+      <span class="b-panel-hint">${expenseSummaryHint}</span>
+    </div>
+  `;
+
+  let options = '';
+  expenseCandidates.forEach(name => {
+    options += `<option value="${escapeHtml(name)}"></option>`;
+  });
+
+  let rows = '';
+  if (expensePanelOpen) {
+    expenseList.forEach((ex, idx) => {
+      const removeBtn = idx > 0
+        ? `<button type="button" class="btn-icon btn-icon-minus entry-row-remove" onclick="removeExpenseRow(${idx})" aria-label="経費${idx + 1}を削除">−</button>`
+        : '';
+      rows += `
+        <tr class="entry-main-row">
+          <td class="col-no">${idx + 1}</td>
+          <td class="col-item">
+            <input type="text" class="inline-input entry-stage-trigger" list="expense-items" autocomplete="off" value="${escapeHtml(ex.name || '')}" readonly onfocus="this.blur(); openExpenseInputStage(${idx}, 'name', this)" onclick="openExpenseInputStage(${idx}, 'name', this)" placeholder="経費名">
+          </td>
+          <td class="col-num">
+            <input type="text" class="inline-number entry-stage-trigger" inputmode="numeric" pattern="\\d*" value="${escapeHtml(ex.amount || '')}" readonly onfocus="this.blur(); openExpenseInputStage(${idx}, 'amount', this)" onclick="openExpenseInputStage(${idx}, 'amount', this)" placeholder="経費金額">
+          </td>
+          <td class="col-action">${removeBtn}</td>
+        </tr>
+      `;
+    });
+  }
+
+  let modeContent = '';
+  if (expensePanelOpen && isExpenseAllocationMode_()) {
+    const addExpenseButtonRow = `
+      <tr class="append-row">
+        <td colspan="3" class="append-cell"></td>
+        <td class="append-action-cell">
+          <button type="button" class="btn-append-row" onclick="addExpenseRow(${Math.max(0, expenseList.length - 1)})" aria-label="経費行を追加">＋</button>
+        </td>
+      </tr>
+    `;
+    modeContent =
+      expenseSummaryHtml +
+      `<datalist id="expense-items">${options}</datalist>` +
+      `<div class="entry-line-card section-card">` +
+        `<table class="entry-inline-table">` +
+          `<tr>` +
+            `<th class="col-no">No</th>` +
+            `<th class="col-item">経費名</th>` +
+            `<th class="col-num">金額</th>` +
+            `<th class="col-action"></th>` +
+          `</tr>` +
+          rows +
+          addExpenseButtonRow +
+        `</table>` +
+      `</div>`;
+  } else if (expensePanelOpen) {
+    modeContent = expenseSummaryHtml + `
+      <div class="entry-line-card section-card">
+        <div class="entry-line-title">経費個別入力</div>
+        <div class="note-text">商品入力テーブルの2行目（補助情報）で入力してください。</div>
+        <div class="note-text b-panel-note">現在の経費反映合計: ${formatYen_(expenseAllocTotal)}</div>
+      </div>
+    `;
+  } else {
+    modeContent = expenseSummaryHtml;
+  }
+
+  const headerHtml = isVariantB
+    ? '<h3 class="mid-title panel-head-title">経費</h3>'
+    : `<div class="panel-head-row"><h3 class="mid-title panel-head-title">経費</h3><button type="button" class="${expenseToggleBtnClass}" onclick="toggleExpensePanelVisibility_()" aria-label="${expenseToggleLabel}">${expensePanelOpen ? '−' : '＋'}</button></div>`;
+
+  document.getElementById('expense-area').innerHTML = headerHtml + modeContent;
+  applyDetailPanelVisibility_();
+  updateTopHelperButtons_();
+}
+
+function cacheExpenseField(idx, key, value) {
+  const row = expenseList[idx];
+  if (!row) return;
+  row[key] = String(value || '');
+}
+
+function onExpenseNameInput(idx, value) {
+  const row = expenseList[idx];
+  if (!row) return;
+  row.name = String(value || '');
+  recalculateCosts();
+}
+
+function onExpenseAmountInput(idx, value) {
+  const row = expenseList[idx];
+  if (!row) return;
+  row.amount = String(value || '');
+  recalculateCosts();
+}
+
+function onExpenseAmountBlur(idx, value) {
+  const row = expenseList[idx];
+  if (!row) return;
+  row.amount = Math.max(0, roundYen(value));
+  recalculateCosts();
+}
+
+function addExpenseRow(afterIdx) {
+  const pos = Math.max(0, Math.min(afterIdx + 1, expenseList.length));
+  expenseList.splice(pos, 0, createEmptyExpenseRow());
+  if (entryInputStageState_.active && entryInputStageState_.scope === 'expense' && entryInputStageState_.expenseIdx >= pos) {
+    entryInputStageState_.expenseIdx += 1;
+  }
+  renderExpenseArea();
+}
+
+function removeExpenseRow(idx) {
+  const removingActive = entryInputStageState_.active &&
+    entryInputStageState_.scope === 'expense' &&
+    entryInputStageState_.expenseIdx === idx;
+  if (expenseList.length <= 1) {
+    expenseList[0] = createEmptyExpenseRow();
+    if (removingActive) {
+      closeEntryInputStage_();
+    }
+  } else {
+    expenseList.splice(idx, 1);
+    if (removingActive) {
+      closeEntryInputStage_();
+    } else if (entryInputStageState_.active && entryInputStageState_.scope === 'expense' && entryInputStageState_.expenseIdx > idx) {
+      entryInputStageState_.expenseIdx -= 1;
+    }
+  }
+  renderExpenseArea();
+  recalculateCosts();
+}
+
+function onExpenseModeChange(mode) {
+  const useIndividual = String(mode || 'allocation') === 'individual';
+  setLineItemIndividualMode_(useIndividual);
+}
+
+function loadExpenseItems() {
+  google.script.run
+    .withSuccessHandler(function(list) {
+      expenseCandidates = (list || []).slice();
+      renderExpenseArea();
+    })
+    .withFailureHandler(showError)
+    .getExpenseItems();
+}
+
+function renderSummary() {
+  let totalCount = 0;
+  let totalPrice = 0;
+  let totalPoint = 0;
+  let totalExpenseAlloc = 0;
+  let totalCost = 0;
+  let totalExpenseInput = 0;
+
+  entryRows.forEach(row => {
+    if (!String(row.name || '').trim() || roundYen(row.price) <= 0) return;
+    totalCount += roundYen(row.qty);
+    totalPrice += roundYen(row.price);
+    totalPoint += roundYen(row.point);
+    totalExpenseAlloc += roundYen(row.expenseAlloc);
+    totalCost += roundYen(row.cost);
+  });
+
+  getActiveExpenseRows_().forEach(ex => {
+    totalExpenseInput += roundYen(ex.amount);
+  });
+
+  const summaryExpenseTotal = isExpenseAllocationMode_() ? totalExpenseInput : totalExpenseAlloc;
+
+  document.getElementById('summary-area').innerHTML = `
+    <h3 class="mid-title">集計</h3>
+    <div class="summary-table-wrap">
+      <table class="summary-table">
+        <thead>
+          <tr>
+            <th>商品数</th>
+            <th>総提示金額</th>
+            <th>ポイント合計</th>
+            <th>経費合計</th>
+            <th>原価合計</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="summary-value-row">
+            <td class="count-cell">${formatWithComma_(totalCount)}</td>
+            <td>${formatYen_(totalPrice)}</td>
+            <td>${formatYen_(totalPoint)}</td>
+            <td>${formatYen_(summaryExpenseTotal)}</td>
+            <td class="is-emphasis">${formatYen_(Math.max(0, totalCost))}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderCommonInfo() {
+  const lineItemIndividualMode = isLineItemIndividualMode_();
+  const paymentDisabledAttr = lineItemIndividualMode ? ' readonly disabled aria-disabled="true"' : ' readonly';
+  const paymentPlaceholder = lineItemIndividualMode ? '個別入力になっています' : '支払い方法を入力';
+  const dateStageHandlers = " onfocus=\"this.blur(); openCommonInputStage('date', this)\" onclick=\"openCommonInputStage('date', this)\"";
+  const supplierStageHandlers = " onfocus=\"this.blur(); openCommonInputStage('supplier', this)\" onclick=\"openCommonInputStage('supplier', this)\"";
+  const paymentStageHandlers = lineItemIndividualMode
+    ? ''
+    : " onfocus=\"this.blur(); openCommonInputStage('payment', this)\" onclick=\"openCommonInputStage('payment', this)\"";
+  const paymentNoteHtml = lineItemIndividualMode
+    ? '<div class="note-subtle common-payment-note">個別モード中は、各商品の2行目で支払い方法を入力してください。</div>'
+    : '';
+
+  document.getElementById('common-info').innerHTML =
+    '<datalist id="supplier-options"></datalist>' +
+    '<datalist id="payment-options"></datalist>' +
+    '<div class="summary-table-wrap">' +
+      '<table class="summary-table summary-form-table">' +
+        '<thead>' +
+          '<tr>' +
+            '<th>仕入日</th>' +
+            '<th>仕入先</th>' +
+            '<th>支払方法</th>' +
+          '</tr>' +
+        '</thead>' +
+        '<tbody>' +
+          '<tr class="summary-input-row">' +
+            '<td>' +
+              '<div class="date-input-wrap">' +
+                '<input type="text" id="common-date" class="inline-input entry-stage-trigger common-stage-trigger" inputmode="numeric" pattern="\\d*" autocomplete="off" placeholder="YYYYMMDD" readonly' + dateStageHandlers + '>' +
+                '<button type="button" class="btn-sub btn-date-picker" onclick="openDatePickerFromText(\'common-date\', \'common-date-picker\')">選択</button>' +
+                '<input type="date" id="common-date-picker" class="date-picker-helper" oninput="onDatePickerChange(\'common-date\', \'common-date-picker\')" onchange="onDatePickerChange(\'common-date\', \'common-date-picker\')">' +
+              '</div>' +
+            '</td>' +
+            '<td><input type="text" id="common-supplier" class="inline-input entry-stage-trigger common-stage-trigger" list="supplier-options" autocomplete="off" placeholder="仕入先を入力" readonly' + supplierStageHandlers + '></td>' +
+            '<td><input type="text" id="common-payment" class="inline-input entry-stage-trigger common-stage-trigger" list="payment-options" autocomplete="off" placeholder="' + paymentPlaceholder + '"' + paymentDisabledAttr + paymentStageHandlers + '>' + paymentNoteHtml + '</td>' +
+          '</tr>' +
+        '</tbody>' +
+      '</table>' +
+    '</div>';
+  renderSupplierPaymentDatalists_();
+}
+
+function renderSupplierPaymentDatalists_() {
+  const supplierDl = document.getElementById('supplier-options');
+  if (supplierDl) {
+    supplierDl.innerHTML = (supplierCandidates || []).map(v => `<option value="${escapeHtml(v)}"></option>`).join('');
+  }
+  const paymentDl = document.getElementById('payment-options');
+  if (paymentDl) {
+    paymentDl.innerHTML = (paymentCandidates || []).map(v => `<option value="${escapeHtml(v)}"></option>`).join('');
+  }
+}
+
+function loadSupplierPaymentOptions() {
+  google.script.run
+    .withSuccessHandler(function(list) {
+      supplierCandidates = list || [];
+      renderSupplierPaymentDatalists_();
+    })
+    .withFailureHandler(showError)
+    .getSupplierList();
+
+  google.script.run
+    .withSuccessHandler(function(list) {
+      paymentCandidates = list || [];
+      renderSupplierPaymentDatalists_();
+    })
+    .withFailureHandler(showError)
+    .getPaymentList();
+}
+
+function formatDateInput(el) {
+  if (!el) return;
+  el.value = normalizeDateDigits_(el.value);
+}
+
+function normalizeDateDigits_(value) {
+  let v = String(value || '').replace(/[^0-9]/g, '');
+  if (v.length > 8) v = v.slice(0, 8);
+  return v;
+}
+
+function digitsToIsoDate_(value) {
+  const v = normalizeDateDigits_(value);
+  if (v.length !== 8) return '';
+  return v.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3');
+}
+
+function isoDateToDigits_(value) {
+  return normalizeDateDigits_(value);
+}
+
+function onDateTextInput(targetId, pickerId, value) {
+  const target = document.getElementById(targetId);
+  if (!target) return;
+  target.value = normalizeDateDigits_(value);
+  syncDatePickerFromText_(targetId, pickerId);
+}
+
+function syncDatePickerFromText_(targetId, pickerId) {
+  const target = document.getElementById(targetId);
+  const picker = document.getElementById(pickerId);
+  if (!target || !picker) return;
+  picker.value = digitsToIsoDate_(target.value);
+}
+
+function openDatePickerFromText(targetId, pickerId) {
+  const picker = document.getElementById(pickerId);
+  if (!picker) return;
+  syncDatePickerFromText_(targetId, pickerId);
+  let opened = false;
+  try {
+    picker.focus({ preventScroll: true });
+  } catch (err) {
+    try {
+      picker.focus();
+    } catch (err2) {
+      // no-op
+    }
+  }
+  if (typeof picker.showPicker === 'function') {
+    try {
+      picker.showPicker();
+      opened = true;
+      return;
+    } catch (err3) {
+      // showPicker非対応/制限時はclickにフォールバック
+    }
+  }
+  try {
+    picker.click();
+    opened = true;
+  } catch (err4) {
+    // no-op
+  }
+  if (!opened) {
+    alert('カレンダーを開けませんでした。日付欄（YYYY-MM-DD）を直接タップして選択してください。');
+  }
+}
+
+function onDatePickerChange(targetId, pickerId) {
+  const target = document.getElementById(targetId);
+  const picker = document.getElementById(pickerId);
+  if (!target || !picker) return;
+  target.value = isoDateToDigits_(picker.value);
+}
+
+function restoreDraftIfNeeded_() {
+  const token = getQueryParam_('token');
+  if (!token) return;
+
+  google.script.run
+    .withSuccessHandler(function(payload) {
+      applyDraftPayload_(payload);
+    })
+    .withFailureHandler(showError)
+    .getEntryDraftForConfirm(token);
+}
+
+function applyDraftPayload_(payload) {
+  const p = payload || {};
+  const entries = Array.isArray(p.entries) ? p.entries : [];
+  const expenses = Array.isArray(p.expenses) ? p.expenses : [];
+  const info = p.commonInfo || {};
+
+  const restoreIndividualMode =
+    String(p.pointMode || 'allocation') === 'individual' ||
+    String(p.expenseMode || 'allocation') === 'individual';
+  pointInputMode = restoreIndividualMode ? 'individual' : 'allocation';
+  expenseInputMode = restoreIndividualMode ? 'individual' : 'allocation';
+
+  entryRows = entries.map(function(item) {
+    const productNo = String(item[0] || '').trim();
+    const name = String(item[1] || '').trim();
+    const price = roundYen(item[2]);
+    const point = roundYen(item[3]);
+    const cost = roundYen(item[4]);
+    const qty = Math.max(1, roundYen(item[5] || 1));
+    const unitPrice = roundYen(item[6]);
+    const expenseAlloc = roundYen(item[7]);
+    const paymentMethod = String(item[8] || '').trim();
+    return {
+      productInput: productNo && name ? productNo + '：' + name : (name || productNo),
+      productNo: productNo,
+      name: name,
+      price: price,
+      qty: qty,
+      point: point,
+      expenseAlloc: expenseAlloc,
+      paymentMethod: paymentMethod,
+      baseCost: Math.max(0, price - point),
+      cost: cost,
+      unitPrice: unitPrice
+    };
+  });
+  if (!entryRows.length) {
+    entryRows = [createEmptyEntryRow()];
+  }
+
+  expenseList = expenses.map(function(ex) {
+    return {
+      name: String(ex.name || '').trim(),
+      amount: roundYen(ex.amount),
+      memo: String(ex.memo || '').trim()
+    };
+  });
+  if (!expenseList.length) {
+    expenseList = [createEmptyExpenseRow()];
+  }
+
+  pointTotal = entryRows.reduce(function(sum, row) {
+    if (!String(row.name || '').trim() || roundYen(row.price) <= 0) return sum;
+    return sum + Math.max(0, roundYen(row.point || 0));
+  }, 0);
+  detailPanelState.expense = expenses.some(function(ex) {
+    return String(ex.name || '').trim() || roundYen(ex.amount || 0) > 0 || String(ex.memo || '').trim();
+  });
+  detailPanelState.point = isPointAllocationMode_() && pointTotal > 0;
+
+  recalculateCosts();
+  renderExpenseArea();
+  renderPointArea();
+  renderSummary();
+  renderCommonInfo();
+
+  const dateInput = document.getElementById('common-date');
+  const datePicker = document.getElementById('common-date-picker');
+  const supplierInput = document.getElementById('common-supplier');
+  const paymentInput = document.getElementById('common-payment');
+  const infoPayment = String(info.payment || '').trim();
+  if (infoPayment && infoPayment !== '個別入力') {
+    commonPaymentCache = infoPayment;
+  }
+  if (dateInput) dateInput.value = normalizeDateDigits_(String(info.date || '').trim());
+  if (dateInput && datePicker) syncDatePickerFromText_('common-date', 'common-date-picker');
+  if (supplierInput) supplierInput.value = String(info.supplier || '').trim();
+  if (paymentInput) paymentInput.value = infoPayment;
+
+  updateTopHelperButtons_();
+}
+
+function buildEntryPayload(rows) {
+  return rows.map(row => [
+    String(row.productNo || '').trim(),
+    String(row.name || '').trim(),
+    roundYen(row.price),
+    roundYen(row.point),
+    roundYen(row.cost),
+    Math.max(1, roundYen(row.qty)),
+    roundYen(row.unitPrice),
+    roundYen(row.expenseAlloc),
+    String(row.paymentMethod || '').trim()
+  ]);
+}
+
+function showEntryPage_() {
+  closeEntryInputStage_();
+  const entryPage = document.getElementById('entry-page');
+  const confirmPage = document.getElementById('confirm-page');
+  const resultPage = document.getElementById('result-page');
+  if (entryPage) entryPage.style.display = 'block';
+  if (confirmPage) confirmPage.style.display = 'none';
+  if (resultPage) resultPage.style.display = 'none';
+  setEntryScreenState_('entry');
+  updateTopHelperButtons_();
+}
+
+function showConfirmPage_() {
+  closeEntryInputStage_();
+  const entryPage = document.getElementById('entry-page');
+  const confirmPage = document.getElementById('confirm-page');
+  const resultPage = document.getElementById('result-page');
+  if (entryPage) entryPage.style.display = 'none';
+  if (confirmPage) confirmPage.style.display = 'block';
+  if (resultPage) resultPage.style.display = 'none';
+  setEntryScreenState_('confirm');
+  updateTopHelperButtons_();
+}
+
+function showResultPage_() {
+  closeEntryInputStage_();
+  const entryPage = document.getElementById('entry-page');
+  const confirmPage = document.getElementById('confirm-page');
+  const resultPage = document.getElementById('result-page');
+  if (entryPage) entryPage.style.display = 'none';
+  if (confirmPage) confirmPage.style.display = 'none';
+  if (resultPage) resultPage.style.display = 'block';
+  setEntryScreenState_('result');
+  updateTopHelperButtons_();
+}
+
+function showFinalConfirm() {
+  try {
+    if (entryInputStageState_.active) {
+      commitEntryInputStageStep_();
+      closeEntryInputStage_();
+    }
+    recalculateCosts();
+
+    const lineItemIndividualMode = isLineItemIndividualMode_();
+    const date = normalizeDateDigits_(String((document.getElementById('common-date') && document.getElementById('common-date').value) || '').trim());
+    const supplier = (document.getElementById('common-supplier').value || '').trim();
+    const payment = lineItemIndividualMode
+      ? '個別入力'
+      : (document.getElementById('common-payment').value || '').trim();
+
+    if (!date || !supplier || (!lineItemIndividualMode && !payment)) {
+      alert('共通項目（仕入日/仕入先/支払い方法）を入力してください');
+      return;
+    }
+
+    const activeRows = getActiveEntryRows();
+    const payloadEntries = buildEntryPayload(activeRows);
+    const payloadExpenses = (isExpenseAllocationMode_() ? getActiveExpenseRows_() : []).map(ex => ({
+      name: String(ex.name || '').trim(),
+      amount: roundYen(ex.amount),
+      memo: String(ex.memo || '').trim()
+    }));
+    pendingPayload = {
+      entries: payloadEntries,
+      commonInfo: { date: date, supplier: supplier, payment: payment },
+      expenses: payloadExpenses,
+      pointMode: pointInputMode,
+      expenseMode: expenseInputMode
+    };
+
+    renderFinalConfirm_(activeRows, payloadExpenses, pendingPayload.commonInfo, pendingPayload.pointMode, pendingPayload.expenseMode);
+    showConfirmPage_();
+    scrollAppBodyToTop_();
+  } catch (err) {
+    showError(err);
+  }
+}
+
+function renderFinalConfirm_(rows, expenses, commonInfo, pointMode, expenseMode) {
+  const activeRows = Array.isArray(rows) ? rows : [];
+  const expenseRowsData = Array.isArray(expenses) ? expenses : [];
+  const info = commonInfo || {};
+  const lineItemIndividualMode =
+    String(pointMode || 'allocation') === 'individual' &&
+    String(expenseMode || 'allocation') === 'individual';
+
+  let detailRows = '';
+  activeRows.forEach(function(row, idx) {
+    const rowPayment = String(row.paymentMethod || info.payment || '').trim();
+    if (lineItemIndividualMode) {
+      detailRows += '<tr>' +
+        '<td>' + (idx + 1) + '</td>' +
+        '<td>' + escapeHtml(String(row.productNo || '').trim()) + '</td>' +
+        '<td>' + escapeHtml(String(row.name || '').trim()) + '</td>' +
+        '<td>' + formatYen_(roundYen(row.price)) + '</td>' +
+        '<td>' + formatYen_(roundYen(row.cost)) + '</td>' +
+        '<td>' + formatWithComma_(roundYen(row.qty)) + '</td>' +
+        '<td>' + formatYen_(roundYen(row.unitPrice)) + '</td>' +
+      '</tr>' +
+      '<tr class="detail-meta-row">' +
+        '<td></td>' +
+        '<td colspan="6" class="detail-meta-cell">' +
+          'ポイント/割引: ' + formatYen_(roundYen(row.point)) +
+          ' ／ 経費: ' + formatYen_(roundYen(row.expenseAlloc)) +
+          ' ／ 支払い方法: ' + escapeHtml(rowPayment || '未入力') +
+        '</td>' +
+      '</tr>';
+      return;
+    }
+
+    detailRows += '<tr>' +
+      '<td>' + (idx + 1) + '</td>' +
+      '<td>' + escapeHtml(String(row.productNo || '').trim()) + '</td>' +
+      '<td>' + escapeHtml(String(row.name || '').trim()) + '</td>' +
+      '<td>' + formatYen_(roundYen(row.price)) + '</td>' +
+      '<td>' + formatYen_(roundYen(row.point)) + '</td>' +
+      '<td>' + formatYen_(roundYen(row.expenseAlloc)) + '</td>' +
+      '<td>' + formatYen_(roundYen(row.cost)) + '</td>' +
+      '<td>' + formatWithComma_(roundYen(row.qty)) + '</td>' +
+      '<td>' + formatYen_(roundYen(row.unitPrice)) + '</td>' +
+    '</tr>';
+  });
+
+  let expenseRows = '';
+  expenseRowsData.forEach(function(ex, idx) {
+    expenseRows += '<tr>' +
+      '<td>' + (idx + 1) + '</td>' +
+      '<td>' + escapeHtml(String(ex.name || '').trim()) + '</td>' +
+      '<td>' + formatYen_(roundYen(ex.amount)) + '</td>' +
+      '<td>' + escapeHtml(String(ex.memo || '').trim()) + '</td>' +
+    '</tr>';
+  });
+
+  const totalQty = activeRows.reduce((sum, row) => sum + roundYen(row.qty), 0);
+  const totalPrice = activeRows.reduce((sum, row) => sum + roundYen(row.price), 0);
+  const totalPoint = activeRows.reduce((sum, row) => sum + roundYen(row.point), 0);
+  const totalExpAlloc = activeRows.reduce((sum, row) => sum + roundYen(row.expenseAlloc), 0);
+  const totalCost = activeRows.reduce((sum, row) => sum + roundYen(row.cost), 0);
+  const totalExpenseInput = expenseRowsData.reduce((sum, ex) => sum + roundYen(ex.amount), 0);
+  const expenseTotal = String(expenseMode || 'allocation') === 'individual' ? totalExpAlloc : totalExpenseInput;
+  const hasExpenseRows = expenseRowsData.length > 0;
+
+  let pointExpenseBlock = '';
+  if (hasExpenseRows) {
+    pointExpenseBlock =
+      '<div class="confirm-block section-card slip-block slip-block-expense">' +
+        '<div class="confirm-title">経費</div>' +
+        '<div class="summary-table-wrap">' +
+          '<table class="summary-table summary-meta-table">' +
+            '<thead><tr><th>No</th><th>内容</th><th>金額</th><th>メモ</th></tr></thead>' +
+            '<tbody>' + expenseRows + '</tbody>' +
+          '</table>' +
+        '</div>' +
+      '</div>';
+  }
+
+  document.getElementById('confirm-area').innerHTML =
+    '<div class="confirm-block section-card">' +
+      '<div class="confirm-title">商品明細</div>' +
+      '<div class="table-wrap">' +
+        '<table>' +
+          (lineItemIndividualMode
+            ? '<tr><th>No</th><th>商品マスタ番号</th><th>商品名</th><th>提示金額</th><th>原価</th><th>個数</th><th>単価</th></tr>'
+            : '<tr><th>No</th><th>商品マスタ番号</th><th>商品名</th><th>提示金額</th><th>ポイント/割引</th><th>経費</th><th>原価</th><th>個数</th><th>単価</th></tr>') +
+          detailRows +
+        '</table>' +
+      '</div>' +
+    '</div>' +
+    pointExpenseBlock +
+
+    '<div class="confirm-block section-card">' +
+      '<div class="confirm-title">集計</div>' +
+      '<div class="summary-table-wrap">' +
+        '<table class="summary-table">' +
+          '<thead><tr><th>商品数</th><th>総提示金額</th><th>ポイント合計</th><th>経費合計</th><th>原価合計</th></tr></thead>' +
+          '<tbody><tr class="summary-value-row">' +
+            '<td class="count-cell">' + formatWithComma_(totalQty) + '</td>' +
+            '<td>' + formatYen_(totalPrice) + '</td>' +
+            '<td>' + formatYen_(totalPoint) + '</td>' +
+            '<td>' + formatYen_(expenseTotal) + '</td>' +
+            '<td class="is-emphasis">' + formatYen_(totalCost) + '</td>' +
+          '</tr></tbody>' +
+        '</table>' +
+      '</div>' +
+    '</div>' +
+
+    '<div class="confirm-block section-card">' +
+      '<div class="confirm-title">共通情報</div>' +
+      '<div class="summary-table-wrap">' +
+        '<table class="summary-table summary-meta-table">' +
+          '<thead><tr><th>仕入日</th><th>仕入先</th><th>支払い方法</th></tr></thead>' +
+          '<tbody><tr class="summary-text-row">' +
+            '<td>' + escapeHtml(String(info.date || '').trim()) + '</td>' +
+            '<td>' + escapeHtml(String(info.supplier || '').trim()) + '</td>' +
+            '<td>' + escapeHtml(String(info.payment || '').trim()) + '</td>' +
+          '</tr></tbody>' +
+        '</table>' +
+      '</div>' +
+    '</div>';
+}
+
+function hideFinalConfirm() {
+  showEntryPage_();
+  scrollAppBodyToTop_();
+}
+
+function submitEntries() {
+  if (!pendingPayload) {
+    alert('最終確認を先に実行してください');
+    return;
+  }
+
+  const submitBtn = document.getElementById('confirm-submit-btn');
+  const statusEl = document.getElementById('submit-status');
+  if (submitBtn) submitBtn.disabled = true;
+  if (statusEl) statusEl.textContent = '登録中...';
+
+  google.script.run
+    .withSuccessHandler(function(res) {
+      const result = (typeof res === 'string') ? { message: res } : (res || {});
+
+      if (submitBtn) submitBtn.disabled = false;
+      if (statusEl) statusEl.textContent = '';
+
+      pendingPayload = null;
+      entryRows = [createEmptyEntryRow()];
+      expenseList = [createEmptyExpenseRow()];
+      pointTotal = 0;
+      detailPanelState.expense = false;
+      detailPanelState.point = false;
+      detailPanelState.tax = false;
+
+      renderEntryRows();
+      renderExpenseArea();
+      renderPointArea();
+      renderSummary();
+      renderCommonInfo();
+      loadSupplierPaymentOptions();
+      loadProductCandidates();
+      loadExpenseItems();
+      renderPostSubmitSlipPreview_(result);
+    })
+    .withFailureHandler(function(err) {
+      if (submitBtn) submitBtn.disabled = false;
+      if (statusEl) statusEl.textContent = '';
+      showError(err);
+    })
+    .registerEntries(pendingPayload.entries, pendingPayload.commonInfo, pendingPayload.expenses);
+}
+
+function renderPostSubmitSlipPreview_(result) {
+  const data = result || {};
+  const statusBox = document.getElementById('entry-status');
+  if (!statusBox) return;
+
+  postSubmitSlipData = data && data.slipData ? data.slipData : null;
+  statusBox.innerHTML = buildPostSubmitSlipPreviewHtml_(data);
+  showResultPage_();
+  scrollAppBodyToTop_();
+}
+
+function startNewEntry() {
+  postSubmitSlipData = null;
+  const statusBox = document.getElementById('entry-status');
+  if (statusBox) {
+    statusBox.innerHTML = '';
+  }
+  showEntryPage_();
+  scrollAppBodyToTop_();
+}
+
+function buildPostSubmitSlipPreviewHtml_(result) {
+  const data = result || {};
+  const slip = data.slipData || {};
+  const lines = Array.isArray(slip.lines) ? slip.lines : [];
+  const expenses = Array.isArray(slip.expenses) ? slip.expenses : [];
+  const totals = slip.totals || {};
+  const message = escapeHtml(String(data.message || '仕入登録が完了しました'));
+  const lineItemIndividualMode =
+    (
+      String(data.pointMode || slip.pointMode || '').trim() === 'individual' &&
+      String(data.expenseMode || slip.expenseMode || '').trim() === 'individual'
+    ) ||
+    lines.some(function(line) {
+      return !!String(line && line.paymentMethod || '').trim();
+    });
+
+  if (!lines.length) {
+    return '<div class="result-success">' + message + '</div>';
+  }
+
+  const lineRows = lines.map(function(line) {
+    if (lineItemIndividualMode) {
+      const rowPayment = String(line.paymentMethod || slip.payment || '').trim();
+      return '<tr>' +
+        '<td>' + escapeHtml(String(line.lineNo || '')) + '</td>' +
+        '<td>' + escapeHtml(String(line.productNo || '')) + '</td>' +
+        '<td>' + escapeHtml(String(line.name || '')) + '</td>' +
+        '<td>' + formatYen_(line.price || 0) + '</td>' +
+        '<td>' + formatYen_(line.cost || 0) + '</td>' +
+        '<td>' + formatWithComma_(line.qty || 0) + '</td>' +
+        '<td>' + formatYen_(line.unitPrice || 0) + '</td>' +
+      '</tr>' +
+      '<tr class="detail-meta-row">' +
+        '<td></td>' +
+        '<td colspan="6" class="detail-meta-cell">' +
+          'ポイント/割引: ' + formatYen_(line.point || 0) +
+          ' ／ 経費: ' + formatYen_(line.expenseAlloc || 0) +
+          ' ／ 支払い方法: ' + escapeHtml(rowPayment || '未入力') +
+        '</td>' +
+      '</tr>';
+    }
+
+    return '<tr>' +
+      '<td>' + escapeHtml(String(line.lineNo || '')) + '</td>' +
+      '<td>' + escapeHtml(String(line.productNo || '')) + '</td>' +
+      '<td>' + escapeHtml(String(line.name || '')) + '</td>' +
+      '<td>' + formatYen_(line.price || 0) + '</td>' +
+      '<td>' + formatYen_(line.point || 0) + '</td>' +
+      '<td>' + formatYen_(line.expenseAlloc || 0) + '</td>' +
+      '<td>' + formatYen_(line.cost || 0) + '</td>' +
+      '<td>' + formatWithComma_(line.qty || 0) + '</td>' +
+      '<td>' + formatYen_(line.unitPrice || 0) + '</td>' +
+    '</tr>';
+  }).join('');
+
+  const pointTotal = roundYen(totals.point || 0);
+  const expenseAllocTotal = roundYen(totals.expenseAlloc || 0);
+  const expenseInputTotal = roundYen(totals.expenseInputTotal || 0);
+  const expenseTotal = Math.max(expenseInputTotal, expenseAllocTotal);
+  const hasExpenseRows = expenses.length > 0;
+
+  let pointExpenseBlock = '';
+  if (hasExpenseRows) {
+    let expenseRows = '';
+    expenseRows = expenses.map(function(ex) {
+      return '<tr>' +
+        '<td>' + escapeHtml(String(ex.lineNo || '')) + '</td>' +
+        '<td>' + escapeHtml(String(ex.name || '')) + '</td>' +
+        '<td>' + formatYen_(ex.amount || 0) + '</td>' +
+        '<td>' + escapeHtml(String(ex.memo || '')) + '</td>' +
+      '</tr>';
+    }).join('');
+
+    pointExpenseBlock =
+      '<div class="confirm-block section-card slip-block slip-block-expense">' +
+        '<div class="confirm-title">経費</div>' +
+        '<div class="summary-table-wrap">' +
+          '<table class="summary-table summary-meta-table">' +
+            '<thead><tr><th>No</th><th>内容</th><th>金額</th><th>メモ</th></tr></thead>' +
+            '<tbody>' + expenseRows + '</tbody>' +
+          '</table>' +
+        '</div>' +
+      '</div>';
+  }
+
+  let pdfStatusHtml = '';
+  if (data.pdf && data.pdf.success === false) {
+    pdfStatusHtml = '<div class="note-text" style="color:#b00020;">伝票PDF保存に失敗: ' + escapeHtml(String(data.pdf.error || '')) + '</div>';
+  } else if (data.pdf && data.pdf.success) {
+    pdfStatusHtml = '<div class="note-text">伝票PDF保存: 完了</div>';
+  }
+
+  return '' +
+    '<div class="confirm-block section-card"><div class="result-success">' + message + '</div>' + pdfStatusHtml + '</div>' +
+    '<div class="confirm-block section-card slip-block slip-block-summary">' +
+      '<div class="confirm-title">仕入伝票プレビュー</div>' +
+      '<div class="note-text">内容を確認し、印刷するか選択してください。</div>' +
+    '</div>' +
+    '<div class="confirm-block section-card slip-block slip-block-common">' +
+      '<div class="confirm-title">共通情報</div>' +
+      '<div class="summary-table-wrap">' +
+        '<table class="summary-table summary-meta-table">' +
+          '<thead><tr><th>伝票番号</th><th>仕入日</th><th>仕入先</th><th>支払い方法</th></tr></thead>' +
+          '<tbody><tr class="summary-text-row">' +
+            '<td>' + escapeHtml(String(slip.slipNo || '')) + '</td>' +
+            '<td>' + escapeHtml(String(slip.purchaseDate || '')) + '</td>' +
+            '<td>' + escapeHtml(String(slip.supplier || '')) + '</td>' +
+            '<td>' + escapeHtml(String(slip.payment || '')) + '</td>' +
+          '</tr></tbody>' +
+        '</table>' +
+      '</div>' +
+    '</div>' +
+    '<div class="confirm-block section-card slip-block slip-block-detail">' +
+      '<div class="confirm-title">商品明細</div>' +
+      '<div class="table-wrap">' +
+        '<table>' +
+          (lineItemIndividualMode
+            ? '<tr><th>No</th><th>商品マスタ番号</th><th>商品名</th><th>提示金額</th><th>原価</th><th>個数</th><th>単価</th></tr>'
+            : '<tr><th>No</th><th>商品マスタ番号</th><th>商品名</th><th>提示金額</th><th>ポイント/割引</th><th>経費</th><th>原価</th><th>個数</th><th>単価</th></tr>') +
+          lineRows +
+        '</table>' +
+      '</div>' +
+    '</div>' +
+    pointExpenseBlock +
+    '<div class="confirm-block section-card slip-block slip-block-summary">' +
+      '<div class="confirm-title">集計</div>' +
+      '<div class="summary-table-wrap">' +
+        '<table class="summary-table">' +
+          '<thead><tr><th>商品数</th><th>総提示金額</th><th>ポイント合計</th><th>経費合計</th><th>原価合計</th></tr></thead>' +
+          '<tbody><tr class="summary-value-row">' +
+            '<td class="count-cell">' + formatWithComma_(totals.qty || 0) + '</td>' +
+            '<td>' + formatYen_(totals.price || 0) + '</td>' +
+            '<td>' + formatYen_(pointTotal) + '</td>' +
+            '<td>' + formatYen_(expenseTotal) + '</td>' +
+            '<td class="is-emphasis">' + formatYen_(totals.cost || 0) + '</td>' +
+          '</tr></tbody>' +
+        '</table>' +
+      '</div>' +
+    '</div>' +
+    '<div class="confirm-block section-card">' +
+      '<div class="confirm-title">印刷確認</div>' +
+      '<div class="note-text">仕入伝票を印刷しますか？</div>' +
+      '<div class="button-row" id="post-submit-print-controls">' +
+        '<button type="button" class="btn-main" onclick="handlePostSubmitPrintDecision_(true)">印刷する</button>' +
+        '<button type="button" class="btn-sub" onclick="handlePostSubmitPrintDecision_(false)">印刷しない</button>' +
+      '</div>' +
+      '<div id="post-submit-print-status" class="note-text"></div>' +
+    '</div>';
+}
+
+function handlePostSubmitPrintDecision_(shouldPrint) {
+  const statusEl = document.getElementById('post-submit-print-status');
+  const controlsEl = document.getElementById('post-submit-print-controls');
+  if (!shouldPrint) {
+    if (statusEl) statusEl.textContent = '印刷せずに終了しました。';
+    if (controlsEl) controlsEl.style.display = 'none';
+    return;
+  }
+
+  if (!postSubmitSlipData) {
+    if (statusEl) statusEl.textContent = '印刷対象の伝票データがありません。';
+    return;
+  }
+
+  if (statusEl) statusEl.textContent = '印刷ダイアログを開いています...';
+  if (controlsEl) controlsEl.style.display = 'none';
+
+  document.body.classList.add('print-slip-mode');
+  window.setTimeout(function() {
+    try {
+      window.print();
+      if (statusEl) statusEl.textContent = '印刷ダイアログを表示しました。';
+    } catch (err) {
+      if (statusEl) statusEl.textContent = '印刷ダイアログを表示できませんでした。';
+      if (controlsEl) controlsEl.style.display = 'flex';
+    } finally {
+      document.body.classList.remove('print-slip-mode');
+    }
+  }, 40);
+}
+
+function printSlipFromData_(data) {
+  const slip = data || {};
+  const lines = Array.isArray(slip.lines) ? slip.lines : [];
+  if (!lines.length) return false;
+
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) return false;
+  printWindow.document.open();
+  printWindow.document.write(buildSlipPrintHtml_(slip));
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.print();
+  return true;
+}
+
+function buildSlipPrintHtml_(data) {
+  const lines = Array.isArray(data.lines) ? data.lines : [];
+  const expenseLines = Array.isArray(data.expenses) ? data.expenses : [];
+  const totals = data.totals || {};
+  const pointTotal = roundYen(totals.point || 0);
+  const expenseAllocTotal = roundYen(totals.expenseAlloc || 0);
+  const expenseInputTotal = roundYen(totals.expenseInputTotal || 0);
+  const expenseTotal = Math.max(expenseInputTotal, expenseAllocTotal);
+  const totalPrice = roundYen(totals.price || 0);
+  const totalCost = roundYen(totals.cost || 0);
+  const totalQty = roundYen(totals.qty || 0);
+
+  const lineRows = lines.map(function(line, idx) {
+    const rowClass = (idx % 2 === 1) ? ' class="row-alt"' : '';
+    return '<tr' + rowClass + '>' +
+      '<td class="center cell-weak">' + escapeHtml(String(line.lineNo || '')) + '</td>' +
+      '<td class="cell-weak">' + escapeHtml(String(line.inventoryId || '')) + '</td>' +
+      '<td class="cell-weak">' + escapeHtml(String(line.productNo || '')) + '</td>' +
+      '<td class="cell-name">' + escapeHtml(String(line.name || '')) + '</td>' +
+      '<td class="num cell-mid">' + formatYen_(line.price || 0) + '</td>' +
+      '<td class="num cell-weak">' + formatYen_(line.point || 0) + '</td>' +
+      '<td class="num cell-weak">' + formatYen_(line.expenseAlloc || 0) + '</td>' +
+      '<td class="num cell-cost">' + formatYen_(line.cost || 0) + '</td>' +
+      '<td class="center cell-mid">' + formatWithComma_(line.qty || 0) + '</td>' +
+      '<td class="num cell-mid">' + formatYen_(line.unitPrice || 0) + '</td>' +
+    '</tr>';
+  }).join('');
+
+  const expenseRows = expenseLines.length
+    ? expenseLines.map(function(ex, idx) {
+        const rowClass = (idx % 2 === 1) ? ' class="row-alt"' : '';
+        return '<tr' + rowClass + '>' +
+          '<td class="center cell-weak">' + escapeHtml(String(ex.lineNo || '')) + '</td>' +
+          '<td class="cell-mid">' + escapeHtml(String(ex.name || '')) + '</td>' +
+          '<td class="num cell-mid">' + formatYen_(ex.amount || 0) + '</td>' +
+          '<td class="cell-weak">' + escapeHtml(String(ex.memo || '')) + '</td>' +
+        '</tr>';
+      }).join('')
+    : '<tr><td colspan="4" class="expense-empty">なし</td></tr>';
+
+  return '' +
+    '<!DOCTYPE html>' +
+    '<html><head><meta charset="UTF-8"><title>仕入伝票</title>' +
+    '<style>' +
+      '@page{size:A4 portrait;margin:7mm;}' +
+      'html,body{margin:0;padding:0;}' +
+      'body{font-family:Arial,\"Hiragino Kaku Gothic ProN\",Meiryo,sans-serif;color:#111827;background:#fff;font-size:10.5px;line-height:1.28;-webkit-print-color-adjust:exact;print-color-adjust:exact;}' +
+      '*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;}' +
+      '.slip-root{display:flex;flex-direction:column;gap:5px;}' +
+      '.section{border:1.2px solid #9ca3af;border-radius:5px;padding:6px 8px;margin:0;page-break-inside:avoid;break-inside:avoid;}' +
+      '.section-head{font-size:12px;font-weight:800;letter-spacing:0.02em;color:#0f172a;margin:0 0 4px 0;padding:0 0 3px 0;border-bottom:1px solid #cfd5dc;}' +
+      '.title-row{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;}' +
+      '.title-main{font-size:20px;font-weight:900;letter-spacing:0.03em;line-height:1;}' +
+      '.title-sub{font-size:10px;color:#4b5563;white-space:nowrap;}' +
+      '.common-inline{display:flex;flex-wrap:wrap;gap:6px 8px;}' +
+      '.kv{display:inline-flex;align-items:center;gap:4px;border:1px solid #d2d7de;border-radius:4px;padding:3px 6px;background:#f8fafc;min-height:24px;}' +
+      '.kv .k{font-size:9px;font-weight:700;color:#4b5563;white-space:nowrap;}' +
+      '.kv .v{font-size:11px;font-weight:700;color:#111827;white-space:nowrap;}' +
+      '.totals-main{border:1.5px solid #1f2937;background:#f3f4f6;padding:6px 8px;border-radius:5px;}' +
+      '.totals-main-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}' +
+      '.total-block{border:1px solid #9ca3af;background:#fff;padding:5px 6px;border-radius:4px;}' +
+      '.total-label{font-size:10px;font-weight:800;color:#374151;margin:0 0 2px 0;}' +
+      '.total-value{font-size:22px;font-weight:900;line-height:1;letter-spacing:0.01em;color:#111827;}' +
+      '.totals-sub{display:flex;gap:10px;flex-wrap:wrap;margin-top:5px;}' +
+      '.totals-sub .mini{font-size:10px;font-weight:700;color:#374151;}' +
+      '.totals-sub .mini b{font-size:12px;color:#111827;}' +
+      'table{width:100%;border-collapse:collapse;table-layout:fixed;}' +
+      'th,td{border:1px solid #b8c0ca;padding:4px 5px;vertical-align:middle;page-break-inside:avoid;break-inside:avoid;}' +
+      'th{background:#e5e7eb;color:#111827;font-weight:800;font-size:9.5px;text-align:left;}' +
+      'td{font-size:10px;color:#111827;}' +
+      '.num{text-align:right;font-variant-numeric:tabular-nums;}' +
+      '.center{text-align:center;}' +
+      '.cell-name{font-weight:800;font-size:10.7px;}' +
+      '.cell-mid{font-weight:700;}' +
+      '.cell-weak{color:#6b7280;font-weight:600;}' +
+      '.cell-cost{font-weight:800;}' +
+      '.row-alt td{background:#fafafa;}' +
+      '.expense-table th{background:#efefef;}' +
+      '.expense-empty{text-align:center;color:#6b7280;font-weight:700;}' +
+      '.w-no{width:5%;}.w-inv{width:11%;}.w-prod{width:10%;}.w-name{width:24%;}.w-price{width:9%;}.w-point{width:8%;}.w-exp{width:8%;}.w-cost{width:9%;}.w-qty{width:6%;}.w-unit{width:10%;}' +
+      '.w-exp-no{width:8%;}.w-exp-name{width:42%;}.w-exp-amount{width:18%;}.w-exp-memo{width:32%;}' +
+    '</style></head><body>' +
+      '<div class="slip-root">' +
+        '<div class="section">' +
+          '<div class="title-row">' +
+            '<div class="title-main">仕入伝票</div>' +
+            '<div class="title-sub">判断用サマリー</div>' +
+          '</div>' +
+        '</div>' +
+
+        '<div class="section">' +
+          '<div class="section-head">共通情報</div>' +
+          '<div class="common-inline">' +
+            '<span class="kv"><span class="k">伝票番号</span><span class="v">' + escapeHtml(String(data.slipNo || '')) + '</span></span>' +
+            '<span class="kv"><span class="k">仕入日</span><span class="v">' + escapeHtml(String(data.purchaseDate || '')) + '</span></span>' +
+            '<span class="kv"><span class="k">仕入先</span><span class="v">' + escapeHtml(String(data.supplier || '')) + '</span></span>' +
+            '<span class="kv"><span class="k">支払い方法</span><span class="v">' + escapeHtml(String(data.payment || '')) + '</span></span>' +
+          '</div>' +
+        '</div>' +
+
+        '<div class="section totals-main">' +
+          '<div class="section-head">集計（最重要）</div>' +
+          '<div class="totals-main-grid">' +
+            '<div class="total-block">' +
+              '<div class="total-label">総提示金額</div>' +
+              '<div class="total-value">' + formatYen_(totalPrice) + '</div>' +
+            '</div>' +
+            '<div class="total-block">' +
+              '<div class="total-label">原価合計</div>' +
+              '<div class="total-value">' + formatYen_(totalCost) + '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="totals-sub">' +
+            '<div class="mini">商品数 <b>' + formatWithComma_(totalQty) + '</b></div>' +
+            '<div class="mini">ポイント合計 <b>' + formatYen_(pointTotal) + '</b></div>' +
+            '<div class="mini">経費合計 <b>' + formatYen_(expenseTotal) + '</b></div>' +
+          '</div>' +
+        '</div>' +
+
+        '<div class="section">' +
+          '<div class="section-head">商品明細</div>' +
+          '<table>' +
+            '<colgroup>' +
+              '<col class="w-no"><col class="w-inv"><col class="w-prod"><col class="w-name"><col class="w-price"><col class="w-point"><col class="w-exp"><col class="w-cost"><col class="w-qty"><col class="w-unit">' +
+            '</colgroup>' +
+            '<thead>' +
+              '<tr><th>No</th><th>商品個別番号</th><th>商品マスタ番号</th><th>商品名</th><th>提示金額</th><th>ポイント</th><th>経費</th><th>原価</th><th>個数</th><th>単価</th></tr>' +
+            '</thead>' +
+            '<tbody>' + lineRows + '</tbody>' +
+          '</table>' +
+        '</div>' +
+
+        '<div class="section">' +
+          '<div class="section-head">経費明細</div>' +
+          '<table class="expense-table">' +
+            '<colgroup><col class="w-exp-no"><col class="w-exp-name"><col class="w-exp-amount"><col class="w-exp-memo"></colgroup>' +
+            '<thead><tr><th>No</th><th>内容</th><th>金額</th><th>メモ</th></tr></thead>' +
+            '<tbody>' + expenseRows + '</tbody>' +
+          '</table>' +
+        '</div>' +
+      '</div>' +
+    '</body></html>';
+}
+
+function showError(err) {
+  const msg = err && err.message ? err.message : String(err);
+  alert('エラー: ' + msg);
+}
+</script>
+</body>
+</html>

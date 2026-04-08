@@ -1,5 +1,5 @@
 # UI UX Standards
-- Updated: 2026-03-09 21:52:28 JST
+- Updated: 2026-03-30 01:51:36 JST
 - Purpose: 画面追加時の見た目/操作を統一する
 
 ## 1. 基本原則
@@ -33,4 +33,10 @@
 
 ## 7. 参照優先
 - 詳細な共通仕様は `common_app_standards_20260309_011819.md` を優先参照。
+- ERPのA/B遷移方式は `erp_ab_test_playbook.md` を正とする。
+- ERPの共通サイズ/フォントは `erp_ui_tokens_reference.md` を正とする。
 
+## 8. ERP追加ルール（今回確定）
+- A/B切替は同一HTML内の分岐ではなく、`entry_a` / `entry_b` の別ページ遷移で運用する。
+- A/B遷移は `navigateToWebAppPage_` + `getWebAppPageUrl` 方式を使い、GASモーダルと公開Webの両方で白画面を防ぐ。
+- ヘッダー/フッターの文字サイズ・高さは `style.css.html` の `--app-*` 変数のみを参照する。

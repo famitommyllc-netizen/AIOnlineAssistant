@@ -277,6 +277,9 @@ function registerEntries(entryList, commonInfo, expenseList) {
     entries: normalizedEntries,
     expenses: normalizedExpenses
   });
+
+  var pdfInfo = null;
+  var barcodePdfInfo = null;
   var firstDataRow = inventorySheet.getLastRow() + 1;
 
   // 検索せず入力された値もマスタへ追加
@@ -325,17 +328,25 @@ function registerEntries(entryList, commonInfo, expenseList) {
     supplier: supplier,
     inventoryIds: normalizedEntries.map(function(item) { return item.inventoryId; })
   });
-  // 出力処理は共通サービスへ分離（現時点では登録時自動実行しない設定）
-  var outputOptions = getPurchaseRegisterOutputOptions_();
-  var outputResult = generatePurchaseOutputBundle_(slipData, outputOptions);
-  var pdfInfo = outputResult ? outputResult.pdf : null;
-  var barcodePdfInfo = outputResult ? outputResult.barcodePdf : null;
-  if (outputResult && outputResult.executed) {
-    if (barcodePdfInfo && barcodePdfInfo.success) {
-      markBarcodePrintStatus_(inventorySheet, firstDataRow, normalizedEntries.length, 'PDF作成');
-    } else if (barcodePdfInfo && barcodePdfInfo.success === false) {
-      markBarcodePrintStatus_(inventorySheet, firstDataRow, normalizedEntries.length, '作成失敗');
-    }
+
+  try {
+    pdfInfo = savePurchaseSlipPdf_(slipData);
+  } catch (err) {
+    pdfInfo = {
+      success: false,
+      error: err && err.message ? err.message : String(err)
+    };
+  }
+
+  try {
+    barcodePdfInfo = savePurchaseBarcodePdf_(slipData);
+    markBarcodePrintStatus_(inventorySheet, firstDataRow, normalizedEntries.length, 'PDF作成');
+  } catch (err2) {
+    barcodePdfInfo = {
+      success: false,
+      error: err2 && err2.message ? err2.message : String(err2)
+    };
+    markBarcodePrintStatus_(inventorySheet, firstDataRow, normalizedEntries.length, '作成失敗');
   }
 
   var firstInventoryId = normalizedEntries.length ? normalizedEntries[0].inventoryId : '';
@@ -343,10 +354,10 @@ function registerEntries(entryList, commonInfo, expenseList) {
   if (firstInventoryId) {
     message += ' / 商品個別番号(先頭)=' + firstInventoryId;
   }
-  if (outputResult && outputResult.executed && pdfInfo && pdfInfo.success === false) {
+  if (pdfInfo && pdfInfo.success === false) {
     message += ' / PDF保存失敗:' + pdfInfo.error;
   }
-  if (outputResult && outputResult.executed && barcodePdfInfo && barcodePdfInfo.success === false) {
+  if (barcodePdfInfo && barcodePdfInfo.success === false) {
     message += ' / バーコードPDF保存失敗:' + barcodePdfInfo.error;
   }
 
@@ -359,7 +370,6 @@ function registerEntries(entryList, commonInfo, expenseList) {
     inventoryIdMode: inventoryIdMode,
     inventoryIdModeLabel: inventoryIdModeLabel,
     slipData: slipData,
-    output: outputResult,
     pdf: pdfInfo,
     barcodePdf: barcodePdfInfo
   };
@@ -1345,333 +1355,4 @@ function markBarcodePrintStatus_(sheet, startRow, count, status) {
 
 function formatYmd_(date) {
   return Utilities.formatDate(date, TZ, 'yyyy-MM-dd');
-}
-
-var SHEET_ENTRY_PRODUCT_TEMPLATE = '商品入力テンプレ';
-var ENTRY_PRODUCT_TEMPLATE_HEADERS_ = ['templateId', 'templateName', 'inputValuesJson', 'updatedAt'];
-
-function getEntryProductTemplateList() {
-  var sheet = getOrCreateEntryProductTemplateSheet_();
-  var lastRow = sheet.getLastRow();
-  if (lastRow < 2) return [];
-  var values = sheet.getRange(2, 1, lastRow - 1, ENTRY_PRODUCT_TEMPLATE_HEADERS_.length).getValues();
-  var out = [];
-  values.forEach(function(row) {
-    var templateId = String(row[0] || '').trim();
-    var templateName = String(row[1] || '').trim();
-    if (!templateId || !templateName) return;
-    out.push({
-      templateId: templateId,
-      templateName: templateName,
-      updatedAt: String(row[3] || '').trim()
-    });
-  });
-  out.sort(function(a, b) {
-    return String(b.updatedAt || '').localeCompare(String(a.updatedAt || ''), 'ja');
-  });
-  return out;
-}
-
-function getEntryProductTemplateById(templateId) {
-  var id = String(templateId || '').trim();
-  if (!id) throw new Error('テンプレIDが未指定です');
-  var sheet = getOrCreateEntryProductTemplateSheet_();
-  var rowNo = findEntryProductTemplateRowById_(sheet, id);
-  if (!rowNo) throw new Error('テンプレートが見つかりません');
-  var row = sheet.getRange(rowNo, 1, 1, ENTRY_PRODUCT_TEMPLATE_HEADERS_.length).getValues()[0];
-  var inputValues = safeParseTemplateJson_(row[2]);
-  return {
-    templateId: String(row[0] || '').trim(),
-    templateName: String(row[1] || '').trim(),
-    inputValues: inputValues,
-    updatedAt: String(row[3] || '').trim()
-  };
-}
-
-function saveEntryProductTemplate(payload) {
-  var p = payload || {};
-  var templateId = String(p.templateId || '').trim();
-  var templateName = String(p.templateName || '').trim();
-  var inputValues = p.inputValues || {};
-  if (!templateName) throw new Error('テンプレ名を入力してください');
-  var inputValuesJson = JSON.stringify(inputValues);
-  var updatedAt = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm:ss');
-  var sheet = getOrCreateEntryProductTemplateSheet_();
-  var rowNo = 0;
-  if (templateId) {
-    rowNo = findEntryProductTemplateRowById_(sheet, templateId);
-  }
-  if (!rowNo) {
-    rowNo = findEntryProductTemplateRowByName_(sheet, templateName);
-    if (rowNo) {
-      templateId = String(sheet.getRange(rowNo, 1).getValue() || '').trim();
-    }
-  }
-  if (!templateId) {
-    templateId = buildEntryProductTemplateId_();
-  }
-
-  var rowValues = [templateId, templateName, inputValuesJson, updatedAt];
-  if (rowNo) {
-    sheet.getRange(rowNo, 1, 1, rowValues.length).setValues([rowValues]);
-  } else {
-    sheet.appendRow(rowValues);
-  }
-  return {
-    ok: true,
-    templateId: templateId,
-    templateName: templateName,
-    updatedAt: updatedAt
-  };
-}
-
-function deleteEntryProductTemplate(templateId) {
-  var id = String(templateId || '').trim();
-  if (!id) throw new Error('テンプレIDが未指定です');
-  var sheet = getOrCreateEntryProductTemplateSheet_();
-  var rowNo = findEntryProductTemplateRowById_(sheet, id);
-  if (!rowNo) {
-    return { ok: true, deleted: false };
-  }
-  sheet.deleteRow(rowNo);
-  return { ok: true, deleted: true };
-}
-
-function getOrCreateEntryProductTemplateSheet_() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(SHEET_ENTRY_PRODUCT_TEMPLATE);
-  if (!sheet) {
-    sheet = ss.insertSheet(SHEET_ENTRY_PRODUCT_TEMPLATE);
-  }
-  ensureEntryProductTemplateHeaders_(sheet);
-  return sheet;
-}
-
-function ensureEntryProductTemplateHeaders_(sheet) {
-  var target = sheet;
-  if (!target) return;
-  if (target.getLastRow() < 1) {
-    target.getRange(1, 1, 1, ENTRY_PRODUCT_TEMPLATE_HEADERS_.length).setValues([ENTRY_PRODUCT_TEMPLATE_HEADERS_]);
-    return;
-  }
-  var current = target.getRange(1, 1, 1, ENTRY_PRODUCT_TEMPLATE_HEADERS_.length).getValues()[0];
-  var needsUpdate = false;
-  for (var i = 0; i < ENTRY_PRODUCT_TEMPLATE_HEADERS_.length; i++) {
-    if (String(current[i] || '').trim() !== ENTRY_PRODUCT_TEMPLATE_HEADERS_[i]) {
-      needsUpdate = true;
-      break;
-    }
-  }
-  if (needsUpdate) {
-    target.getRange(1, 1, 1, ENTRY_PRODUCT_TEMPLATE_HEADERS_.length).setValues([ENTRY_PRODUCT_TEMPLATE_HEADERS_]);
-  }
-}
-
-function findEntryProductTemplateRowById_(sheet, templateId) {
-  var id = String(templateId || '').trim();
-  if (!id) return 0;
-  var lastRow = sheet.getLastRow();
-  if (lastRow < 2) return 0;
-  var values = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
-  for (var i = 0; i < values.length; i++) {
-    if (String(values[i][0] || '').trim() === id) {
-      return i + 2;
-    }
-  }
-  return 0;
-}
-
-function findEntryProductTemplateRowByName_(sheet, templateName) {
-  var name = String(templateName || '').trim();
-  if (!name) return 0;
-  var lastRow = sheet.getLastRow();
-  if (lastRow < 2) return 0;
-  var values = sheet.getRange(2, 2, lastRow - 1, 1).getValues();
-  for (var i = 0; i < values.length; i++) {
-    if (String(values[i][0] || '').trim() === name) {
-      return i + 2;
-    }
-  }
-  return 0;
-}
-
-function buildEntryProductTemplateId_() {
-  var token = Utilities.formatDate(new Date(), TZ, 'yyyyMMddHHmmssSSS');
-  var rand = Math.floor(Math.random() * 9000) + 1000;
-  return 'EPT-' + token + '-' + rand;
-}
-
-function safeParseTemplateJson_(raw) {
-  var text = String(raw || '').trim();
-  if (!text) return {};
-  try {
-    var parsed = JSON.parse(text);
-    return parsed && typeof parsed === 'object' ? parsed : {};
-  } catch (err) {
-    return {};
-  }
-}
-
-var SHEET_DISPLAY_SETTINGS_TEMPLATE = '表示設定テンプレ';
-var DISPLAY_SETTINGS_TEMPLATE_HEADERS_ = ['templateId', 'templateName', 'settingsJson', 'updatedAt'];
-
-function getDisplaySettingsTemplateList() {
-  var sheet = getOrCreateDisplaySettingsTemplateSheet_();
-  var lastRow = sheet.getLastRow();
-  if (lastRow < 2) return [];
-  var values = sheet.getRange(2, 1, lastRow - 1, DISPLAY_SETTINGS_TEMPLATE_HEADERS_.length).getValues();
-  var out = [];
-  values.forEach(function(row) {
-    var templateId = String(row[0] || '').trim();
-    var templateName = String(row[1] || '').trim();
-    if (!templateId || !templateName) return;
-    out.push({
-      templateId: templateId,
-      templateName: templateName,
-      updatedAt: String(row[3] || '').trim()
-    });
-  });
-  out.sort(function(a, b) {
-    return String(b.updatedAt || '').localeCompare(String(a.updatedAt || ''), 'ja');
-  });
-  return out;
-}
-
-function getDisplaySettingsTemplateById(templateId) {
-  var id = String(templateId || '').trim();
-  if (!id) throw new Error('テンプレIDが未指定です');
-  var sheet = getOrCreateDisplaySettingsTemplateSheet_();
-  var rowNo = findDisplaySettingsTemplateRowById_(sheet, id);
-  if (!rowNo) throw new Error('テンプレートが見つかりません');
-  var row = sheet.getRange(rowNo, 1, 1, DISPLAY_SETTINGS_TEMPLATE_HEADERS_.length).getValues()[0];
-  return {
-    templateId: String(row[0] || '').trim(),
-    templateName: String(row[1] || '').trim(),
-    settings: safeParseDisplaySettingsJson_(row[2]),
-    updatedAt: String(row[3] || '').trim()
-  };
-}
-
-function saveDisplaySettingsTemplate(payload) {
-  var p = payload || {};
-  var templateId = String(p.templateId || '').trim();
-  var templateName = String(p.templateName || '').trim();
-  var settings = p.settings || {};
-  if (!templateName) throw new Error('テンプレ名を入力してください');
-  var settingsJson = JSON.stringify(settings);
-  var updatedAt = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm:ss');
-  var sheet = getOrCreateDisplaySettingsTemplateSheet_();
-  var rowNo = 0;
-  if (templateId) {
-    rowNo = findDisplaySettingsTemplateRowById_(sheet, templateId);
-  }
-  if (!rowNo) {
-    rowNo = findDisplaySettingsTemplateRowByName_(sheet, templateName);
-    if (rowNo) {
-      templateId = String(sheet.getRange(rowNo, 1).getValue() || '').trim();
-    }
-  }
-  if (!templateId) {
-    templateId = buildDisplaySettingsTemplateId_();
-  }
-
-  var rowValues = [templateId, templateName, settingsJson, updatedAt];
-  if (rowNo) {
-    sheet.getRange(rowNo, 1, 1, rowValues.length).setValues([rowValues]);
-  } else {
-    sheet.appendRow(rowValues);
-  }
-  return {
-    ok: true,
-    templateId: templateId,
-    templateName: templateName,
-    updatedAt: updatedAt
-  };
-}
-
-function deleteDisplaySettingsTemplate(templateId) {
-  var id = String(templateId || '').trim();
-  if (!id) throw new Error('テンプレIDが未指定です');
-  var sheet = getOrCreateDisplaySettingsTemplateSheet_();
-  var rowNo = findDisplaySettingsTemplateRowById_(sheet, id);
-  if (!rowNo) {
-    return { ok: true, deleted: false };
-  }
-  sheet.deleteRow(rowNo);
-  return { ok: true, deleted: true };
-}
-
-function getOrCreateDisplaySettingsTemplateSheet_() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(SHEET_DISPLAY_SETTINGS_TEMPLATE);
-  if (!sheet) {
-    sheet = ss.insertSheet(SHEET_DISPLAY_SETTINGS_TEMPLATE);
-  }
-  ensureDisplaySettingsTemplateHeaders_(sheet);
-  return sheet;
-}
-
-function ensureDisplaySettingsTemplateHeaders_(sheet) {
-  var target = sheet;
-  if (!target) return;
-  if (target.getLastRow() < 1) {
-    target.getRange(1, 1, 1, DISPLAY_SETTINGS_TEMPLATE_HEADERS_.length).setValues([DISPLAY_SETTINGS_TEMPLATE_HEADERS_]);
-    return;
-  }
-  var current = target.getRange(1, 1, 1, DISPLAY_SETTINGS_TEMPLATE_HEADERS_.length).getValues()[0];
-  var needsUpdate = false;
-  for (var i = 0; i < DISPLAY_SETTINGS_TEMPLATE_HEADERS_.length; i++) {
-    if (String(current[i] || '').trim() !== DISPLAY_SETTINGS_TEMPLATE_HEADERS_[i]) {
-      needsUpdate = true;
-      break;
-    }
-  }
-  if (needsUpdate) {
-    target.getRange(1, 1, 1, DISPLAY_SETTINGS_TEMPLATE_HEADERS_.length).setValues([DISPLAY_SETTINGS_TEMPLATE_HEADERS_]);
-  }
-}
-
-function findDisplaySettingsTemplateRowById_(sheet, templateId) {
-  var id = String(templateId || '').trim();
-  if (!id) return 0;
-  var lastRow = sheet.getLastRow();
-  if (lastRow < 2) return 0;
-  var values = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
-  for (var i = 0; i < values.length; i++) {
-    if (String(values[i][0] || '').trim() === id) {
-      return i + 2;
-    }
-  }
-  return 0;
-}
-
-function findDisplaySettingsTemplateRowByName_(sheet, templateName) {
-  var name = String(templateName || '').trim();
-  if (!name) return 0;
-  var lastRow = sheet.getLastRow();
-  if (lastRow < 2) return 0;
-  var values = sheet.getRange(2, 2, lastRow - 1, 1).getValues();
-  for (var i = 0; i < values.length; i++) {
-    if (String(values[i][0] || '').trim() === name) {
-      return i + 2;
-    }
-  }
-  return 0;
-}
-
-function buildDisplaySettingsTemplateId_() {
-  var token = Utilities.formatDate(new Date(), TZ, 'yyyyMMddHHmmssSSS');
-  var rand = Math.floor(Math.random() * 9000) + 1000;
-  return 'DST-' + token + '-' + rand;
-}
-
-function safeParseDisplaySettingsJson_(raw) {
-  var text = String(raw || '').trim();
-  if (!text) return {};
-  try {
-    var parsed = JSON.parse(text);
-    return parsed && typeof parsed === 'object' ? parsed : {};
-  } catch (err) {
-    return {};
-  }
 }
