@@ -1,5 +1,5 @@
 # Docs Index (Latest)
-- Updated: 2026-03-30 01:51:36 JST
+- Updated: 2026-04-12 17:42:09 JST
 - Purpose: docs参照だけで現行アプリ再現・再開・運用判断を可能にする
 
 ## A. 同一再現（最優先）
@@ -70,3 +70,6 @@
 - 主要要望反映時は `full_chat_requests` を追記更新。
 - 翌日開始前は `next_actions_now_blockers` を最初に確認。
 - フォルダ格納先は `miniapp_storage_policy` を正として遵守する。
+
+## O. バックアップ/復元（2026-04-12）
+1. docs/backup_restore_20260412_174209.md

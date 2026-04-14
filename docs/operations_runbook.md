@@ -1,5 +1,5 @@
 # Operations Runbook
-- Updated: 2026-03-09 21:52:28 JST
+- Updated: 2026-04-12 17:42:09 JST
 - Purpose: 開発/検証/復旧を迷わず実行する運用手順
 
 ## 1. 起動
@@ -42,3 +42,15 @@ rsync -a --delete --exclude 'backup/' \
 - 本番ログ監視
 - 定期バックアップ
 
+## 8. Snapshot復元（ERP運用）
+- Snapshot台帳: `docs/backup_restore_20260412_174209.md`
+- 復元コマンド:
+```bash
+cd /Users/masamitomioka/workspace/chatbot
+backup/restore_snapshot.sh <YYYYMMDD-HHMMSS>
+```
+- GASへ反映が必要な場合:
+```bash
+cd /Users/masamitomioka/workspace/chatbot/apps/erp/src/gas
+clasp push
+```
