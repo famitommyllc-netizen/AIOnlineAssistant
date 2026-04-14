@@ -216,14 +216,24 @@
     }
   </style>
 </head>
-<body>
+<body class="entry-app-layout entry-b-layout">
   <? var entryUrl = getWebAppPageUrl('entry', {}) || '?page=entry'; ?>
   <? var salesUrl = getWebAppPageUrl('sales', {}) || '?page=sales'; ?>
   <? var productUrl = getWebAppPageUrl('product', {}) || '?page=product'; ?>
   <? var expenseUrl = getWebAppPageUrl('expense', {}) || '?page=expense'; ?>
   <? var reportUrl = getWebAppPageUrl('report', {}) || '?page=report'; ?>
   <? var settingsUrl = getWebAppPageUrl('settings', {}) || '?page=settings'; ?>
-
+  <div id="entry-app-shell" class="entry-app-shell">
+    <header id="entry-fixed-header" class="entry-fixed-header">
+      <div class="entry-fixed-header-inner">
+        <div class="entry-fixed-header-title-wrap">
+          <h1 class="entry-fixed-header-title">ERP ホーム</h1>
+          <div id="entry-fixed-header-file" class="entry-fixed-header-file">Home.html</div>
+        </div>
+        <div id="entry-fixed-header-state" class="entry-fixed-header-state">入力</div>
+      </div>
+    </header>
+    <main id="entry-scroll-body" class="entry-scroll-body">
   <div class="section home-shell">
     <h2 class="section-title">ERP ホーム</h2>
     <div class="home-lead">使いたい機能を選択してください。</div>
@@ -273,5 +283,129 @@
       </a>
     </div>
   </div>
+    </main>
+    <footer id="entry-fixed-footer" class="entry-fixed-footer">
+      <nav class="entry-bottom-nav" aria-label="Home 操作">
+        <button type="button" id="footer-home-btn" class="entry-bottom-nav-btn" onclick="handleFooterHomeClick()">
+          <span class="entry-bottom-nav-icon">H</span>
+          <span class="entry-bottom-nav-label">ホーム</span>
+        </button>
+        <button type="button" id="footer-display-btn" class="entry-bottom-nav-btn" onclick="handleFooterDisplaySettingsClick()">
+          <span class="entry-bottom-nav-icon">UI</span>
+          <span class="entry-bottom-nav-label">表示</span>
+        </button>
+        <button type="button" id="footer-detail-btn" class="entry-bottom-nav-btn is-placeholder" onclick="handleFooterPlaceholderClick()">
+          <span class="entry-bottom-nav-icon">-</span>
+          <span class="entry-bottom-nav-label"></span>
+        </button>
+        <button type="button" id="footer-tax-btn" class="entry-bottom-nav-btn is-placeholder" onclick="handleFooterPlaceholderClick()">
+          <span class="entry-bottom-nav-icon">-</span>
+          <span class="entry-bottom-nav-label"></span>
+        </button>
+        <button type="button" id="footer-individual-btn" class="entry-bottom-nav-btn" onclick="handleFooterPlaceholderClick()">
+          <span class="entry-bottom-nav-icon">IND</span>
+          <span class="entry-bottom-nav-label">個別</span>
+        </button>
+      </nav>
+    </footer>
+  </div>
+  <script>
+const HOME_DISPLAY_SETTINGS_STORAGE_KEY_ = 'entryDisplaySettings.v1';
+const HOME_DISPLAY_SETTINGS_DEFAULTS_ = {
+  h1FontPx: 22, h2FontPx: 28, thFontPx: 36, valueFontPx: 48, dropdownFontPx: 28, helperFontPx: 30,
+  headerFontPx: 24, footerFontPx: 36, noteFontPx: 22, buttonFontPx: 48, borderWidth: 2, fontWeight: 500
+};
+
+window.addEventListener('load', function() {
+  initializeHomePageShell_();
+});
+
+function clampDisplaySetting_(value, min, max, fallback) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(min, Math.min(max, Math.round(n)));
+}
+
+function normalizeDisplaySettings_(input) {
+  const src = input || {};
+  return {
+    h1FontPx: clampDisplaySetting_(src.h1FontPx, 12, 96, HOME_DISPLAY_SETTINGS_DEFAULTS_.h1FontPx),
+    h2FontPx: clampDisplaySetting_(src.h2FontPx, 12, 96, HOME_DISPLAY_SETTINGS_DEFAULTS_.h2FontPx),
+    thFontPx: clampDisplaySetting_(src.thFontPx, 10, 96, HOME_DISPLAY_SETTINGS_DEFAULTS_.thFontPx),
+    valueFontPx: clampDisplaySetting_(src.valueFontPx, 10, 96, HOME_DISPLAY_SETTINGS_DEFAULTS_.valueFontPx),
+    dropdownFontPx: clampDisplaySetting_(src.dropdownFontPx, 10, 96, HOME_DISPLAY_SETTINGS_DEFAULTS_.dropdownFontPx),
+    helperFontPx: clampDisplaySetting_(src.helperFontPx, 10, 96, HOME_DISPLAY_SETTINGS_DEFAULTS_.helperFontPx),
+    headerFontPx: clampDisplaySetting_(src.headerFontPx, 10, 96, HOME_DISPLAY_SETTINGS_DEFAULTS_.headerFontPx),
+    footerFontPx: clampDisplaySetting_(src.footerFontPx, 10, 96, HOME_DISPLAY_SETTINGS_DEFAULTS_.footerFontPx),
+    noteFontPx: clampDisplaySetting_(src.noteFontPx, 10, 96, HOME_DISPLAY_SETTINGS_DEFAULTS_.noteFontPx),
+    buttonFontPx: clampDisplaySetting_(src.buttonFontPx, 10, 96, HOME_DISPLAY_SETTINGS_DEFAULTS_.buttonFontPx),
+    borderWidth: clampDisplaySetting_(src.borderWidth, 1, 8, HOME_DISPLAY_SETTINGS_DEFAULTS_.borderWidth),
+    fontWeight: clampDisplaySetting_(src.fontWeight, 400, 700, HOME_DISPLAY_SETTINGS_DEFAULTS_.fontWeight)
+  };
+}
+
+function applyDisplaySettingsFromStorage_() {
+  let settings = HOME_DISPLAY_SETTINGS_DEFAULTS_;
+  try {
+    const raw = window.localStorage.getItem(HOME_DISPLAY_SETTINGS_STORAGE_KEY_);
+    if (raw) settings = Object.assign({}, settings, JSON.parse(raw));
+  } catch (err) {}
+  const s = normalizeDisplaySettings_(settings);
+  const root = document.documentElement;
+  root.style.setProperty('--entry-ui-border-width', s.borderWidth + 'px');
+  root.style.setProperty('--entry-ui-font-weight', String(s.fontWeight));
+  root.style.setProperty('--entry-ui-h1-font-px', s.h1FontPx + 'px');
+  root.style.setProperty('--entry-ui-title-font-px', s.h2FontPx + 'px');
+  root.style.setProperty('--entry-ui-summary-header-font-px', s.thFontPx + 'px');
+  root.style.setProperty('--entry-ui-value-font-px', s.valueFontPx + 'px');
+  root.style.setProperty('--entry-ui-helper-font-px', s.helperFontPx + 'px');
+  root.style.setProperty('--entry-ui-note-font-px', s.noteFontPx + 'px');
+  root.style.setProperty('--entry-ui-button-font-px', s.buttonFontPx + 'px');
+  root.style.setProperty('--entry-ui-header-font-px', s.headerFontPx + 'px');
+  root.style.setProperty('--entry-ui-footer-font-px', s.footerFontPx + 'px');
+  root.style.setProperty('--entry-ui-dropdown-font-px', s.dropdownFontPx + 'px');
+}
+
+function initializeHomePageShell_() {
+  applyDisplaySettingsFromStorage_();
+}
+
+function buildWebAppPageUrl_(page, params) {
+  try {
+    const url = new URL(window.location.href);
+    url.searchParams.set('page', String(page || 'home'));
+    const p = params || {};
+    Object.keys(p).forEach(function(key) {
+      const value = p[key];
+      if (value === undefined || value === null || String(value).trim() === '') {
+        url.searchParams.delete(key);
+        return;
+      }
+      url.searchParams.set(key, String(value));
+    });
+    return url.toString();
+  } catch (err) {
+    return '';
+  }
+}
+
+function navigateToWebAppPage_(page, params) {
+  const url = buildWebAppPageUrl_(page, params || {});
+  if (!url) return;
+  window.location.href = url;
+}
+
+function handleFooterHomeClick() {
+  navigateToWebAppPage_('home', {});
+}
+
+function handleFooterDisplaySettingsClick() {
+  navigateToWebAppPage_('entry', { openDisplaySettings: '1', returnPage: 'home' });
+}
+
+function handleFooterPlaceholderClick() {
+  // ホーム画面では未使用
+}
+  </script>
 </body>
 </html>
