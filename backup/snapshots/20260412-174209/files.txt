@@ -1,5 +1,5 @@
-total 2984
--rw-r--r--@ 1 masamitomioka  staff   1.4M Apr 14 17:07 chatbot-git-20260412-174209.bundle
--rw-r--r--@ 1 masamitomioka  staff    41B Apr 14 17:08 commit.txt
--rw-r--r--@ 1 masamitomioka  staff     0B Apr 14 17:08 files.txt
+total 11848
+-rw-r--r--@ 1 masamitomioka  staff   5.8M Apr 14 17:10 chatbot-git-20260412-174209.bundle
+-rw-r--r--@ 1 masamitomioka  staff    47B Apr 14 17:10 commit.txt
+-rw-r--r--@ 1 masamitomioka  staff     0B Apr 14 17:10 files.txt
 -rw-r--r--@ 1 masamitomioka  staff    21B Apr 14 17:08 git-status-after-commit.txt
