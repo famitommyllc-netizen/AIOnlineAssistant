@@ -223,6 +223,7 @@
   <? var expenseUrl = getWebAppPageUrl('expense', {}) || '?page=expense'; ?>
   <? var reportUrl = getWebAppPageUrl('report', {}) || '?page=report'; ?>
   <? var settingsUrl = getWebAppPageUrl('settings', {}) || '?page=settings'; ?>
+  <? var dashboardUrl = getWebAppPageUrl('dashboard', {}) || '?page=dashboard'; ?>
   <div id="entry-app-shell" class="entry-app-shell">
     <header id="entry-fixed-header" class="entry-fixed-header">
       <div class="entry-fixed-header-inner">
@@ -275,11 +276,10 @@
         <div class="home-card-sub">アプリ設定</div>
       </a>
 
-      <a class="home-card is-disabled" href="#" aria-disabled="true" aria-label="ダッシュボード（準備中）">
-        <div class="home-card-icon" aria-hidden="true"><span class="home-card-icon-glyph">🧩</span></div>
+      <a class="home-card" href="<?= dashboardUrl ?>" aria-label="ダッシュボードへ移動">
+        <div class="home-card-icon" aria-hidden="true"><span class="home-card-icon-glyph">📊</span></div>
         <div class="home-card-title">ダッシュボード</div>
-        <div class="home-card-sub">実装準備中</div>
-        <span class="home-badge">準備中</span>
+        <div class="home-card-sub">経営統計・月次サマリー</div>
       </a>
     </div>
   </div>

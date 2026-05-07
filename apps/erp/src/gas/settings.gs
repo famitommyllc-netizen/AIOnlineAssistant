@@ -142,6 +142,32 @@ function normalizeTerminologyModeInput_(value) {
   return '';
 }
 
+function saveClaudeApiKey(apiKey) {
+  var key = String(apiKey || '').trim();
+  if (!key) throw new Error('APIキーを入力してください');
+  var sheet = ensureSettingsSheet_();
+  setSettingValue_(sheet, SETTING_CLAUDE_API_KEY, key, 'Claude APIキー（OCRレシート解析用）');
+  return { ok: true };
+}
+
+function getClaudeApiKeyStatus() {
+  var key = getSettingValue_(SETTING_CLAUDE_API_KEY, '');
+  return { isSet: !!key };
+}
+
+function saveCloudVisionApiKey(apiKey) {
+  var key = String(apiKey || '').trim();
+  if (!key) throw new Error('APIキーを入力してください');
+  var sheet = ensureSettingsSheet_();
+  setSettingValue_(sheet, SETTING_CLOUD_VISION_API_KEY, key, 'Cloud Vision APIキー（OCR画像認識用）');
+  return { ok: true };
+}
+
+function getCloudVisionApiKeyStatus() {
+  var key = getSettingValue_(SETTING_CLOUD_VISION_API_KEY, '');
+  return { isSet: !!key };
+}
+
 function ensureSettingsSheet_() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName(SHEET_SETTINGS);

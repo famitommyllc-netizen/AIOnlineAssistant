@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <style>
+    <?!= HtmlService.createHtmlOutputFromFile('style.css').getContent(); ?>
+    /* ダッシュボード固有スタイル */
+    .dash-section { margin-bottom: 16px; }
+    .dash-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .dash-table {
+      border-collapse: collapse;
+      white-space: nowrap;
+      font-size: var(--entry-ui-value-font-px, 28px);
+      width: 100%;
+    }
+    .dash-table th, .dash-table td {
+      border: 1px solid #cbd5e1;
+      padding: 6px 10px;
+      text-align: right;
+    }
+    .dash-table th.col-label, .dash-table td.col-label {
+      text-align: left;
+      position: sticky;
+      left: 0;
+      background: #f8fafc;
+      z-index: 1;
+      font-weight: 600;
+      min-width: 90px;
+    }
+    .dash-table th { background: #e2e8f0; font-weight: 700; }
+    .dash-table tr:nth-child(even) td { background: #f8fafc; }
+    .dash-table tr:nth-child(even) td.col-label { background: #f1f5f9; }
+    .dash-val-pos { color: #166534; }
+    .dash-val-neg { color: #991b1b; }
+    .dash-val-na { color: #94a3b8; }
+    .dash-kv-table { border-collapse: collapse; width: 100%; }
+    .dash-kv-table td { border: 1px solid #cbd5e1; padding: 8px 12px; font-size: var(--entry-ui-value-font-px, 28px); }
+    .dash-kv-table td:first-child { font-weight: 600; background: #f8fafc; width: 50%; }
+    .dash-placeholder { color: #94a3b8; }
+    @media print {
+      .entry-fixed-header, .entry-fixed-footer { display: none !important; }
+      .entry-scroll-body { overflow: visible !important; max-height: none !important; }
+      .dash-table-wrap { overflow: visible !important; }
+      .dash-table th.col-label, .dash-table td.col-label { position: static; }
+      body { font-size: 10pt; }
+    }
+  </style>
+</head>
+<body class="entry-app-layout entry-b-layout">
+  <div id="entry-app-shell" class="entry-app-shell">
+    <header id="entry-fixed-header" class="entry-fixed-header">
+      <div class="entry-fixed-header-inner">
+        <div class="entry-fixed-header-title-wrap">
+          <h1 class="entry-fixed-header-title">ダッシュボード</h1>
+        </div>
+        <div id="entry-fixed-header-state" class="entry-fixed-header-state">読込中</div>
+      </div>
+    </header>
+
+    <main id="entry-scroll-body" class="entry-scroll-body">
+      <div id="dash-loading" class="section note-text">データを読み込んでいます...</div>
+      <div id="dash-fiscal-selector" class="section" style="display:none;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <button type="button" class="btn-sub" onclick="changeFiscalYear_(-1)">◀ 前期</button>
+          <select id="dash-fiscal-select" class="inline-input" style="flex:1;" onchange="onFiscalYearSelect_(this.value)"></select>
+          <button type="button" class="btn-sub" onclick="changeFiscalYear_(1)">次期 ▶</button>
+        </div>
+      </div>
+      <div id="dash-content" style="display:none;">
+
+        <div class="section dash-section">
+          <h2 class="mid-title" id="dash-fiscal-label">月次サマリー</h2>
+          <div class="dash-table-wrap" id="dash-monthly-wrap">
+            <table class="dash-table" id="dash-monthly-table"></table>
+          </div>
+        </div>
+
+        <div class="section dash-section">
+          <h2 class="mid-title" id="dash-fiscal-summary-label">期サマリー</h2>
+          <table class="dash-kv-table" id="dash-fiscal-table"></table>
+        </div>
+
+        <div id="dash-optional-area"></div>
+
+        <div class="section dash-section note-text" id="dash-generated-at"></div>
+      </div>
+      <div id="dash-error" class="section" style="display:none;"></div>
+    </main>
+
+    <footer id="entry-fixed-footer" class="entry-fixed-footer">
+      <nav class="entry-bottom-nav">
+        <button type="button" class="entry-bottom-nav-btn" onclick="navigateTo_('home')">
+          <span class="entry-bottom-nav-icon">H</span>
+          <span class="entry-bottom-nav-label">ホーム</span>
+        </button>
+        <button type="button" class="entry-bottom-nav-btn" onclick="window.print()">
+          <span class="entry-bottom-nav-icon">印</span>
+          <span class="entry-bottom-nav-label">印刷</span>
+        </button>
+        <button type="button" class="entry-bottom-nav-btn" onclick="reloadDashboard_()">
+          <span class="entry-bottom-nav-icon">↺</span>
+          <span class="entry-bottom-nav-label">更新</span>
+        </button>
+        <button type="button" class="entry-bottom-nav-btn is-placeholder">
+          <span class="entry-bottom-nav-icon">-</span>
+          <span class="entry-bottom-nav-label"></span>
+        </button>
+        <button type="button" class="entry-bottom-nav-btn" onclick="navigateTo_('settings')">
+          <span class="entry-bottom-nav-icon">設定</span>
+          <span class="entry-bottom-nav-label">設定</span>
+        </button>
+      </nav>
+    </footer>
+  </div>
+
+  <script>
+let dashData_ = null;
+let fiscalOptions_ = [];
+let currentFiscalValue_ = null;
+
+window.onload = function() {
+  initFiscalSelector_();
+};
+
+function initFiscalSelector_() {
+  google.script.run
+    .withSuccessHandler(function(res) {
+      fiscalOptions_ = res.options || [];
+      currentFiscalValue_ = res.currentValue;
+      renderFiscalSelect_();
+      loadDashboard_(currentFiscalValue_);
+    })
+    .withFailureHandler(function(err) {
+      showDashError_((err && err.message) ? err.message : String(err));
+    })
+    .getFiscalYearOptions();
+}
+
+function renderFiscalSelect_() {
+  var sel = document.getElementById('dash-fiscal-select');
+  sel.innerHTML = fiscalOptions_.map(function(o) {
+    var selected = o.value === currentFiscalValue_ ? ' selected' : '';
+    return '<option value="' + escHtml_(o.value) + '"' + selected + '>' + escHtml_(o.label) + '</option>';
+  }).join('');
+  document.getElementById('dash-fiscal-selector').style.display = 'block';
+}
+
+function onFiscalYearSelect_(value) {
+  currentFiscalValue_ = value;
+  loadDashboard_(value);
+}
+
+function changeFiscalYear_(dir) {
+  var idx = fiscalOptions_.findIndex(function(o) { return o.value === currentFiscalValue_; });
+  var next = idx - dir; // optionsは新→古順なのでdirを反転
+  if (next < 0 || next >= fiscalOptions_.length) return;
+  currentFiscalValue_ = fiscalOptions_[next].value;
+  document.getElementById('dash-fiscal-select').value = currentFiscalValue_;
+  loadDashboard_(currentFiscalValue_);
+}
+
+function loadDashboard_(fiscalStartYear) {
+  document.getElementById('dash-loading').style.display = 'block';
+  document.getElementById('dash-content').style.display = 'none';
+  document.getElementById('dash-error').style.display = 'none';
+  document.getElementById('entry-fixed-header-state').textContent = '読込中';
+
+  google.script.run
+    .withSuccessHandler(function(data) {
+      document.getElementById('dash-loading').style.display = 'none';
+      if (data && data.error) {
+        showDashError_(data.error);
+        return;
+      }
+      dashData_ = data;
+      renderDashboard_(data);
+      document.getElementById('dash-content').style.display = 'block';
+      document.getElementById('entry-fixed-header-state').textContent = '表示中';
+    })
+    .withFailureHandler(function(err) {
+      document.getElementById('dash-loading').style.display = 'none';
+      showDashError_((err && err.message) ? err.message : String(err));
+    })
+    .getDashboardData(fiscalStartYear);
+}
+
+function reloadDashboard_() {
+  loadDashboard_(currentFiscalValue_);
+}
+
+function renderDashboard_(data) {
+  document.getElementById('dash-fiscal-label').textContent = '月次サマリー（' + data.fiscal.label + '）';
+  document.getElementById('dash-fiscal-summary-label').textContent = '期サマリー（' + data.fiscal.label + '）';
+
+  renderMonthlyTable_(data.monthly);
+  renderFiscalTable_(data.fiscal, data.inventory);
+  renderOptional_(data.optional);
+
+  document.getElementById('dash-generated-at').textContent = '集計時刻: ' + data.generatedAt;
+
+  // 初期位置は左端（期の開始月）
+  var wrap = document.getElementById('dash-monthly-wrap');
+  if (wrap) wrap.scrollLeft = 0;
+}
+
+function renderMonthlyTable_(monthly) {
+  var rows = [
+    { label: '売上',     key: 'salesAmount',   fmt: fmtYen_ },
+    { label: '仕入総額', key: 'purchaseCost',   fmt: fmtYen_ },
+    { label: '利益',     key: 'profit',         fmt: fmtYenSigned_ },
+    { label: '粗利率',   key: 'grossMargin',    fmt: fmtPct_ },
+    { label: '前月比',   key: 'momSalesRate',   fmt: fmtRateSigned_ },
+    { label: '仕入件数', key: 'purchaseCount',  fmt: fmtCount_ },
+    { label: '販売件数', key: 'salesCount',     fmt: fmtCount_ },
+    { label: '在庫点数', key: 'inventoryCount', fmt: fmtCount_ },
+    { label: '在庫金額', key: 'inventoryCost',  fmt: fmtYen_ },
+    { label: '棚卸し金額', key: '_placeholder',   fmt: function() { return '<span class="dash-val-na">－</span>'; } }
+  ];
+
+  var headerHtml = '<tr><th class="col-label">項目</th>';
+  monthly.forEach(function(m) {
+    headerHtml += '<th>' + escHtml_(m.label) + '</th>';
+  });
+  headerHtml += '</tr>';
+
+  var bodyHtml = '';
+  rows.forEach(function(row) {
+    bodyHtml += '<tr><td class="col-label">' + escHtml_(row.label) + '</td>';
+    monthly.forEach(function(m) {
+      var val = m[row.key];
+      bodyHtml += '<td>' + row.fmt(val) + '</td>';
+    });
+    bodyHtml += '</tr>';
+  });
+
+  document.getElementById('dash-monthly-table').innerHTML = headerHtml + bodyHtml;
+}
+
+function renderFiscalTable_(fiscal, inventory) {
+  var rows = [
+    ['期売上総額',      fmtYen_(fiscal.salesAmountTotal)],
+    ['期仕入総額',      fmtYen_(fiscal.purchaseCostTotal)],
+    ['期利益総額',      fmtYenSigned_(fiscal.salesProfitTotal)],
+    ['期粗利率',        fmtPct_(fiscal.grossMarginRate)],
+    ['前期比（売上）',  fmtRateSigned_(fiscal.yoySalesRate)],
+    ['在庫金額',        fmtYen_(inventory.costTotal)],
+    ['在庫件数',        fmtCount_(inventory.count)],
+    ['在庫回転率',      inventory.turnoverRate !== null ? inventory.turnoverRate + '回' : '<span class="dash-val-na">－</span>'],
+    ['在庫回転日数',    inventory.turnoverDays !== null ? inventory.turnoverDays + '日' : '<span class="dash-val-na">－</span>'],
+    ['棚卸し金額',      '<span class="dash-placeholder">－（未実装）</span>']
+  ];
+
+  var html = '';
+  rows.forEach(function(r) {
+    html += '<tr><td>' + escHtml_(r[0]) + '</td><td>' + r[1] + '</td></tr>';
+  });
+  document.getElementById('dash-fiscal-table').innerHTML = html;
+}
+
+function renderOptional_(opt) {
+  var html = '';
+
+  if (opt.showPayable) {
+    html += '<div class="section dash-section">';
+    html += '<h2 class="mid-title">買掛金・売掛金</h2>';
+    html += '<table class="dash-kv-table">';
+    html += '<tr><td>買掛金残高</td><td><span class="dash-placeholder">－（データなし）</span></td></tr>';
+    html += '<tr><td>売掛金残高</td><td><span class="dash-placeholder">－（データなし）</span></td></tr>';
+    html += '</table></div>';
+  }
+
+  if (opt.showSupplierBreakdown && opt.supplierList.length) {
+    html += '<div class="section dash-section">';
+    html += '<h2 class="mid-title">仕入先別仕入高（期内）</h2>';
+    html += '<table class="dash-kv-table">';
+    opt.supplierList.forEach(function(s) {
+      html += '<tr><td>' + escHtml_(s.name) + '</td><td>' + fmtYen_(s.amount) + '</td></tr>';
+    });
+    html += '</table></div>';
+  }
+
+  if (opt.showPlaceBreakdown && opt.placeList.length) {
+    html += '<div class="section dash-section">';
+    html += '<h2 class="mid-title">販売場所別売上高（期内）</h2>';
+    html += '<table class="dash-kv-table">';
+    opt.placeList.forEach(function(p) {
+      html += '<tr><td>' + escHtml_(p.name) + '</td><td>' + fmtYen_(p.amount) + '</td></tr>';
+    });
+    html += '</table></div>';
+  }
+
+  document.getElementById('dash-optional-area').innerHTML = html;
+}
+
+function fmtYen_(val) {
+  if (val === null || val === undefined) return '<span class="dash-val-na">－</span>';
+  return '¥' + Number(val).toLocaleString();
+}
+
+function fmtYenSigned_(val) {
+  if (val === null || val === undefined) return '<span class="dash-val-na">－</span>';
+  var n = Number(val);
+  var cls = n >= 0 ? 'dash-val-pos' : 'dash-val-neg';
+  var prefix = n >= 0 ? '▲¥' : '▼¥';
+  return '<span class="' + cls + '">' + prefix + Math.abs(n).toLocaleString() + '</span>';
+}
+
+function fmtPct_(val) {
+  if (val === null || val === undefined) return '<span class="dash-val-na">－</span>';
+  return Number(val).toFixed(1) + '%';
+}
+
+function fmtRateSigned_(val) {
+  if (val === null || val === undefined) return '<span class="dash-val-na">－</span>';
+  var n = Number(val);
+  var cls = n >= 0 ? 'dash-val-pos' : 'dash-val-neg';
+  var sign = n >= 0 ? '▲' : '▼';
+  return '<span class="' + cls + '">' + sign + Math.abs(n).toFixed(1) + '%</span>';
+}
+
+function fmtCount_(val) {
+  if (val === null || val === undefined) return '<span class="dash-val-na">－</span>';
+  return Number(val).toLocaleString() + '件';
+}
+
+function showDashError_(msg) {
+  var el = document.getElementById('dash-error');
+  el.innerHTML = '<div class="note-text" style="color:#991b1b;">エラー: ' + escHtml_(msg) + '</div>';
+  el.style.display = 'block';
+  document.getElementById('entry-fixed-header-state').textContent = 'エラー';
+}
+
+function escHtml_(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function navigateTo_(page) {
+  try {
+    var url = new URL(window.location.href);
+    url.searchParams.set('page', page);
+    window.location.href = url.toString();
+  } catch(e) {}
+}
+  </script>
+</body>
+</html>

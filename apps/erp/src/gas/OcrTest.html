@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: sans-serif; padding: 16px; max-width: 640px; margin: 0 auto; }
+    h1 { font-size: 18px; margin-bottom: 16px; }
+    h2 { font-size: 14px; margin: 16px 0 6px; color: #555; }
+    button { padding: 10px 16px; margin: 4px; font-size: 14px; cursor: pointer; border-radius: 6px; border: none; }
+    .btn-primary { background: #1d4ed8; color: #fff; }
+    .btn-secondary { background: #6b7280; color: #fff; }
+    textarea { width: 100%; height: 200px; font-size: 13px; font-family: monospace; box-sizing: border-box; padding: 8px; }
+    .status { padding: 10px 12px; border-radius: 6px; font-size: 13px; margin: 12px 0; }
+    .status.loading { background: #dbeafe; color: #1e40af; }
+    .status.error { background: #fee2e2; color: #991b1b; white-space: pre-wrap; word-break: break-all; }
+    .status.done { background: #dcfce7; color: #166534; }
+    #image-preview { max-width: 100%; max-height: 200px; margin-top: 8px; display: none; border: 1px solid #ccc; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>OCR 検証ページ</h1>
+
+  <div>
+    <input type="file" id="image-input" accept="image/*" onchange="onImageSelected_(this)">
+    <img id="image-preview">
+  </div>
+
+  <div style="margin-top: 12px;">
+    <button class="btn-secondary" onclick="runStep1_()">Step1: Cloud Vision OCRのみ</button>
+    <button class="btn-primary" onclick="runStep2_()">Step2: 全パイプライン（OCR → Claude → JSON）</button>
+  </div>
+
+  <div id="status-area"></div>
+
+  <h2>Step1 結果（生テキスト）</h2>
+  <textarea id="ocr-raw-result" placeholder="ここにOCRの生テキストが表示されます" readonly></textarea>
+
+  <h2>Step2 結果（構造化JSON）※ taxType が「外税」なら外税トグルが自動ON</h2>
+  <textarea id="ocr-json-result" placeholder="ここにClaudeが整形したJSONが表示されます" readonly></textarea>
+
+  <h2>エラーログ（コピー可）</h2>
+  <textarea id="error-log" placeholder="エラーが発生した場合ここに表示されます" readonly style="height:120px; background:#fff5f5; color:#991b1b;"></textarea>
+
+  <script>
+  function onImageSelected_(input) {
+    const file = input && input.files && input.files[0];
+    const preview = document.getElementById('image-preview');
+    if (!file) { preview.style.display = 'none'; return; }
+    const url = URL.createObjectURL(file);
+    preview.src = url;
+    preview.style.display = 'block';
+  }
+
+  function getBase64_() {
+    const input = document.getElementById('image-input');
+    const file = input && input.files && input.files[0];
+    if (!file) {
+      showStatus_('画像を選択してください', 'error');
+      return Promise.resolve(null);
+    }
+    return new Promise(function(resolve) {
+      const reader = new FileReader();
+      reader.onload = function(e) { resolve((e.target.result || '').split(',')[1]); };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function showStatus_(msg, type) {
+    const el = document.getElementById('status-area');
+    el.innerHTML = '<div class="status ' + type + '">' + msg + '</div>';
+    if (type === 'error') {
+      const log = document.getElementById('error-log');
+      if (log) log.value = msg;
+    }
+  }
+
+  function runStep1_() {
+    getBase64_().then(function(base64) {
+      if (!base64) return;
+      showStatus_('Cloud Vision API を呼び出しています...', 'loading');
+      document.getElementById('ocr-raw-result').value = '';
+      google.script.run
+        .withSuccessHandler(function(text) {
+          showStatus_('Step1 完了', 'done');
+          document.getElementById('ocr-raw-result').value = text;
+        })
+        .withFailureHandler(function(err) {
+          showStatus_('エラー: ' + (err && err.message ? err.message : String(err)), 'error');
+        })
+        .testCloudVisionOcr(base64);
+    });
+  }
+
+  function runStep2_() {
+    getBase64_().then(function(base64) {
+      if (!base64) return;
+      showStatus_('OCR → Claude パイプラインを実行中...', 'loading');
+      document.getElementById('ocr-json-result').value = '';
+      google.script.run
+        .withSuccessHandler(function(result) {
+          showStatus_('Step2 完了', 'done');
+          document.getElementById('ocr-json-result').value = JSON.stringify(result, null, 2);
+        })
+        .withFailureHandler(function(err) {
+          showStatus_('エラー: ' + (err && err.message ? err.message : String(err)), 'error');
+        })
+        .readReceiptOcr(base64);
+    });
+  }
+  </script>
+</body>
+</html>

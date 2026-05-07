@@ -20,6 +20,10 @@
     </header>
 
     <main id="entry-scroll-body" class="entry-scroll-body">
+      <div id="ocr-receipt-bar" class="section" style="padding-bottom:0;">
+        <button type="button" class="btn-sub" style="width:100%;" onclick="openOcrReceiptUpload_()">レシートを読み込む</button>
+        <input type="file" id="ocr-receipt-input" accept="image/*" style="display:none" onchange="onOcrReceiptFileSelected_(this)">
+      </div>
       <div id="entry-page">
         <div class="section">
           <div class="section-header-row">
@@ -94,6 +98,22 @@
     </footer>
   </div>
   <div id="entry-input-stage" class="entry-input-stage" style="display:none;"></div>
+
+  <div id="ocr-confirm-modal" class="entry-input-stage">
+    <div id="ocr-confirm-backdrop" style="position:absolute; inset:0; background:rgba(15,23,42,0.4);" onclick="closeOcrConfirmModal_()"></div>
+    <div class="entry-input-stage-panel" style="left:4vw; right:4vw; width:auto; max-height:80vh; overflow-y:auto;">
+      <div class="entry-input-stage-head">
+        <span class="entry-input-stage-label">レシート読み込み結果</span>
+        <button type="button" class="entry-input-stage-close" aria-label="閉じる" onclick="closeOcrConfirmModal_()">×</button>
+      </div>
+      <div class="note-text">内容を確認してフォームに反映します。</div>
+      <div id="ocr-confirm-content"></div>
+      <div class="button-row" style="margin-top:16px;">
+        <button type="button" class="btn-main" onclick="applyOcrConfirmed_()">この内容で入力する</button>
+        <button type="button" class="btn-sub" onclick="closeOcrConfirmModal_()">キャンセル</button>
+      </div>
+    </div>
+  </div>
   <div id="entry-display-settings-modal" class="entry-display-settings-modal" style="display:none;"></div>
   <div id="entry-product-template-modal" class="entry-product-template-modal" style="display:none;"></div>
 
@@ -251,6 +271,143 @@ let entryProductTemplateState_ = {
   createName: '',
   list: []
 };
+
+let ocrPendingResult_ = null;
+
+function openOcrReceiptUpload_() {
+  const input = document.getElementById('ocr-receipt-input');
+  if (input) input.click();
+}
+
+function onOcrReceiptFileSelected_(input) {
+  const file = input && input.files && input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const base64 = (e.target.result || '').split(',')[1];
+    if (!base64) return;
+    const ticket = beginEntryAsyncStatus_('レシートを読み込んでいます...', 'loading');
+    google.script.run
+      .withSuccessHandler(function(result) {
+        endEntryAsyncStatus_(ticket, '', '');
+        showOcrConfirmModal_(result);
+      })
+      .withFailureHandler(function(err) {
+        endEntryAsyncStatus_(ticket, '', '');
+        showOcrError_('読み込みに失敗しました: ' + (err && err.message ? err.message : String(err)));
+      })
+      .readReceiptOcr(base64);
+    input.value = '';
+  };
+  reader.readAsDataURL(file);
+}
+
+function showOcrConfirmModal_(result) {
+  ocrPendingResult_ = result;
+  const r = result || {};
+  const info = r.commonInfo || {};
+  const entries = r.entries || [];
+  const expenses = r.expenses || [];
+  const point = r.point || 0;
+
+  const taxLabel = r.taxType === '外税' ? '（外税・税抜き価格）' : r.taxType === '内税' ? '（内税・税込み価格）' : '';
+  let html = '';
+
+  if (entries.length) {
+    html += '<div style="margin-bottom:12px;">';
+    html += '<div class="mid-title" style="margin-bottom:6px;">商品（' + entries.length + '件）' + taxLabel + '</div>';
+    html += '<div class="entry-line-card section-card">';
+    html += '<table class="entry-inline-table">';
+    html += '<tr><th>商品名</th><th>金額</th><th>個数</th></tr>';
+    entries.forEach(function(e) {
+      html += '<tr><td>' + escapeHtml(e.name || '') + '</td>';
+      html += '<td>' + escapeHtml(String(e.price || 0)) + '</td>';
+      html += '<td>' + escapeHtml(String(e.qty || 1)) + '</td></tr>';
+    });
+    html += '</table></div></div>';
+  }
+
+  if (expenses.length) {
+    html += '<div style="margin-bottom:12px;">';
+    html += '<div class="mid-title" style="margin-bottom:6px;">経費</div>';
+    html += '<div class="entry-line-card section-card">';
+    html += '<table class="entry-inline-table">';
+    html += '<tr><th>内容</th><th>金額</th></tr>';
+    expenses.forEach(function(ex) {
+      html += '<tr><td>' + escapeHtml(ex.name || '') + '</td>';
+      html += '<td>' + escapeHtml(String(ex.amount || 0)) + '</td></tr>';
+    });
+    html += '</table></div></div>';
+  }
+
+  if (point > 0) {
+    html += '<div class="entry-line-card section-card" style="margin-bottom:12px;">';
+    html += '<div class="mid-title" style="margin-bottom:4px;">ポイント/割引</div>';
+    html += '<div class="inline-value">' + point + ' 円</div>';
+    html += '</div>';
+  }
+
+  html += '<div style="margin-bottom:12px;">';
+  html += '<div class="mid-title" style="margin-bottom:6px;">共通項目</div>';
+  html += '<div class="entry-line-card section-card">';
+  html += '<table class="entry-inline-table">';
+  html += '<tr><th>仕入日</th><th>仕入先</th><th>支払方法</th></tr>';
+  html += '<tr><td>' + escapeHtml(info.date || '（不明）') + '</td>';
+  html += '<td>' + escapeHtml(info.supplier || '（不明）') + '</td>';
+  html += '<td>' + escapeHtml(info.payment || '（不明）') + '</td></tr>';
+  html += '</table></div></div>';
+
+  document.getElementById('ocr-confirm-content').innerHTML = html;
+  document.getElementById('ocr-confirm-modal').classList.add('is-open');
+}
+
+function applyOcrConfirmed_() {
+  closeOcrConfirmModal_();
+  if (!ocrPendingResult_) return;
+  applyOcrResultToForm_(ocrPendingResult_);
+  ocrPendingResult_ = null;
+}
+
+function closeOcrConfirmModal_() {
+  document.getElementById('ocr-confirm-modal').classList.remove('is-open');
+}
+
+function showOcrError_(msg) {
+  showEntryAsyncStatus_(msg, 'error');
+  window.setTimeout(function() { hideEntryAsyncStatus_(); }, 5000);
+}
+
+function applyOcrResultToForm_(result) {
+  const r = result || {};
+  const hasExpenses = (r.expenses || []).some(function(ex) { return (ex.amount || 0) > 0; });
+  const hasPoint = (r.point || 0) > 0;
+  const inputValues = {
+    commonInfo: r.commonInfo || {},
+    entryRows: (r.entries || []).map(function(e) {
+      return { productInput: e.name || '', priceBase: e.price || 0, qty: e.qty || 1 };
+    }),
+    expenseList: (r.expenses || []).map(function(ex) {
+      return { name: ex.name || '', amount: ex.amount || 0, memo: '' };
+    }),
+    pointTotal: r.point || 0,
+    pointMode: 'allocation',
+    expenseMode: 'allocation',
+    taxEnabled: r.taxType === '外税'
+  };
+  applyProductTemplateInputValues_(inputValues);
+  if (hasExpenses) {
+    detailPanelState.expense = true;
+    renderExpenseArea();
+  }
+  if (hasPoint) {
+    detailPanelState.point = true;
+    renderPointArea();
+  }
+  if (hasExpenses || hasPoint) {
+    applyDetailPanelVisibility_();
+    updateTopHelperButtons_();
+  }
+}
 
 window.onload = function() {
   showEntryStageDebugBoot_();

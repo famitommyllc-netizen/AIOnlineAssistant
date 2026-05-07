@@ -28,6 +28,71 @@
       <span id="settings-status"></span>
     </div>
   </div>
+  <div class="section">
+    <h2 class="mid-title">ダッシュボード表示設定</h2>
+    <div class="note-text">ONにした項目がダッシュボードに表示されます。</div>
+    <div class="entry-line-card section-card">
+      <table class="entry-inline-table">
+        <tr>
+          <th class="col-item">項目</th>
+          <th class="col-item">表示</th>
+          <th class="col-action">操作</th>
+        </tr>
+        <tr>
+          <td class="col-item"><div class="inline-value">買掛金・売掛金</div></td>
+          <td class="col-item"><select id="dash-show-payable" class="inline-input"><option value="off">OFF</option><option value="on">ON</option></select></td>
+          <td class="col-action"><div class="inline-value note-text">データなし</div></td>
+        </tr>
+        <tr>
+          <td class="col-item"><div class="inline-value">仕入先別仕入高</div></td>
+          <td class="col-item"><select id="dash-show-supplier" class="inline-input"><option value="off">OFF</option><option value="on">ON</option></select></td>
+          <td class="col-action"></td>
+        </tr>
+        <tr>
+          <td class="col-item"><div class="inline-value">販売場所別売上高</div></td>
+          <td class="col-item"><select id="dash-show-place" class="inline-input"><option value="off">OFF</option><option value="on">ON</option></select></td>
+          <td class="col-action"></td>
+        </tr>
+      </table>
+    </div>
+    <div class="button-row">
+      <button type="button" class="btn-main" onclick="saveDashboardSettings_()">保存</button>
+      <span id="dash-settings-status"></span>
+    </div>
+  </div>
+  <div class="section">
+    <h2 class="mid-title">APIキー設定</h2>
+    <div class="note-text">レシートOCR機能に使用するAPIキーを登録します。</div>
+    <div class="entry-line-card section-card">
+      <table class="entry-inline-table">
+        <tr>
+          <th class="col-item">項目</th>
+          <th class="col-item">値</th>
+          <th class="col-action">操作</th>
+        </tr>
+        <tr>
+          <td class="col-item"><div class="inline-value">Cloud Vision APIキー</div></td>
+          <td class="col-item">
+            <input type="password" id="cloud-vision-api-key-input" class="inline-input" placeholder="AIza..." autocomplete="off">
+            <div id="cloud-vision-api-key-status" class="note-text" style="margin-top:4px;"></div>
+          </td>
+          <td class="col-action">
+            <button type="button" class="btn-main" onclick="saveCloudVisionApiKey_()">保存</button>
+          </td>
+        </tr>
+        <tr>
+          <td class="col-item"><div class="inline-value">Claude APIキー</div></td>
+          <td class="col-item">
+            <input type="password" id="claude-api-key-input" class="inline-input" placeholder="sk-ant-..." autocomplete="off">
+            <div id="claude-api-key-status" class="note-text" style="margin-top:4px;"></div>
+          </td>
+          <td class="col-action">
+            <button type="button" class="btn-main" onclick="saveClaudeApiKey_()">保存</button>
+          </td>
+        </tr>
+      </table>
+    </div>
+  </div>
     </main>
     <footer id="entry-fixed-footer" class="entry-fixed-footer">
       <nav class="entry-bottom-nav" aria-label="Settings 操作">
@@ -137,6 +202,8 @@ let currentSettings = {
 window.onload = function() {
   initializeSettingsPageShell_();
   loadSettings();
+  loadClaudeApiKeyStatus_();
+  loadDashboardSettings_();
 };
 
 function clampDisplaySetting_(value, min, max, fallback) {
@@ -318,6 +385,101 @@ function saveSettings() {
       inventoryIdMode: currentSettings.inventoryIdMode,
       terminologyMode: currentSettings.terminologyMode
     });
+}
+
+function loadDashboardSettings_() {
+  google.script.run
+    .withSuccessHandler(function(s) {
+      if (!s) return;
+      var p = document.getElementById('dash-show-payable');
+      var su = document.getElementById('dash-show-supplier');
+      var pl = document.getElementById('dash-show-place');
+      if (p) p.value = s.showPayable ? 'on' : 'off';
+      if (su) su.value = s.showSupplierBreakdown ? 'on' : 'off';
+      if (pl) pl.value = s.showPlaceBreakdown ? 'on' : 'off';
+    })
+    .withFailureHandler(function() {})
+    .getDashboardSettings();
+}
+
+function saveDashboardSettings_() {
+  var statusEl = document.getElementById('dash-settings-status');
+  statusEl.textContent = '保存中...';
+  var p = document.getElementById('dash-show-payable');
+  var su = document.getElementById('dash-show-supplier');
+  var pl = document.getElementById('dash-show-place');
+  google.script.run
+    .withSuccessHandler(function() {
+      statusEl.textContent = '保存しました';
+      setTimeout(function() { statusEl.textContent = ''; }, 1200);
+    })
+    .withFailureHandler(function(err) {
+      statusEl.textContent = '保存に失敗しました';
+      showError(err);
+    })
+    .saveDashboardSettings({
+      showPayable: p && p.value === 'on',
+      showSupplierBreakdown: su && su.value === 'on',
+      showPlaceBreakdown: pl && pl.value === 'on'
+    });
+}
+
+function saveCloudVisionApiKey_() {
+  const input = document.getElementById('cloud-vision-api-key-input');
+  const statusEl = document.getElementById('cloud-vision-api-key-status');
+  const key = String((input && input.value) || '').trim();
+  if (!key) { statusEl.textContent = 'APIキーを入力してください'; return; }
+  statusEl.textContent = '保存中...';
+  google.script.run
+    .withSuccessHandler(function() {
+      statusEl.textContent = '保存しました';
+      if (input) input.value = '';
+      setTimeout(function() { statusEl.textContent = 'キー登録済み'; }, 1200);
+    })
+    .withFailureHandler(function(err) {
+      statusEl.textContent = '保存に失敗しました';
+      showError(err);
+    })
+    .saveCloudVisionApiKey(key);
+}
+
+function saveClaudeApiKey_() {
+  const input = document.getElementById('claude-api-key-input');
+  const statusEl = document.getElementById('claude-api-key-status');
+  const key = String((input && input.value) || '').trim();
+  if (!key) {
+    statusEl.textContent = 'APIキーを入力してください';
+    return;
+  }
+  statusEl.textContent = '保存中...';
+  google.script.run
+    .withSuccessHandler(function() {
+      statusEl.textContent = '保存しました';
+      if (input) input.value = '';
+      setTimeout(function() { statusEl.textContent = 'キー登録済み'; }, 1200);
+    })
+    .withFailureHandler(function(err) {
+      statusEl.textContent = '保存に失敗しました';
+      showError(err);
+    })
+    .saveClaudeApiKey(key);
+}
+
+function loadClaudeApiKeyStatus_() {
+  google.script.run
+    .withSuccessHandler(function(res) {
+      const statusEl = document.getElementById('claude-api-key-status');
+      if (statusEl) statusEl.textContent = (res && res.isSet) ? 'キー登録済み' : '未登録';
+    })
+    .withFailureHandler(function() {})
+    .getClaudeApiKeyStatus();
+  google.script.run
+    .withSuccessHandler(function(res) {
+      const statusEl = document.getElementById('cloud-vision-api-key-status');
+      if (statusEl) statusEl.textContent = (res && res.isSet) ? 'キー登録済み' : '未登録';
+    })
+    .withFailureHandler(function() {})
+    .getCloudVisionApiKeyStatus();
 }
 
 function showError(err) {

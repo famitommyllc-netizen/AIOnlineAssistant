@@ -50,7 +50,9 @@ var WEB_APP_PAGES_ = {
   sales: { file: 'SalesForm', title: '売上登録' },
   expense: { file: 'ExpenseForm', title: '経費登録' },
   report: { file: 'Report', title: '日次/月次レポート' },
-  settings: { file: 'SettingsForm', title: '設定' }
+  settings: { file: 'SettingsForm', title: '設定' },
+  ocr_test: { file: 'OcrTest', title: 'OCR検証' },
+  dashboard: { file: 'Dashboard', title: 'ダッシュボード' }
 };
 
 function getWebAppPage_(e) {
