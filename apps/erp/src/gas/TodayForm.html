@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <style>
+    <?!= HtmlService.createHtmlOutputFromFile('style.css').getContent(); ?>
+    .today-date-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5em;
+      margin-bottom: 0.8em;
+      flex-wrap: wrap;
+    }
+    .today-date-row input[type="date"] {
+      flex: 1;
+      min-width: 0;
+    }
+    .today-section-title {
+      font-size: 0.9em;
+      font-weight: 700;
+      color: #64748b;
+      margin: 0.8em 0 0.3em;
+      padding-left: 0.2em;
+    }
+    .today-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88em;
+    }
+    .today-table th, .today-table td {
+      padding: 0.4em 0.4em;
+      border-bottom: 1px solid #e2e8f0;
+      text-align: left;
+      white-space: nowrap;
+    }
+    .today-table th {
+      background: #f8fafc;
+      font-weight: 600;
+      font-size: 0.82em;
+      color: #64748b;
+    }
+    .today-empty { color: #94a3b8; font-size: 0.88em; padding: 0.6em 0; }
+    .today-summary {
+      display: flex;
+      gap: 1em;
+      flex-wrap: wrap;
+      padding: 0.6em 0.5em;
+      font-size: 0.9em;
+    }
+    .today-summary-item { display: flex; flex-direction: column; }
+    .today-summary-label { font-size: 0.78em; color: #64748b; }
+    .today-summary-value { font-weight: 700; font-size: 1.05em; color: #334155; }
+    .today-status { font-size: 0.88em; color: #64748b; margin-bottom: 0.5em; min-height: 1.4em; }
+    .no-print { }
+    @media print {
+      #entry-fixed-header, #entry-fixed-footer, .no-print { display: none !important; }
+      .entry-scroll-body { padding-bottom: 0 !important; margin-top: 0 !important; }
+      .table-wrap { overflow: visible !important; }
+      body { background: #fff !important; }
+    }
+  </style>
+</head>
+<body>
+  <header id="entry-fixed-header" class="entry-fixed-header">
+    <div class="entry-fixed-header-inner">
+      <div class="entry-fixed-header-title-wrap">
+        <h1 class="entry-fixed-header-title">今日の登録</h1>
+      </div>
+      <div id="entry-fixed-header-state" class="entry-fixed-header-state"></div>
+    </div>
+  </header>
+
+  <main class="entry-scroll-body">
+    <div class="today-date-row no-print">
+      <input type="date" id="today-date" class="inline-input">
+      <button type="button" class="btn-main" onclick="loadToday()">表示</button>
+      <button type="button" class="btn-sub" onclick="printToday()">印刷</button>
+    </div>
+    <div class="today-status" id="today-status"></div>
+    <div id="today-content"></div>
+  </main>
+
+  <footer class="entry-fixed-footer" id="entry-fixed-footer">
+    <div class="footer-btn-group">
+      <button type="button" class="footer-btn footer-btn-home" onclick="handleFooterHomeClick()" aria-label="ホーム">H</button>
+      <div class="footer-btn-placeholder"></div>
+      <div class="footer-btn-placeholder"></div>
+      <div class="footer-btn-placeholder"></div>
+      <div class="footer-btn-placeholder"></div>
+    </div>
+  </footer>
+
+  <?!= HtmlService.createHtmlOutputFromFile('DisplaySettingsPanel').getContent(); ?>
+
+  <script>
+    // 今日の日付をセット
+    (function() {
+      var d = new Date();
+      var y = d.getFullYear();
+      var m = String(d.getMonth() + 1).padStart(2, '0');
+      var day = String(d.getDate()).padStart(2, '0');
+      document.getElementById('today-date').value = y + '-' + m + '-' + day;
+    })();
+
+    function loadToday() {
+      var dateVal = document.getElementById('today-date').value;
+      if (!dateVal) return;
+      var status = document.getElementById('today-status');
+      var content = document.getElementById('today-content');
+      status.textContent = '読込中...';
+      content.innerHTML = '';
+
+      google.script.run
+        .withSuccessHandler(function(report) {
+          status.textContent = '';
+          renderTodayReport(report);
+        })
+        .withFailureHandler(function(err) {
+          status.textContent = 'エラー: ' + String(err && err.message || err);
+        })
+        .getPeriodReport('day', dateVal);
+    }
+
+    function renderTodayReport(report) {
+      if (!report) return;
+      var content = document.getElementById('today-content');
+      var html = '';
+
+      // サマリー
+      var s = report.summary || {};
+      html += '<div class="section-card today-summary" style="margin-bottom:0.5em;">';
+      html += summaryItem_('仕入件数', (s.purchaseCount || 0) + '件');
+      html += summaryItem_('仕入合計', '¥' + (s.purchaseCost || 0).toLocaleString());
+      html += summaryItem_('売上件数', (s.salesCount || 0) + '件');
+      html += summaryItem_('売上合計', '¥' + (s.salesAmount || 0).toLocaleString());
+      html += summaryItem_('利益', '¥' + (s.profit || 0).toLocaleString());
+      html += '</div>';
+
+      // 仕入一覧
+      var purchases = report.purchases || [];
+      html += '<div class="today-section-title">仕入（' + purchases.length + '件）</div>';
+      if (purchases.length) {
+        html += '<div class="section-card" style="padding:0;"><div class="table-wrap"><table class="today-table">';
+        html += '<tr><th>商品名</th><th>個別番号</th><th>原価</th><th>在庫数</th><th>伝票番号</th></tr>';
+        purchases.forEach(function(r) {
+          html += '<tr>' +
+            '<td>' + esc(r.name || '') + '</td>' +
+            '<td style="font-size:0.78em;">' + esc(r.inventoryId || '') + '</td>' +
+            '<td>¥' + (r.cost || 0).toLocaleString() + '</td>' +
+            '<td>' + (r.qty || 0) + '</td>' +
+            '<td style="font-size:0.78em;">' + esc(r.slipNo || '') + '</td>' +
+            '</tr>';
+        });
+        html += '</table></div></div>';
+      } else {
+        html += '<div class="today-empty">仕入なし</div>';
+      }
+
+      // 売上一覧
+      var sales = report.sales || [];
+      html += '<div class="today-section-title">売上（' + sales.length + '件）</div>';
+      if (sales.length) {
+        html += '<div class="section-card" style="padding:0;"><div class="table-wrap"><table class="today-table">';
+        html += '<tr><th>商品名</th><th>個別番号</th><th>売上金額</th><th>利益</th><th>販売場所</th></tr>';
+        sales.forEach(function(r) {
+          html += '<tr>' +
+            '<td>' + esc(r.name || '') + '</td>' +
+            '<td style="font-size:0.78em;">' + esc(r.inventoryId || '') + '</td>' +
+            '<td>¥' + (r.salesAmount || 0).toLocaleString() + '</td>' +
+            '<td>¥' + (r.profit || 0).toLocaleString() + '</td>' +
+            '<td>' + esc(r.place || '') + '</td>' +
+            '</tr>';
+        });
+        html += '</table></div></div>';
+      } else {
+        html += '<div class="today-empty">売上なし</div>';
+      }
+
+      // 経費一覧
+      var expenses = report.expenses || [];
+      html += '<div class="today-section-title">経費（' + expenses.length + '件）</div>';
+      if (expenses.length) {
+        html += '<div class="section-card" style="padding:0;"><div class="table-wrap"><table class="today-table">';
+        html += '<tr><th>内容</th><th>金額</th></tr>';
+        expenses.forEach(function(r) {
+          html += '<tr>' +
+            '<td>' + esc(r.name || '') + '</td>' +
+            '<td>¥' + (r.amount || 0).toLocaleString() + '</td>' +
+            '</tr>';
+        });
+        html += '</table></div></div>';
+      } else {
+        html += '<div class="today-empty">経費なし</div>';
+      }
+
+      content.innerHTML = html;
+    }
+
+    function summaryItem_(label, value) {
+      return '<div class="today-summary-item">' +
+        '<div class="today-summary-label">' + esc(label) + '</div>' +
+        '<div class="today-summary-value">' + esc(value) + '</div>' +
+        '</div>';
+    }
+
+    function printToday() { window.print(); }
+
+    function esc(s) {
+      return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function handleFooterDisplaySettingsClick() { openSharedDisplaySettingsModal_(); }
+
+    function isWebAppRuntimeUrl_() {
+      return /\/(exec|dev)(?:$|[?#])/i.test(String(window.location.href || ''));
+    }
+    function buildWebAppPageUrl_(page, params) {
+      try {
+        var url = new URL(window.location.href);
+        url.searchParams.set('page', String(page || 'home'));
+        var p = params || {};
+        Object.keys(p).forEach(function(key) {
+          var value = p[key];
+          if (value === undefined || value === null || String(value).trim() === '') { url.searchParams.delete(key); return; }
+          url.searchParams.set(key, String(value));
+        });
+        return url.toString();
+      } catch (e) { return ''; }
+    }
+    function navigateToWebAppPage_(page, params) {
+      var fallbackUrl = String(buildWebAppPageUrl_(page, params || {}) || '').trim();
+      if (isWebAppRuntimeUrl_()) { if (fallbackUrl) window.location.href = fallbackUrl; return; }
+      try {
+        google.script.run
+          .withSuccessHandler(function(url) {
+            var dest = (url && String(url).trim()) ? String(url).trim() : fallbackUrl;
+            if (dest) (window.top || window).location.href = dest;
+          })
+          .withFailureHandler(function() { if (fallbackUrl) (window.top || window).location.href = fallbackUrl; })
+          .getWebAppPageUrl(String(page || 'home'), params || {});
+      } catch (e) { if (fallbackUrl) (window.top || window).location.href = fallbackUrl; }
+    }
+    function handleFooterHomeClick() { navigateToWebAppPage_('home', {}); }
+
+    (function() {
+      initSharedDisplaySettings_();
+      loadToday();
+    })();
+  </script>
+</body>
+</html>

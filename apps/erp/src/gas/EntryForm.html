@@ -1674,20 +1674,8 @@ function getEntryInputStageAutocompleteSource_(scope, step) {
       .filter(function(v) { return !!v; });
   }
   if (targetScope === 'product' && targetStep === 'name') {
-    const out = [];
-    const seen = new Set();
-    (productCandidates || []).forEach(function(item) {
-      if (!item) return;
-      const values = [item.label, item.name, item.productNo, item.jan];
-      values.forEach(function(v) {
-        const val = String(v || '').trim();
-        if (!val) return;
-        if (seen.has(val)) return;
-        seen.add(val);
-        out.push(val);
-      });
-    });
-    return out;
+    // ラベルを1件のみ返すが、JAN/番号でも検索できるよう特殊処理
+    return { _isProductSource: true, candidates: productCandidates || [] };
   }
   if (targetScope === 'expense' && targetStep === 'name') {
     return (expenseCandidates || []).map(function(v) { return String(v || '').trim(); }).filter(function(v) { return !!v; });
@@ -1706,6 +1694,27 @@ function createEntryInputStageSuggestionList_(scope, step, inputValue) {
   const queryRaw = String(inputValue || '').trim();
   const query = queryRaw.toLowerCase();
   const source = getEntryInputStageAutocompleteSource_(scope, step);
+
+  // 商品ソースの場合：全トークンで検索しラベルのみ表示
+  if (source && source._isProductSource) {
+    const seen = new Set();
+    const startsWith = [];
+    const includes = [];
+    (source.candidates || []).forEach(function(item) {
+      if (!item) return;
+      const label = String(item.label || '').trim();
+      if (!label || seen.has(label.toLowerCase())) return;
+      const searchable = [item.label, item.name, item.productNo, item.jan]
+        .map(function(v) { return String(v || '').toLowerCase(); }).join(' ');
+      if (!query || searchable.indexOf(query) >= 0) {
+        seen.add(label.toLowerCase());
+        if (label.toLowerCase().indexOf(query) === 0) startsWith.push(label);
+        else includes.push(label);
+      }
+    });
+    return startsWith.concat(includes).slice(0, 12);
+  }
+
   const seen = new Set();
   const startsWith = [];
   const includes = [];
@@ -1715,18 +1724,10 @@ function createEntryInputStageSuggestionList_(scope, step, inputValue) {
     const key = value.toLowerCase();
     if (seen.has(key)) return;
     seen.add(key);
-    if (!query) {
-      startsWith.push(value);
-      return;
-    }
+    if (!query) { startsWith.push(value); return; }
     const lower = value.toLowerCase();
-    if (lower.indexOf(query) === 0) {
-      startsWith.push(value);
-      return;
-    }
-    if (lower.indexOf(query) >= 0) {
-      includes.push(value);
-    }
+    if (lower.indexOf(query) === 0) { startsWith.push(value); return; }
+    if (lower.indexOf(query) >= 0) includes.push(value);
   });
   return startsWith.concat(includes).slice(0, 12);
 }

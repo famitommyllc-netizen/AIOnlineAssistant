@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <style>
+    <?!= HtmlService.createHtmlOutputFromFile('style.css').getContent(); ?>
+
+    .cancel-tab-bar {
+      display: flex;
+      border-bottom: 2px solid #e2e8f0;
+      margin-bottom: 1em;
+    }
+    .cancel-tab {
+      flex: 1;
+      padding: 0.7em 0.5em;
+      text-align: center;
+      font-size: 0.97em;
+      font-weight: 600;
+      color: #64748b;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+    }
+    .cancel-tab.is-active {
+      color: #e53e3e;
+      border-bottom-color: #e53e3e;
+    }
+    .cancel-search-row {
+      display: flex;
+      gap: 0.5em;
+      margin-bottom: 0.7em;
+      align-items: stretch;
+    }
+    .cancel-search-row input {
+      flex: 1;
+    }
+    .cancel-result-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9em;
+    }
+    .cancel-result-table th, .cancel-result-table td {
+      padding: 0.45em 0.4em;
+      border-bottom: 1px solid #e2e8f0;
+      text-align: left;
+      white-space: nowrap;
+    }
+    .cancel-result-table th {
+      background: #f8fafc;
+      font-weight: 600;
+      font-size: 0.85em;
+      color: #64748b;
+    }
+    .cancel-result-table tr:hover td { background: #f0f4ff; }
+    .is-sold { color: #e53e3e; font-size: 0.8em; }
+    .is-ok   { color: #38a169; font-size: 0.8em; }
+    .cancel-detail-wrap { margin-top: 0.5em; }
+    .cancel-detail-wrap table { font-size: 0.85em; }
+    .cancel-confirm-btn {
+      margin-top: 0.8em;
+      padding: 0.6em 1.4em;
+      background: #e53e3e;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 1em;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .cancel-confirm-btn:disabled { opacity: 0.45; cursor: default; }
+    .cancel-status { margin-top: 0.5em; font-size: 0.9em; color: #64748b; min-height: 1.4em; }
+    .cancel-empty { color: #94a3b8; padding: 1.2em 0; text-align: center; font-size: 0.9em; }
+    .modal-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.is-open { display: flex; }
+    .modal-box {
+      background: #fff;
+      border-radius: 12px;
+      padding: 1.4em 1.2em;
+      max-width: 340px;
+      width: 92%;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    }
+    .modal-title { font-weight: 700; font-size: 1em; margin-bottom: 0.6em; }
+    .modal-body  { font-size: 0.9em; color: #334155; margin-bottom: 1em; line-height: 1.6; }
+    .modal-actions { display: flex; gap: 0.6em; justify-content: flex-end; }
+  </style>
+</head>
+<body>
+  <header id="entry-fixed-header" class="entry-fixed-header">
+    <div class="entry-fixed-header-inner">
+      <div class="entry-fixed-header-title-wrap">
+        <h1 class="entry-fixed-header-title">取消</h1>
+      </div>
+      <div id="entry-fixed-header-state" class="entry-fixed-header-state"></div>
+    </div>
+  </header>
+
+  <main class="entry-scroll-body" id="cancel-main">
+    <div class="cancel-tab-bar">
+      <div class="cancel-tab is-active" id="tab-sales" onclick="switchTab('sales')">売上取消</div>
+      <div class="cancel-tab" id="tab-purchase" onclick="switchTab('purchase')">仕入取消</div>
+    </div>
+
+    <!-- 売上取消 -->
+    <div id="panel-sales">
+      <div class="cancel-search-row">
+        <input type="text" id="sales-keyword" class="inline-input" placeholder="商品名 / 個別番号 / 伝票番号" oninput="onSalesKeyword(this.value)">
+        <input type="text" id="sales-date" class="inline-input" style="max-width:7em;" inputmode="numeric" placeholder="日付(8桁)">
+        <button type="button" class="btn-main" onclick="searchSales()">検索</button>
+      </div>
+      <div id="sales-results"></div>
+      <div style="margin-top:0.8em;">
+        <button type="button" class="cancel-confirm-btn" id="btn-cancel-sales" disabled onclick="openSalesCancelModal()">選択行を取消</button>
+      </div>
+      <div class="cancel-status" id="sales-status"></div>
+    </div>
+
+    <!-- 仕入取消 -->
+    <div id="panel-purchase" style="display:none;">
+      <div class="cancel-search-row">
+        <input type="text" id="purchase-keyword" class="inline-input" placeholder="仕入先 / 伝票番号 / 商品名">
+        <input type="text" id="purchase-date" class="inline-input" style="max-width:7em;" inputmode="numeric" placeholder="日付(8桁)">
+        <button type="button" class="btn-main" onclick="searchPurchase()">検索</button>
+      </div>
+      <div id="purchase-results"></div>
+      <div class="cancel-status" id="purchase-status"></div>
+    </div>
+  </main>
+
+  <!-- 売上取消確認モーダル -->
+  <div class="modal-overlay" id="sales-cancel-modal">
+    <div class="modal-box">
+      <div class="modal-title">売上取消の確認</div>
+      <div class="modal-body" id="sales-cancel-modal-body"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn-sub" onclick="closeSalesCancelModal()">キャンセル</button>
+        <button type="button" class="cancel-confirm-btn" style="margin:0;" onclick="executeSalesCancel()">取消実行</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 仕入取消確認モーダル -->
+  <div class="modal-overlay" id="purchase-cancel-modal">
+    <div class="modal-box">
+      <div class="modal-title">仕入取消の確認</div>
+      <div class="modal-body" id="purchase-cancel-modal-body"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn-sub" onclick="closePurchaseCancelModal()">キャンセル</button>
+        <button type="button" class="cancel-confirm-btn" style="margin:0;" onclick="executePurchaseCancel()">取消実行</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="entry-fixed-footer" id="entry-fixed-footer">
+    <div class="footer-btn-group">
+      <button type="button" class="footer-btn footer-btn-home" onclick="handleFooterHomeClick()" aria-label="ホーム">H</button>
+      <div class="footer-btn-placeholder"></div>
+      <div class="footer-btn-placeholder"></div>
+      <div class="footer-btn-placeholder"></div>
+      <div class="footer-btn-placeholder"></div>
+    </div>
+  </footer>
+
+  <?!= HtmlService.createHtmlOutputFromFile('DisplaySettingsPanel').getContent(); ?>
+
+  <script>
+    var salesResultData = [];
+    var pendingSalesKeys = [];
+    var pendingPurchaseSlipNo = '';
+
+    // ===== タブ =====
+    function switchTab(tab) {
+      document.getElementById('panel-sales').style.display    = tab === 'sales'    ? '' : 'none';
+      document.getElementById('panel-purchase').style.display = tab === 'purchase' ? '' : 'none';
+      document.getElementById('tab-sales').classList.toggle('is-active',    tab === 'sales');
+      document.getElementById('tab-purchase').classList.toggle('is-active', tab === 'purchase');
+    }
+
+    // ===== 売上取消 =====
+    function onSalesKeyword(v) {
+      if (!v.trim()) return;
+    }
+
+    function searchSales() {
+      var keyword = document.getElementById('sales-keyword').value.trim();
+      var date    = document.getElementById('sales-date').value.trim();
+      var el = document.getElementById('sales-results');
+      var status = document.getElementById('sales-status');
+      el.innerHTML = '<div class="cancel-empty">検索中...</div>';
+      status.textContent = '';
+      document.getElementById('btn-cancel-sales').disabled = true;
+
+      google.script.run
+        .withSuccessHandler(function(rows) {
+          salesResultData = rows || [];
+          renderSalesResults(salesResultData);
+        })
+        .withFailureHandler(function(err) {
+          el.innerHTML = '';
+          status.textContent = String(err && err.message || err);
+        })
+        .searchSalesForCancel({ keyword: keyword, date: date });
+    }
+
+    function renderSalesResults(rows) {
+      var el = document.getElementById('sales-results');
+      if (!rows.length) {
+        el.innerHTML = '<div class="cancel-empty">該当なし</div>';
+        return;
+      }
+      var html = '<div class="table-wrap"><table class="cancel-result-table">' +
+        '<tr><th></th><th>売上日</th><th>伝票番号</th><th>商品名</th><th>個別番号</th><th>売上金額</th><th>仕入単価</th><th>利益</th><th>販売場所</th><th>決済方法</th></tr>';
+      rows.forEach(function(r, i) {
+        var dateStr = r.salesDate ? formatDateDisp_(r.salesDate) : '';
+        html += '<tr>' +
+          '<td><input type="checkbox" class="sales-row-check" data-idx="' + i + '" onchange="onSalesCheckChange()"></td>' +
+          '<td>' + esc(dateStr) + '</td>' +
+          '<td style="font-size:0.78em;">' + esc(r.slipNo) + '</td>' +
+          '<td>' + esc(r.name) + '</td>' +
+          '<td style="font-size:0.78em;">' + esc(r.inventoryId) + '</td>' +
+          '<td>¥' + (r.unitAmount || 0).toLocaleString() + '</td>' +
+          '<td>¥' + (r.unitCost || 0).toLocaleString() + '</td>' +
+          '<td>¥' + (r.profit || 0).toLocaleString() + '</td>' +
+          '<td>' + esc(r.place) + '</td>' +
+          '<td>' + esc(r.payment) + '</td>' +
+          '</tr>';
+      });
+      html += '</table></div>';
+      el.innerHTML = html;
+    }
+
+    function onSalesCheckChange() {
+      var checked = document.querySelectorAll('.sales-row-check:checked');
+      document.getElementById('btn-cancel-sales').disabled = checked.length === 0;
+    }
+
+    function getSelectedSalesKeys() {
+      var keys = [];
+      var checked = document.querySelectorAll('.sales-row-check:checked');
+      checked.forEach(function(cb) {
+        var idx = parseInt(cb.getAttribute('data-idx'), 10);
+        var r = salesResultData[idx];
+        if (r) keys.push({ slipNo: r.slipNo, inventoryId: r.inventoryId });
+      });
+      return keys;
+    }
+
+    function openSalesCancelModal() {
+      pendingSalesKeys = getSelectedSalesKeys();
+      if (!pendingSalesKeys.length) return;
+      document.getElementById('sales-cancel-modal-body').textContent =
+        pendingSalesKeys.length + '行の売上を取消します。在庫が復元されます。よろしいですか？';
+      document.getElementById('sales-cancel-modal').classList.add('is-open');
+    }
+
+    function closeSalesCancelModal() {
+      document.getElementById('sales-cancel-modal').classList.remove('is-open');
+    }
+
+    function executeSalesCancel() {
+      closeSalesCancelModal();
+      var status = document.getElementById('sales-status');
+      status.textContent = '処理中...';
+      google.script.run
+        .withSuccessHandler(function(res) {
+          status.textContent = res.message || '取消完了';
+          document.getElementById('sales-results').innerHTML = '';
+          salesResultData = [];
+          document.getElementById('btn-cancel-sales').disabled = true;
+        })
+        .withFailureHandler(function(err) {
+          status.textContent = 'エラー: ' + String(err && err.message || err);
+        })
+        .cancelSalesRows(pendingSalesKeys);
+    }
+
+    // ===== 仕入取消 =====
+    function searchPurchase() {
+      var keyword = document.getElementById('purchase-keyword').value.trim();
+      var date    = document.getElementById('purchase-date').value.trim();
+      var el = document.getElementById('purchase-results');
+      var status = document.getElementById('purchase-status');
+      el.innerHTML = '<div class="cancel-empty">検索中...</div>';
+      status.textContent = '';
+
+      google.script.run
+        .withSuccessHandler(function(items) {
+          renderPurchaseResults(items || []);
+        })
+        .withFailureHandler(function(err) {
+          el.innerHTML = '';
+          status.textContent = String(err && err.message || err);
+        })
+        .searchPurchaseItemsForCancel({ keyword: keyword, date: date });
+    }
+
+    function renderPurchaseResults(items) {
+      var el = document.getElementById('purchase-results');
+      if (!items.length) {
+        el.innerHTML = '<div class="cancel-empty">該当なし</div>';
+        return;
+      }
+
+      // slipNo でグループ化（順序を保持）
+      var slipOrder = [];
+      var slipGroups = {};
+      items.forEach(function(item) {
+        var sn = item.slipNo;
+        if (!slipGroups[sn]) {
+          slipOrder.push(sn);
+          slipGroups[sn] = { slipNo: sn, purchaseDate: item.purchaseDate, supplier: item.supplier, payment: item.payment, items: [], hasSales: false };
+        }
+        slipGroups[sn].items.push(item);
+        if (item.soldQty > 0) slipGroups[sn].hasSales = true;
+      });
+
+      var html = '';
+      slipOrder.forEach(function(sn) {
+        var g = slipGroups[sn];
+        var dateStr = g.purchaseDate ? formatDateDisp_(g.purchaseDate) : '';
+        var canCancel = !g.hasSales;
+        var btnHtml = canCancel
+          ? '<button type="button" class="cancel-confirm-btn" style="padding:0.3em 0.9em;font-size:0.85em;margin:0;" onclick="openPurchaseCancelModal(\'' + esc(sn) + '\')">取消</button>'
+          : '<span class="is-sold" style="font-size:0.82em;">売上あり・取消不可</span>';
+
+        html += '<div class="section-card" style="margin-bottom:0.8em;padding:0.6em 0.7em;">';
+        html += '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.4em;margin-bottom:0.5em;">';
+        html += '<div style="font-size:0.82em;color:#64748b;">';
+        html += '<strong style="color:#334155;">' + esc(sn) + '</strong>';
+        html += '&nbsp; ' + esc(dateStr) + '&nbsp; ' + esc(g.supplier) + '&nbsp; ' + esc(g.payment);
+        html += '</div>' + btnHtml + '</div>';
+
+        html += '<div class="table-wrap"><table class="cancel-result-table">';
+        html += '<tr><th>商品名</th><th>個別番号</th><th>提示金額</th><th>ポイント</th><th>原価</th><th>在庫数</th><th>単価</th><th>売上個数</th></tr>';
+        g.items.forEach(function(r) {
+          var rowClass = r.soldQty > 0 ? ' class="is-sold"' : '';
+          html += '<tr' + rowClass + '>' +
+            '<td>' + esc(r.name) + '</td>' +
+            '<td style="font-size:0.78em;">' + esc(r.inventoryId) + '</td>' +
+            '<td>¥' + (r.price || 0).toLocaleString() + '</td>' +
+            '<td>' + (r.point ? '¥' + r.point.toLocaleString() : '—') + '</td>' +
+            '<td>¥' + (r.cost || 0).toLocaleString() + '</td>' +
+            '<td>' + r.qty + '</td>' +
+            '<td>¥' + (r.unitPrice || 0).toLocaleString() + '</td>' +
+            '<td>' + (r.soldQty || 0) + '</td>' +
+            '</tr>';
+        });
+        html += '</table></div></div>';
+      });
+      el.innerHTML = html;
+    }
+
+    function openPurchaseCancelModal(slipNo) {
+      pendingPurchaseSlipNo = slipNo;
+      document.getElementById('purchase-cancel-modal-body').textContent =
+        '伝票番号 ' + slipNo + ' を取消します。在庫表から削除されます。よろしいですか？';
+      document.getElementById('purchase-cancel-modal').classList.add('is-open');
+    }
+
+    function closePurchaseCancelModal() {
+      document.getElementById('purchase-cancel-modal').classList.remove('is-open');
+    }
+
+    function executePurchaseCancel() {
+      closePurchaseCancelModal();
+      var status = document.getElementById('purchase-status');
+      status.textContent = '処理中...';
+      google.script.run
+        .withSuccessHandler(function(res) {
+          status.textContent = res.message || '取消完了';
+          searchPurchase();
+        })
+        .withFailureHandler(function(err) {
+          status.textContent = 'エラー: ' + String(err && err.message || err);
+        })
+        .cancelPurchaseSlip(pendingPurchaseSlipNo);
+    }
+
+    // ===== ユーティリティ =====
+    function esc(s) {
+      return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function formatDateDisp_(d) {
+      if (!d) return '';
+      var s = String(d instanceof Date ? d.toISOString().slice(0,10).replace(/-/g,'') : d).replace(/[^0-9]/g,'');
+      if (s.length === 8) return s.slice(0,4) + '/' + s.slice(4,6) + '/' + s.slice(6,8);
+      return String(d);
+    }
+
+    function handleFooterDisplaySettingsClick() { openSharedDisplaySettingsModal_(); }
+
+    function isWebAppRuntimeUrl_() {
+      return /\/(exec|dev)(?:$|[?#])/i.test(String(window.location.href || ''));
+    }
+    function buildWebAppPageUrl_(page, params) {
+      try {
+        var url = new URL(window.location.href);
+        url.searchParams.set('page', String(page || 'home'));
+        var p = params || {};
+        Object.keys(p).forEach(function(key) {
+          var value = p[key];
+          if (value === undefined || value === null || String(value).trim() === '') {
+            url.searchParams.delete(key); return;
+          }
+          url.searchParams.set(key, String(value));
+        });
+        return url.toString();
+      } catch (e) { return ''; }
+    }
+    function navigateToWebAppPage_(page, params) {
+      var fallbackUrl = String(buildWebAppPageUrl_(page, params || {}) || '').trim();
+      if (isWebAppRuntimeUrl_()) {
+        if (fallbackUrl) window.location.href = fallbackUrl;
+        return;
+      }
+      try {
+        google.script.run
+          .withSuccessHandler(function(url) {
+            var dest = (url && String(url).trim()) ? String(url).trim() : fallbackUrl;
+            if (dest) (window.top || window).location.href = dest;
+          })
+          .withFailureHandler(function() {
+            if (fallbackUrl) (window.top || window).location.href = fallbackUrl;
+          })
+          .getWebAppPageUrl(String(page || 'home'), params || {});
+      } catch (e) {
+        if (fallbackUrl) (window.top || window).location.href = fallbackUrl;
+      }
+    }
+    function handleFooterHomeClick() { navigateToWebAppPage_('home', {}); }
+
+    (function initCancelPage_() {
+      initSharedDisplaySettings_();
+    })();
+  </script>
+</body>
+</html>

@@ -57,6 +57,7 @@
   </footer>
   </div>
   <div id="entry-input-stage" class="entry-input-stage" style="display:none;"></div>
+  <?!= HtmlService.createHtmlOutputFromFile('DisplaySettingsPanel').getContent(); ?>
 
   <script>
 function uiEscapeHtml_(value) {
@@ -191,7 +192,11 @@ function applyDisplaySettingsFromStorage_() {
 }
 
 function initializeExpensePageShell_() {
-  applyDisplaySettingsFromStorage_();
+  initSharedDisplaySettings_();
+}
+
+function isWebAppRuntimeUrl_() {
+  return /\/(exec|dev)(?:$|[?#])/i.test(String(window.location.href || ''));
 }
 
 function buildWebAppPageUrl_(page, params) {
@@ -209,14 +214,39 @@ function buildWebAppPageUrl_(page, params) {
     });
     return url.toString();
   } catch (err) {
-    return '';
+    const p = params || {};
+    const query = ['page=' + encodeURIComponent(String(page || 'home'))];
+    Object.keys(p).forEach(function(key) {
+      if (p[key] === undefined || p[key] === null || String(p[key]).trim() === '') return;
+      query.push(encodeURIComponent(key) + '=' + encodeURIComponent(String(p[key])));
+    });
+    return String(window.location.pathname || '') + '?' + query.join('&');
   }
 }
 
 function navigateToWebAppPage_(page, params) {
-  const url = buildWebAppPageUrl_(page, params || {});
-  if (!url) return;
-  window.location.href = url;
+  const fallbackUrl = String(buildWebAppPageUrl_(page, params || {}) || '').trim();
+  if (isWebAppRuntimeUrl_()) {
+    if (fallbackUrl) window.location.href = fallbackUrl;
+    return;
+  }
+  const canUseGasRun = (typeof google !== 'undefined') && google && google.script &&
+    google.script.run && typeof google.script.run.getWebAppPageUrl === 'function';
+  if (!canUseGasRun) {
+    if (fallbackUrl) window.location.href = fallbackUrl;
+    return;
+  }
+  google.script.run
+    .withSuccessHandler(function(url) {
+      const targetUrl = String(url || '').trim() || fallbackUrl;
+      if (!targetUrl) return;
+      try {
+        if (window.top && window.top !== window.self) { window.top.location.href = targetUrl; return; }
+      } catch (e) {}
+      window.location.href = targetUrl;
+    })
+    .withFailureHandler(function() { if (fallbackUrl) window.location.href = fallbackUrl; })
+    .getWebAppPageUrl(page, params || {});
 }
 
 function handleFooterHomeClick() {
@@ -224,7 +254,7 @@ function handleFooterHomeClick() {
 }
 
 function handleFooterDisplaySettingsClick() {
-  navigateToWebAppPage_('entry', { openDisplaySettings: '1', returnPage: 'expense' });
+  openSharedDisplaySettingsModal_();
 }
 
 function handleFooterPlaceholderClick() {

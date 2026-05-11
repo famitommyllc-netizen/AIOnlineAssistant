@@ -224,6 +224,8 @@
   <? var reportUrl = getWebAppPageUrl('report', {}) || '?page=report'; ?>
   <? var settingsUrl = getWebAppPageUrl('settings', {}) || '?page=settings'; ?>
   <? var dashboardUrl = getWebAppPageUrl('dashboard', {}) || '?page=dashboard'; ?>
+  <? var cancelUrl = getWebAppPageUrl('cancel', {}) || '?page=cancel'; ?>
+  <? var todayUrl = getWebAppPageUrl('today', {}) || '?page=today'; ?>
   <div id="entry-app-shell" class="entry-app-shell">
     <header id="entry-fixed-header" class="entry-fixed-header">
       <div class="entry-fixed-header-inner">
@@ -281,12 +283,24 @@
         <div class="home-card-title">ダッシュボード</div>
         <div class="home-card-sub">経営統計・月次サマリー</div>
       </a>
+
+      <a class="home-card" href="<?= cancelUrl ?>" aria-label="取消へ移動">
+        <div class="home-card-icon" aria-hidden="true"><span class="home-card-icon-glyph">↩</span></div>
+        <div class="home-card-title">取消</div>
+        <div class="home-card-sub">売上・仕入の取消</div>
+      </a>
+
+      <a class="home-card" href="<?= todayUrl ?>" aria-label="今日の登録へ移動">
+        <div class="home-card-icon" aria-hidden="true"><span class="home-card-icon-glyph">📋</span></div>
+        <div class="home-card-title">今日の登録</div>
+        <div class="home-card-sub">登録内容の確認・印刷</div>
+      </a>
     </div>
   </div>
     </main>
     <footer id="entry-fixed-footer" class="entry-fixed-footer">
       <nav class="entry-bottom-nav" aria-label="Home 操作">
-        <button type="button" id="footer-home-btn" class="entry-bottom-nav-btn" onclick="handleFooterHomeClick()">
+        <button type="button" id="footer-home-btn" class="entry-bottom-nav-btn is-active" disabled>
           <span class="entry-bottom-nav-icon">H</span>
           <span class="entry-bottom-nav-label">ホーム</span>
         </button>
@@ -370,6 +384,10 @@ function initializeHomePageShell_() {
   applyDisplaySettingsFromStorage_();
 }
 
+function isWebAppRuntimeUrl_() {
+  return /\/(exec|dev)(?:$|[?#])/i.test(String(window.location.href || ''));
+}
+
 function buildWebAppPageUrl_(page, params) {
   try {
     const url = new URL(window.location.href);
@@ -385,14 +403,39 @@ function buildWebAppPageUrl_(page, params) {
     });
     return url.toString();
   } catch (err) {
-    return '';
+    const p = params || {};
+    const query = ['page=' + encodeURIComponent(String(page || 'home'))];
+    Object.keys(p).forEach(function(key) {
+      if (p[key] === undefined || p[key] === null || String(p[key]).trim() === '') return;
+      query.push(encodeURIComponent(key) + '=' + encodeURIComponent(String(p[key])));
+    });
+    return String(window.location.pathname || '') + '?' + query.join('&');
   }
 }
 
 function navigateToWebAppPage_(page, params) {
-  const url = buildWebAppPageUrl_(page, params || {});
-  if (!url) return;
-  window.location.href = url;
+  const fallbackUrl = String(buildWebAppPageUrl_(page, params || {}) || '').trim();
+  if (isWebAppRuntimeUrl_()) {
+    if (fallbackUrl) window.location.href = fallbackUrl;
+    return;
+  }
+  const canUseGasRun = (typeof google !== 'undefined') && google && google.script &&
+    google.script.run && typeof google.script.run.getWebAppPageUrl === 'function';
+  if (!canUseGasRun) {
+    if (fallbackUrl) window.location.href = fallbackUrl;
+    return;
+  }
+  google.script.run
+    .withSuccessHandler(function(url) {
+      const targetUrl = String(url || '').trim() || fallbackUrl;
+      if (!targetUrl) return;
+      try {
+        if (window.top && window.top !== window.self) { window.top.location.href = targetUrl; return; }
+      } catch (e) {}
+      window.location.href = targetUrl;
+    })
+    .withFailureHandler(function() { if (fallbackUrl) window.location.href = fallbackUrl; })
+    .getWebAppPageUrl(page, params || {});
 }
 
 function handleFooterHomeClick() {
@@ -400,12 +443,13 @@ function handleFooterHomeClick() {
 }
 
 function handleFooterDisplaySettingsClick() {
-  navigateToWebAppPage_('entry', { openDisplaySettings: '1', returnPage: 'home' });
+  openSharedDisplaySettingsModal_();
 }
 
 function handleFooterPlaceholderClick() {
   // ホーム画面では未使用
 }
   </script>
+  <?!= HtmlService.createHtmlOutputFromFile('DisplaySettingsPanel').getContent(); ?>
 </body>
 </html>

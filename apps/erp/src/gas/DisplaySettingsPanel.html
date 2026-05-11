@@ -1,0 +1,345 @@
+<div id="shared-display-settings-modal" class="entry-display-settings-modal" style="display:none;"></div>
+
+<script>
+// ===== 共通表示設定パネル（全ページinclude用） =====
+// LocalStorageキーはEntryFormと共通 → 設定が全ページで共有される
+const SHARED_DS_STORAGE_KEY_ = 'entryDisplaySettings.v1';
+const SHARED_DS_DEFAULTS_ = {
+  h1FontPx: 22, h2FontPx: 28, thFontPx: 36, valueFontPx: 48,
+  dropdownFontPx: 28, helperFontPx: 30, headerFontPx: 24, footerFontPx: 36,
+  noteFontPx: 22, buttonFontPx: 48, borderWidth: 2, radiusScale: 100,
+  fontWeight: 500, colAction: 8, pointFormWidth: 100,
+  productColItemPct: 50, productColPricePct: 20, productColQtyPct: 10,
+  productColCostPct: 20, commonColPct: 33
+};
+
+let sharedDsSettings_ = null;
+let sharedDsTemplateList_ = [];
+let sharedDsActiveTemplateId_ = '';
+let sharedDsSuggestions_ = [];
+let sharedDsSuggestionActiveIndex_ = -1;
+let sharedDsSuggestionVisible_ = false;
+
+function sharedDsClamp_(value, min, max, fallback) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(min, Math.min(max, Math.round(n)));
+}
+
+function sharedDsNormalize_(input) {
+  const src = input || {};
+  const d = SHARED_DS_DEFAULTS_;
+  const out = {
+    h1FontPx: sharedDsClamp_(src.h1FontPx, 12, 96, d.h1FontPx),
+    h2FontPx: sharedDsClamp_(src.h2FontPx, 12, 96, d.h2FontPx),
+    thFontPx: sharedDsClamp_(src.thFontPx, 10, 96, d.thFontPx),
+    valueFontPx: sharedDsClamp_(src.valueFontPx, 10, 96, d.valueFontPx),
+    dropdownFontPx: sharedDsClamp_(src.dropdownFontPx, 10, 96, d.dropdownFontPx),
+    helperFontPx: sharedDsClamp_(src.helperFontPx, 10, 96, d.helperFontPx),
+    headerFontPx: sharedDsClamp_(src.headerFontPx, 10, 96, d.headerFontPx),
+    footerFontPx: sharedDsClamp_(src.footerFontPx, 10, 96, d.footerFontPx),
+    noteFontPx: sharedDsClamp_(src.noteFontPx, 10, 96, d.noteFontPx),
+    buttonFontPx: sharedDsClamp_(src.buttonFontPx, 10, 96, d.buttonFontPx),
+    borderWidth: sharedDsClamp_(src.borderWidth, 1, 8, d.borderWidth),
+    radiusScale: d.radiusScale,
+    fontWeight: sharedDsClamp_(src.fontWeight, 400, 700, d.fontWeight),
+    colAction: d.colAction,
+    pointFormWidth: d.pointFormWidth,
+    productColItemPct: sharedDsClamp_(src.productColItemPct, 40, 70, d.productColItemPct),
+    productColPricePct: sharedDsClamp_(src.productColPricePct, 10, 30, d.productColPricePct),
+    productColQtyPct: sharedDsClamp_(src.productColQtyPct, 8, 20, d.productColQtyPct),
+    productColCostPct: sharedDsClamp_(src.productColCostPct, 10, 30, d.productColCostPct),
+    commonColPct: sharedDsClamp_(src.commonColPct, 30, 34, d.commonColPct)
+  };
+  const total = out.productColItemPct + out.productColPricePct + out.productColQtyPct + out.productColCostPct;
+  if (total !== 100) {
+    out.productColItemPct = Math.max(40, Math.min(70, out.productColItemPct + (100 - total)));
+  }
+  return out;
+}
+
+function sharedDsLoad_() {
+  try {
+    const raw = window.localStorage.getItem(SHARED_DS_STORAGE_KEY_);
+    if (!raw) return sharedDsNormalize_(SHARED_DS_DEFAULTS_);
+    return sharedDsNormalize_(Object.assign({}, SHARED_DS_DEFAULTS_, JSON.parse(raw)));
+  } catch (e) {
+    return sharedDsNormalize_(SHARED_DS_DEFAULTS_);
+  }
+}
+
+function sharedDsSave_() {
+  try {
+    window.localStorage.setItem(SHARED_DS_STORAGE_KEY_, JSON.stringify(sharedDsSettings_));
+  } catch (e) {}
+}
+
+function sharedDsApply_() {
+  const s = sharedDsNormalize_(sharedDsSettings_ || SHARED_DS_DEFAULTS_);
+  sharedDsSettings_ = s;
+  const root = document.documentElement;
+  root.style.setProperty('--entry-ui-border-width', s.borderWidth + 'px');
+  root.style.setProperty('--entry-ui-radius-scale', String(s.radiusScale / 100));
+  root.style.setProperty('--entry-ui-font-weight', String(s.fontWeight));
+  root.style.setProperty('--entry-ui-col-no', '0%');
+  root.style.setProperty('--entry-ui-col-action', s.colAction + '%');
+  root.style.setProperty('--entry-ui-col-num', s.productColPricePct + '%');
+  root.style.setProperty('--entry-ui-col-qty', s.productColQtyPct + '%');
+  root.style.setProperty('--entry-ui-col-item', s.productColItemPct + '%');
+  root.style.setProperty('--entry-ui-product-col-item', s.productColItemPct + '%');
+  root.style.setProperty('--entry-ui-product-col-price', s.productColPricePct + '%');
+  root.style.setProperty('--entry-ui-product-col-qty', s.productColQtyPct + '%');
+  root.style.setProperty('--entry-ui-product-col-cost', s.productColCostPct + '%');
+  root.style.setProperty('--entry-ui-common-col', s.commonColPct + '%');
+  root.style.setProperty('--entry-ui-h1-font-px', s.h1FontPx + 'px');
+  root.style.setProperty('--entry-ui-title-font-px', s.h2FontPx + 'px');
+  root.style.setProperty('--entry-ui-summary-header-font-px', s.thFontPx + 'px');
+  root.style.setProperty('--entry-ui-value-font-px', s.valueFontPx + 'px');
+  root.style.setProperty('--entry-ui-dropdown-font-px', s.dropdownFontPx + 'px');
+  root.style.setProperty('--entry-ui-helper-font-px', s.helperFontPx + 'px');
+  root.style.setProperty('--entry-ui-header-font-px', s.headerFontPx + 'px');
+  root.style.setProperty('--entry-ui-footer-font-px', s.footerFontPx + 'px');
+  root.style.setProperty('--entry-ui-note-font-px', s.noteFontPx + 'px');
+  root.style.setProperty('--entry-ui-button-font-px', s.buttonFontPx + 'px');
+  root.style.setProperty('--entry-ui-product-row1-font-px', s.valueFontPx + 'px');
+  root.style.setProperty('--entry-ui-product-row2-font-px', s.helperFontPx + 'px');
+  root.style.setProperty('--entry-ui-expense-font-px', s.valueFontPx + 'px');
+  root.style.setProperty('--entry-ui-point-font-px', s.valueFontPx + 'px');
+  root.style.setProperty('--entry-ui-common-font-px', s.valueFontPx + 'px');
+}
+
+function initSharedDisplaySettings_() {
+  sharedDsSettings_ = sharedDsLoad_();
+  sharedDsApply_();
+}
+
+// パネルを開く（全ページから呼び出し）
+function openSharedDisplaySettingsModal_() {
+  const modal = document.getElementById('shared-display-settings-modal');
+  if (!modal) return;
+  const s = sharedDsNormalize_(sharedDsSettings_ || SHARED_DS_DEFAULTS_);
+  sharedDsSettings_ = s;
+  const esc = function(v) {
+    return String(v || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  };
+  const activeName = sharedDsGetActiveTemplateName_(sharedDsTemplateList_);
+  modal.innerHTML = `
+    <div class="entry-display-settings-panel" role="dialog" aria-modal="true" aria-label="表示調整">
+      <div class="entry-display-settings-head">
+        <div class="entry-display-settings-title">表示調整</div>
+        <button type="button" class="entry-input-stage-close entry-display-settings-close" aria-label="閉じる" onclick="sharedDsSave_(); closeSharedDisplaySettingsModal_()">×</button>
+      </div>
+      <div class="entry-display-settings-grid">
+        <label>テンプレート選択
+          <input id="shared-ds-template-select" type="text" value="${esc(activeName)}" placeholder="候補から選択" autocomplete="off"
+            onfocus="sharedDsOnTemplateFocus_()" onblur="sharedDsOnTemplateBlur_()"
+            oninput="sharedDsOnTemplateInput_(this.value)" onkeydown="sharedDsOnTemplateKeydown_(event)">
+          <div id="shared-ds-template-suggestions" class="entry-input-stage-suggestions" style="display:none;"></div>
+        </label>
+        <div class="entry-display-settings-template-actions">
+          <button type="button" class="btn-sub entry-display-settings-btn-apply" onclick="sharedDsApplyTemplate_()">適用</button>
+        </div>
+        <label>h1文字サイズ(px)<input id="shared-ds-h1FontPx" type="number" min="12" max="96" step="1" value="${s.h1FontPx}" oninput="sharedDsOnInput_()"></label>
+        <label>h2文字サイズ(px)<input id="shared-ds-h2FontPx" type="number" min="12" max="96" step="1" value="${s.h2FontPx}" oninput="sharedDsOnInput_()"></label>
+        <label>th文字サイズ(px)<input id="shared-ds-thFontPx" type="number" min="10" max="96" step="1" value="${s.thFontPx}" oninput="sharedDsOnInput_()"></label>
+        <label>値文字サイズ(px)<input id="shared-ds-valueFontPx" type="number" min="10" max="96" step="1" value="${s.valueFontPx}" oninput="sharedDsOnInput_()"></label>
+        <label>プルダウン文字(px)<input id="shared-ds-dropdownFontPx" type="number" min="10" max="96" step="1" value="${s.dropdownFontPx}" oninput="sharedDsOnInput_()"></label>
+        <label>補助ラベル(px)<input id="shared-ds-helperFontPx" type="number" min="10" max="96" step="1" value="${s.helperFontPx}" oninput="sharedDsOnInput_()"></label>
+        <label>ヘッダー(px)<input id="shared-ds-headerFontPx" type="number" min="10" max="96" step="1" value="${s.headerFontPx}" oninput="sharedDsOnInput_()"></label>
+        <label>フッター(px)<input id="shared-ds-footerFontPx" type="number" min="10" max="96" step="1" value="${s.footerFontPx}" oninput="sharedDsOnInput_()"></label>
+        <label>注記(px)<input id="shared-ds-noteFontPx" type="number" min="10" max="96" step="1" value="${s.noteFontPx}" oninput="sharedDsOnInput_()"></label>
+        <label>ボタン(px)<input id="shared-ds-buttonFontPx" type="number" min="10" max="96" step="1" value="${s.buttonFontPx}" oninput="sharedDsOnInput_()"></label>
+        <label>線の太さ(px)<input id="shared-ds-borderWidth" type="number" min="1" max="8" step="1" value="${s.borderWidth}" oninput="sharedDsOnInput_()"></label>
+        <label>商品名列幅(%)<input id="shared-ds-productColItemPct" type="number" min="40" max="70" step="1" value="${s.productColItemPct}" oninput="sharedDsOnInput_()"></label>
+        <label>売価列幅(%)<input id="shared-ds-productColPricePct" type="number" min="10" max="30" step="1" value="${s.productColPricePct}" oninput="sharedDsOnInput_()"></label>
+        <label>個数列幅(%)<input id="shared-ds-productColQtyPct" type="number" min="8" max="20" step="1" value="${s.productColQtyPct}" oninput="sharedDsOnInput_()"></label>
+        <label>原価列幅(%)<input id="shared-ds-productColCostPct" type="number" min="10" max="30" step="1" value="${s.productColCostPct}" oninput="sharedDsOnInput_()"></label>
+        <label>共通項目列幅(%)<input id="shared-ds-commonColPct" type="number" min="30" max="34" step="1" value="${s.commonColPct}" oninput="sharedDsOnInput_()"></label>
+        <label>文字の太さ
+          <select id="shared-ds-fontWeight" onchange="sharedDsOnInput_()">
+            <option value="400"${s.fontWeight===400?' selected':''}>標準</option>
+            <option value="500"${s.fontWeight===500?' selected':''}>やや太め</option>
+            <option value="700"${s.fontWeight===700?' selected':''}>太字</option>
+          </select>
+        </label>
+        <div class="entry-display-settings-size-title">テンプレ保存</div>
+        <label>テンプレート名<input id="shared-ds-template-name" type="text" value="${esc(activeName)}" placeholder="例: 標準A"></label>
+        <button type="button" class="btn-sub entry-display-settings-btn-save" onclick="sharedDsSaveTemplate_()">テンプレ保存</button>
+      </div>
+      <div class="entry-display-settings-actions">
+        <button type="button" class="btn-sub entry-display-settings-btn-reset" onclick="sharedDsReset_()">初期値に戻す</button>
+      </div>
+    </div>
+  `;
+  modal.onclick = function(e) {
+    if (e && e.target && e.target.id === 'shared-display-settings-modal') {
+      sharedDsSave_(); closeSharedDisplaySettingsModal_();
+    }
+  };
+  modal.style.display = 'flex';
+  document.body.classList.add('entry-display-settings-open');
+  sharedDsLoadTemplateList_(function() {});
+}
+
+function closeSharedDisplaySettingsModal_() {
+  const modal = document.getElementById('shared-display-settings-modal');
+  if (!modal) return;
+  modal.style.display = 'none';
+  modal.innerHTML = '';
+  document.body.classList.remove('entry-display-settings-open');
+}
+
+function sharedDsField_(id) {
+  return document.getElementById('shared-ds-' + id);
+}
+
+function sharedDsReadFromModal_() {
+  const next = Object.assign({}, sharedDsSettings_ || SHARED_DS_DEFAULTS_);
+  ['h1FontPx','h2FontPx','thFontPx','valueFontPx','dropdownFontPx','helperFontPx',
+   'headerFontPx','footerFontPx','noteFontPx','buttonFontPx','borderWidth',
+   'productColItemPct','productColPricePct','productColQtyPct','productColCostPct','commonColPct'
+  ].forEach(function(key) {
+    const f = sharedDsField_(key);
+    if (f) next[key] = Number(f.value || next[key]);
+  });
+  const fw = sharedDsField_('fontWeight');
+  if (fw) next.fontWeight = Number(fw.value || next.fontWeight);
+  sharedDsSettings_ = sharedDsNormalize_(next);
+}
+
+function sharedDsOnInput_() {
+  sharedDsReadFromModal_();
+  sharedDsApply_();
+}
+
+function sharedDsReset_() {
+  sharedDsSettings_ = sharedDsNormalize_(SHARED_DS_DEFAULTS_);
+  sharedDsActiveTemplateId_ = '';
+  sharedDsSave_();
+  sharedDsApply_();
+  openSharedDisplaySettingsModal_();
+}
+
+// テンプレート
+function sharedDsLoadTemplateList_(callback) {
+  google.script.run
+    .withSuccessHandler(function(list) {
+      sharedDsTemplateList_ = Array.isArray(list) ? list : [];
+      if (typeof callback === 'function') callback(sharedDsTemplateList_);
+    })
+    .withFailureHandler(function() {
+      sharedDsTemplateList_ = [];
+      if (typeof callback === 'function') callback([]);
+    })
+    .getDisplaySettingsTemplateList();
+}
+
+function sharedDsGetActiveTemplateName_(list) {
+  const id = sharedDsActiveTemplateId_;
+  if (!id) return '';
+  const found = (list || []).find(function(t) { return t && t.templateId === id; });
+  return found ? String(found.templateName || '') : '';
+}
+
+function sharedDsGetTemplateByName_(name, list) {
+  return (list || []).find(function(t) { return t && String(t.templateName || '').trim() === name; }) || null;
+}
+
+function sharedDsApplyTemplate_() {
+  const inputEl = sharedDsField_('template-select');
+  const name = String((inputEl && inputEl.value) || '').trim();
+  if (!name) return;
+  const found = sharedDsGetTemplateByName_(name, sharedDsTemplateList_);
+  if (!found || !found.templateId) return;
+  google.script.run
+    .withSuccessHandler(function(t) {
+      if (!t) return;
+      sharedDsSettings_ = sharedDsNormalize_(t.settings || SHARED_DS_DEFAULTS_);
+      sharedDsActiveTemplateId_ = String(t.templateId || '');
+      sharedDsApply_();
+      sharedDsSave_();
+      openSharedDisplaySettingsModal_();
+    })
+    .withFailureHandler(function() {})
+    .getDisplaySettingsTemplateById(found.templateId);
+}
+
+function sharedDsSaveTemplate_() {
+  sharedDsReadFromModal_();
+  const nameEl = sharedDsField_('template-name');
+  const name = String((nameEl && nameEl.value) || '').trim();
+  if (!name) return;
+  google.script.run
+    .withSuccessHandler(function(saved) {
+      sharedDsActiveTemplateId_ = String(saved && saved.templateId || '');
+      sharedDsLoadTemplateList_(function() { openSharedDisplaySettingsModal_(); });
+    })
+    .withFailureHandler(function() {})
+    .saveDisplaySettingsTemplate({
+      templateId: sharedDsActiveTemplateId_,
+      templateName: name,
+      settings: sharedDsNormalize_(sharedDsSettings_)
+    });
+}
+
+// サジェスション
+function sharedDsOnTemplateFocus_() {
+  const el = sharedDsField_('template-select');
+  sharedDsUpdateSuggestions_(el ? el.value : '', true);
+}
+function sharedDsOnTemplateBlur_() {
+  window.setTimeout(function() { sharedDsCloseSuggestions_(); }, 120);
+}
+function sharedDsOnTemplateInput_(value) {
+  sharedDsUpdateSuggestions_(value, true);
+}
+function sharedDsOnTemplateKeydown_(event) {
+  if (!event) return;
+  if (event.key === 'ArrowDown') { sharedDsMoveSuggestion_(1); event.preventDefault(); return; }
+  if (event.key === 'ArrowUp') { sharedDsMoveSuggestion_(-1); event.preventDefault(); return; }
+  if (event.key === 'Escape') { sharedDsCloseSuggestions_(); return; }
+  if (event.key === 'Enter') { event.preventDefault(); sharedDsPickActiveSuggestion_(); }
+}
+function sharedDsUpdateSuggestions_(value, show) {
+  const q = String(value || '').toLowerCase();
+  const names = (sharedDsTemplateList_ || []).map(function(t) { return String(t && t.templateName || '').trim(); }).filter(Boolean);
+  sharedDsSuggestions_ = names.filter(function(n) { return !q || n.toLowerCase().indexOf(q) >= 0; }).slice(0, 24);
+  sharedDsSuggestionVisible_ = !!show && sharedDsSuggestions_.length > 0;
+  sharedDsRenderSuggestions_();
+}
+function sharedDsRenderSuggestions_() {
+  const el = document.getElementById('shared-ds-template-suggestions');
+  if (!el) return;
+  if (!sharedDsSuggestionVisible_ || !sharedDsSuggestions_.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
+  el.innerHTML = sharedDsSuggestions_.map(function(name, idx) {
+    const cls = idx === sharedDsSuggestionActiveIndex_ ? ' is-active' : '';
+    return '<button type="button" class="entry-input-stage-suggestion-item' + cls + '" onmousedown="sharedDsPickSuggestion_(' + idx + ', event)">' + name + '</button>';
+  }).join('');
+  el.style.display = 'flex';
+}
+function sharedDsPickSuggestion_(idx, event) {
+  if (event) event.preventDefault();
+  const name = sharedDsSuggestions_[idx];
+  if (!name) return;
+  const el = sharedDsField_('template-select');
+  if (el) el.value = name;
+  sharedDsCloseSuggestions_();
+  sharedDsApplyTemplate_();
+}
+function sharedDsPickActiveSuggestion_() {
+  if (sharedDsSuggestionActiveIndex_ >= 0) sharedDsPickSuggestion_(sharedDsSuggestionActiveIndex_, null);
+  else sharedDsApplyTemplate_();
+}
+function sharedDsMoveSuggestion_(dir) {
+  if (!sharedDsSuggestions_.length) return;
+  const len = sharedDsSuggestions_.length;
+  sharedDsSuggestionActiveIndex_ = sharedDsSuggestionActiveIndex_ < 0
+    ? (dir > 0 ? 0 : len - 1)
+    : (sharedDsSuggestionActiveIndex_ + dir + len) % len;
+  sharedDsRenderSuggestions_();
+}
+function sharedDsCloseSuggestions_() {
+  sharedDsSuggestions_ = []; sharedDsSuggestionActiveIndex_ = -1; sharedDsSuggestionVisible_ = false;
+  sharedDsRenderSuggestions_();
+}
+</script>

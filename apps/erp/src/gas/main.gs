@@ -52,7 +52,9 @@ var WEB_APP_PAGES_ = {
   report: { file: 'Report', title: '日次/月次レポート' },
   settings: { file: 'SettingsForm', title: '設定' },
   ocr_test: { file: 'OcrTest', title: 'OCR検証' },
-  dashboard: { file: 'Dashboard', title: 'ダッシュボード' }
+  dashboard: { file: 'Dashboard', title: 'ダッシュボード' },
+  cancel: { file: 'CancelForm', title: '取消' },
+  today: { file: 'TodayForm', title: '今日の登録' }
 };
 
 function getWebAppPage_(e) {

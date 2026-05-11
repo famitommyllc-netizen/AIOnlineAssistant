@@ -64,22 +64,23 @@
         <span class="entry-bottom-nav-icon">UI</span>
         <span class="entry-bottom-nav-label">表示</span>
       </button>
-      <button type="button" id="footer-detail-btn" class="entry-bottom-nav-btn is-placeholder" onclick="handleFooterPlaceholderClick()">
-        <span class="entry-bottom-nav-icon">-</span>
-        <span class="entry-bottom-nav-label"></span>
+      <button type="button" id="footer-add-btn" class="entry-bottom-nav-btn" onclick="addSalesRow(salesRows.length - 1)">
+        <span class="entry-bottom-nav-icon">＋</span>
+        <span class="entry-bottom-nav-label">行追加</span>
       </button>
-      <button type="button" id="footer-tax-btn" class="entry-bottom-nav-btn is-placeholder" onclick="handleFooterPlaceholderClick()">
-        <span class="entry-bottom-nav-icon">-</span>
-        <span class="entry-bottom-nav-label"></span>
+      <button type="button" id="footer-delete-btn" class="entry-bottom-nav-btn" onclick="toggleSalesRowDeleteMode_()">
+        <span class="entry-bottom-nav-icon">−</span>
+        <span class="entry-bottom-nav-label">削除</span>
       </button>
-      <button type="button" id="footer-individual-btn" class="entry-bottom-nav-btn" onclick="handleFooterPlaceholderClick()">
-        <span class="entry-bottom-nav-icon">IND</span>
-        <span class="entry-bottom-nav-label">個別</span>
+      <button type="button" id="footer-reset-btn" class="entry-bottom-nav-btn" onclick="confirmAndResetSalesEntry_()">
+        <span class="entry-bottom-nav-icon">↺</span>
+        <span class="entry-bottom-nav-label">初期化</span>
       </button>
     </nav>
   </footer>
   </div>
   <div id="entry-input-stage" class="entry-input-stage" style="display:none;"></div>
+  <?!= HtmlService.createHtmlOutputFromFile('DisplaySettingsPanel').getContent(); ?>
 
   <script>
 function uiEscapeHtml_(value) {
@@ -151,9 +152,10 @@ let salesCandidateKeyMap = {};
 let pendingSalesPayload = null;
 const SALES_FORM_REV_ = 'rev-20260412-01';
 const SALES_STAGE_STEPS_ = {
-  row: ['item', 'amount', 'place'],
-  common: ['date', 'place']
+  row: ['item', 'qty', 'amount'],
+  common: ['date', 'place', 'payment']
 };
+let salesRowDeleteMode_ = false;
 let salesInputStageState_ = {
   active: false,
   scope: 'row',
@@ -177,6 +179,7 @@ window.onload = function() {
   renderSalesSummary();
   loadSalesCandidates();
   loadSalesPlaceOptions();
+  loadSalesPaymentOptions();
 };
 
 function applySalesRevisionTag_() {
@@ -237,7 +240,7 @@ function applyDisplaySettingsFromStorage_() {
 }
 
 function initializeSalesPageShell_() {
-  applyDisplaySettingsFromStorage_();
+  initSharedDisplaySettings_();
   setSalesScreenState_('entry');
 }
 
@@ -276,10 +279,28 @@ function buildWebAppPageUrl_(page, params) {
   }
 }
 
+function isWebAppRuntimeUrl_() {
+  return /\/(exec|dev)(?:$|[?#])/i.test(String(window.location.href || ''));
+}
 function navigateToWebAppPage_(page, params) {
-  const url = buildWebAppPageUrl_(page, params || {});
-  if (!url) return;
-  window.location.href = url;
+  const fallbackUrl = String(buildWebAppPageUrl_(page, params || {}) || '').trim();
+  if (isWebAppRuntimeUrl_()) {
+    if (fallbackUrl) window.location.href = fallbackUrl;
+    return;
+  }
+  try {
+    google.script.run
+      .withSuccessHandler(function(url) {
+        const dest = (url && String(url).trim()) ? String(url).trim() : fallbackUrl;
+        if (dest) (window.top || window).location.href = dest;
+      })
+      .withFailureHandler(function() {
+        if (fallbackUrl) (window.top || window).location.href = fallbackUrl;
+      })
+      .getWebAppPageUrl(String(page || 'home'), params || {});
+  } catch (e) {
+    if (fallbackUrl) (window.top || window).location.href = fallbackUrl;
+  }
 }
 
 function handleFooterHomeClick() {
@@ -287,11 +308,17 @@ function handleFooterHomeClick() {
 }
 
 function handleFooterDisplaySettingsClick() {
-  navigateToWebAppPage_('entry', { openDisplaySettings: '1', returnPage: 'sales' });
+  openSharedDisplaySettingsModal_();
 }
 
-function handleFooterPlaceholderClick() {
-  // 売上入力では未使用
+function confirmAndResetSalesEntry_() {
+  salesRows = [createEmptySalesRow()];
+  salesRowDeleteMode_ = false;
+  pendingSalesPayload = null;
+  renderSalesRows();
+  renderSalesSummary();
+  renderSalesCommonInfo();
+  setSalesScreenState_('entry');
 }
 
 function normalizeSalesStageScope_(scope) {
@@ -308,26 +335,35 @@ function normalizeSalesStageStep_(scope, step) {
 
 function getSalesStageLabel_(scope, step) {
   if (scope === 'common') {
-    return step === 'date' ? '売上日' : '販売場所';
+    if (step === 'date') return '売上日';
+    if (step === 'payment') return '決済方法';
+    return '販売場所';
   }
   if (step === 'amount') return '売上金額';
-  if (step === 'place') return '販売場所';
+  if (step === 'qty') return '個数';
   return '商品';
 }
 
 function getSalesStageActionLabel_(scope, step) {
   if (scope === 'common') {
-    return step === 'date' ? '次へ' : '確定';
+    return step === 'payment' ? '確定' : '次へ';
   }
-  return step === 'place' ? '確定' : '次へ';
+  return step === 'amount' ? '確定' : '次へ';
 }
 
 function getSalesStagePlaceholder_(scope, step) {
   if (scope === 'common') {
-    return step === 'date' ? 'YYYYMMDD' : '販売場所を入力';
+    if (step === 'date') return 'YYYYMMDD';
+    if (step === 'payment') return '決済方法を入力';
+    return '販売場所を入力';
   }
   if (step === 'amount') return '売上金額を入力';
-  if (step === 'place') return '販売場所を入力';
+  if (step === 'qty') {
+    const st = salesInputStageState_;
+    const rowIdx = st.rowIdx;
+    const stockQty = (rowIdx >= 0 && salesRows[rowIdx]) ? (salesRows[rowIdx].stockQty || 0) : 0;
+    return '個数を入力（在庫: ' + stockQty + '個）';
+  }
   return '商品個別番号 / 商品名 / 商品番号 / JAN';
 }
 
@@ -368,6 +404,11 @@ function commitSalesInputStageStep_() {
       if (dateDisplayEl) dateDisplayEl.value = normalizeDateDigits_(value);
       return;
     }
+    if (step === 'payment') {
+      const paymentEl = document.getElementById('sales-payment');
+      if (paymentEl) paymentEl.value = String(value || '').trim();
+      return;
+    }
     const placeEl = document.getElementById('sales-place');
     if (placeEl) placeEl.value = String(value || '').trim();
     return;
@@ -378,11 +419,11 @@ function commitSalesInputStageStep_() {
     onSalesItemInput(idx, value);
     return;
   }
-  if (step === 'amount') {
-    onSalesAmountInput(idx, value);
+  if (step === 'qty') {
+    onSalesQtyInput(idx, value);
     return;
   }
-  onSalesPlaceInput(idx, value);
+  onSalesAmountInput(idx, value);
   renderSalesRows();
 }
 
@@ -390,6 +431,17 @@ function onSalesInputStageAction() {
   if (!salesInputStageState_.active) return;
   const scope = normalizeSalesStageScope_(salesInputStageState_.scope);
   const step = normalizeSalesStageStep_(scope, salesInputStageState_.step);
+  // qty: 在庫数超過チェック
+  if (scope === 'row' && step === 'qty') {
+    const inputEl = document.getElementById('sales-input-stage-field');
+    const inputQty = Math.max(1, Math.round(Number((inputEl && inputEl.value) || 1)));
+    const rowIdx = salesInputStageState_.rowIdx;
+    const row = rowIdx >= 0 ? salesRows[rowIdx] : null;
+    if (row && row.stockQty > 0 && inputQty > row.stockQty) {
+      showError('在庫数(' + row.stockQty + '個)を超えています');
+      return;
+    }
+  }
   commitSalesInputStageStep_();
   const steps = SALES_STAGE_STEPS_[scope] || SALES_STAGE_STEPS_.row;
   const currentIndex = steps.indexOf(step);
@@ -437,10 +489,12 @@ function renderSalesInputStage_() {
     : ((step === 'place') ? ' list="sales-place-options"' : '');
   stageEl.innerHTML = `
     <div class="entry-input-stage-panel" role="group" aria-label="${escapeHtml(label)}">
-      <button type="button" class="entry-input-stage-close" aria-label="閉じる" onclick="closeSalesInputStage_()">×</button>
-      <label class="entry-input-stage-label" for="sales-input-stage-field">${escapeHtml(label)}</label>
+      <div class="entry-input-stage-head">
+        <label class="entry-input-stage-label" for="sales-input-stage-field">${escapeHtml(label)}</label>
+        <button type="button" class="entry-input-stage-close" aria-label="閉じる" onclick="closeSalesInputStage_()">×</button>
+      </div>
       <div class="entry-input-stage-input-wrap">
-        <input id="sales-input-stage-field" class="inline-input entry-input-stage-input" type="text" inputmode="${(step === 'amount' || step === 'date') ? 'numeric' : 'text'}" pattern="${(step === 'amount' || step === 'date') ? '\\d*' : ''}"${listAttr} value="${escapeHtml(value)}" placeholder="${escapeHtml(placeholder)}" oninput="onSalesInputStageInput(this.value)" onkeydown="onSalesInputStageKeydown(event)">
+        <input id="sales-input-stage-field" class="inline-input entry-input-stage-input" type="text" inputmode="${(step === 'amount' || step === 'date' || step === 'qty') ? 'numeric' : 'text'}" pattern="${(step === 'amount' || step === 'date' || step === 'qty') ? '\\d*' : ''}"${listAttr} value="${escapeHtml(value)}" placeholder="${escapeHtml(placeholder)}" oninput="onSalesInputStageInput(this.value)" onkeydown="onSalesInputStageKeydown(event)">
       </div>
       <div class="entry-input-stage-actions">
         <button type="button" class="btn-sub" onclick="onSalesInputStageBack()">戻る</button>
@@ -467,8 +521,8 @@ function openSalesRowInputStage(rowIdx, step, triggerEl) {
   salesInputStageState_.step = normalizeSalesStageStep_('row', step);
   salesInputStageState_.tempData = {
     item: String(row.itemInput || ''),
-    amount: String(row.salesAmount || ''),
-    place: String(row.place || '')
+    qty: String(row.qty || 1),
+    amount: String(row.salesAmount || '')
   };
   renderSalesInputStage_();
 }
@@ -476,13 +530,15 @@ function openSalesRowInputStage(rowIdx, step, triggerEl) {
 function openSalesCommonInputStage(step, triggerEl) {
   const dateEl = document.getElementById('sales-date');
   const placeEl = document.getElementById('sales-place');
+  const paymentEl = document.getElementById('sales-payment');
   salesInputStageState_.active = true;
   salesInputStageState_.scope = 'common';
   salesInputStageState_.rowIdx = -1;
   salesInputStageState_.step = normalizeSalesStageStep_('common', step);
   salesInputStageState_.tempData = {
     date: String((dateEl && dateEl.value) || ''),
-    place: String((placeEl && placeEl.value) || '')
+    place: String((placeEl && placeEl.value) || ''),
+    payment: String((paymentEl && paymentEl.value) || '')
   };
   renderSalesInputStage_();
 }
@@ -496,7 +552,9 @@ function createEmptySalesRow() {
     cost: 0,
     salesAmount: '',
     profit: 0,
-    place: ''
+    qty: 1,
+    unitPrice: 0,
+    stockQty: 0
   };
 }
 
@@ -561,14 +619,18 @@ function buildSalesItemOptions(filterText) {
 
     if (q && searchable.indexOf(q) === -1) return;
 
+    // keyMapは全トークンで引けるようにする（解決用）
     toCandidateTokens(item).forEach(token => {
       const key = normalizeText(token);
       if (!salesCandidateKeyMap[key]) salesCandidateKeyMap[key] = [];
       salesCandidateKeyMap[key].push(item);
-      if (uniqueOptions[token]) return;
-      uniqueOptions[token] = true;
-      options.push(`<option value="${escapeHtml(token)}"></option>`);
     });
+
+    // datalistには label のみ表示
+    const label = String((item && item.label) || '').trim();
+    if (!label || uniqueOptions[label]) return;
+    uniqueOptions[label] = true;
+    options.push(`<option value="${escapeHtml(label)}"></option>`);
   });
 
   dl.innerHTML = options.join('');
@@ -604,6 +666,18 @@ function loadSalesPlaceOptions() {
     })
     .withFailureHandler(showError)
     .getSalesPlaceList();
+}
+
+function loadSalesPaymentOptions() {
+  google.script.run
+    .withSuccessHandler(function(list) {
+      const dl = document.getElementById('sales-payment-options');
+      if (dl) {
+        dl.innerHTML = (Array.isArray(list) ? list : []).map(v => `<option value="${escapeHtml(v)}"></option>`).join('');
+      }
+    })
+    .withFailureHandler(function() {})
+    .getSalesPaymentList();
 }
 
 function resolveSalesCandidateByInput(input) {
@@ -667,11 +741,14 @@ function onSalesItemInput(idx, value) {
   row.productNo = String(matched.productNo || '').trim();
   row.name = String(matched.name || '').trim();
   row.cost = roundYen(matched.cost || 0);
+  row.unitPrice = roundYen(matched.unitPrice || 0);
+  row.stockQty = Number(matched.qty) || 0;
+  if (!row.qty || row.qty < 1) row.qty = 1;
   if (!roundYen(row.salesAmount)) {
     const assumed = roundYen(matched.assumedSales || 0);
-    row.salesAmount = assumed > 0 ? assumed : row.cost;
+    row.salesAmount = assumed > 0 ? assumed : (row.unitPrice || row.cost);
   }
-  row.profit = roundYen(row.salesAmount) - row.cost;
+  row.profit = (roundYen(row.salesAmount) - (row.unitPrice || 0)) * (row.qty || 1);
   renderSalesRows();
   renderSalesSummary();
 }
@@ -683,11 +760,25 @@ function cacheSalesItemInput(idx, value) {
   buildSalesItemOptions(row.itemInput);
 }
 
+function onSalesQtyInput(idx, value) {
+  const row = salesRows[idx];
+  if (!row) return;
+  const newQty = Math.max(1, Math.round(Number(value) || 1));
+  if (row.stockQty > 0 && newQty > row.stockQty) {
+    showError('在庫数(' + row.stockQty + '個)を超えています');
+    return;
+  }
+  row.qty = newQty;
+  row.profit = (roundYen(row.salesAmount) - (row.unitPrice || 0)) * newQty;
+  renderSalesRows();
+  renderSalesSummary();
+}
+
 function onSalesAmountInput(idx, value) {
   const row = salesRows[idx];
   if (!row) return;
   row.salesAmount = Math.max(0, roundYen(value));
-  row.profit = roundYen(row.salesAmount) - roundYen(row.cost);
+  row.profit = (roundYen(row.salesAmount) - (row.unitPrice || 0)) * (row.qty || 1);
   renderSalesRows();
   renderSalesSummary();
 }
@@ -722,45 +813,54 @@ function removeSalesRow(idx) {
 
 function renderSalesRows() {
   const canDeleteRows = salesRows.length > 1;
+  if (!canDeleteRows && salesRowDeleteMode_) salesRowDeleteMode_ = false;
   const addButtonHtml = `<button type="button" class="btn-append-row" onclick="addSalesRow(${Math.max(0, salesRows.length - 1)})" aria-label="売上行を追加">＋</button>`;
-  const titleActionsHtml = `<div class="entry-lines-title-actions">${addButtonHtml}</div>`;
+  const deleteModeClass = salesRowDeleteMode_ ? 'btn-delete-mode is-active' : 'btn-delete-mode';
+  const deleteButtonHtml = canDeleteRows
+    ? `<button type="button" class="${deleteModeClass}" onclick="toggleSalesRowDeleteMode_()" aria-label="行削除モード">−</button>`
+    : '';
+  const titleActionsHtml = `<div class="entry-lines-title-actions">${addButtonHtml}${deleteButtonHtml}</div>`;
   let rowsHtml = '';
   salesRows.forEach((row, idx) => {
     const canRemoveRow = canDeleteRows && idx > 0;
-    const removeBtn = canRemoveRow
+    const removeBtn = (salesRowDeleteMode_ && canRemoveRow)
       ? `<button type="button" class="entry-row-remove" onclick="removeSalesRow(${idx})" aria-label="売上${idx + 1}を削除">−</button>`
       : '';
-    rowsHtml += `
-      <tr class="entry-main-row" data-sales-row-index="${idx}">
-        <td class="col-no">${idx + 1}</td>
-        <td class="col-item">
-          <input type="text" class="inline-input entry-stage-trigger" list="sales-item-options" value="${escapeHtml(row.itemInput || '')}" readonly onfocus="this.blur(); openSalesRowInputStage(${idx}, 'item', this)" onclick="openSalesRowInputStage(${idx}, 'item', this)" placeholder="商品個別番号 / 商品名 / 商品番号 / JAN">
-        </td>
-        <td class="col-num">
-          <input type="text" class="inline-number entry-stage-trigger" inputmode="numeric" pattern="\\d*" value="${row.salesAmount || ''}" readonly onfocus="this.blur(); openSalesRowInputStage(${idx}, 'amount', this)" onclick="openSalesRowInputStage(${idx}, 'amount', this)">
-        </td>
-        <td class="col-num"><div class="inline-value">${row.cost || 0}</div></td>
-        <td class="col-num"><div class="inline-value">${row.profit || 0}</div></td>
-        <td class="col-action">${removeBtn}</td>
-      </tr>
+    const metaRow = row.inventoryId ? `
       <tr class="entry-meta-row">
         <td colspan="6">
           <div class="entry-meta-grid entry-meta-grid-normal">
             <div class="entry-meta-item">
-              <div class="entry-meta-label">商品個別番号</div>
-              <span class="entry-meta-value">${escapeHtml(row.inventoryId || '') || '未選択'}</span>
+              <div class="entry-meta-label">個別番号</div>
+              <span class="entry-meta-value">${escapeHtml(row.inventoryId)}</span>
             </div>
             <div class="entry-meta-item">
-              <div class="entry-meta-label">商品マスタ番号</div>
-              <span class="entry-meta-value">${escapeHtml(row.productNo || '') || '-'}</span>
+              <div class="entry-meta-label">仕入単価</div>
+              <span class="entry-meta-value">${row.unitPrice ? '¥' + row.unitPrice.toLocaleString() : '―'}</span>
             </div>
             <div class="entry-meta-item">
-              <div class="entry-meta-label">販売場所</div>
-              <input type="text" class="inline-input entry-meta-input entry-stage-trigger" list="sales-place-options" value="${escapeHtml(row.place || '')}" readonly onfocus="this.blur(); openSalesRowInputStage(${idx}, 'place', this)" onclick="openSalesRowInputStage(${idx}, 'place', this)" placeholder="空欄なら共通販売場所">
+              <div class="entry-meta-label">在庫</div>
+              <span class="entry-meta-value">${row.stockQty || 0}個</span>
             </div>
           </div>
         </td>
+      </tr>` : '';
+    rowsHtml += `
+      <tr class="entry-main-row" data-sales-row-index="${idx}">
+        <td class="col-item">
+          <input type="text" class="inline-input entry-stage-trigger" list="sales-item-options" value="${escapeHtml(row.itemInput || '')}" readonly onfocus="this.blur(); openSalesRowInputStage(${idx}, 'item', this)" onclick="openSalesRowInputStage(${idx}, 'item', this)" placeholder="商品個別番号 / 商品名 / JAN">
+        </td>
+        <td class="col-qty">
+          <input type="text" class="inline-number entry-stage-trigger" inputmode="numeric" pattern="\\d*" value="${row.qty || 1}" readonly onfocus="this.blur(); openSalesRowInputStage(${idx}, 'qty', this)" onclick="openSalesRowInputStage(${idx}, 'qty', this)">
+        </td>
+        <td class="col-num">
+          <input type="text" class="inline-number entry-stage-trigger" inputmode="numeric" pattern="\\d*" value="${row.salesAmount || ''}" readonly onfocus="this.blur(); openSalesRowInputStage(${idx}, 'amount', this)" onclick="openSalesRowInputStage(${idx}, 'amount', this)">
+        </td>
+        <td class="col-num"><div class="inline-value">${(row.unitPrice || 0) * (row.qty || 1)}</div></td>
+        <td class="col-num"><div class="inline-value">${row.profit || 0}</div></td>
+        <td class="col-action">${removeBtn}</td>
       </tr>
+      ${metaRow}
     `;
   });
 
@@ -770,44 +870,54 @@ function renderSalesRows() {
       ${titleActionsHtml}
     </div>
     <div class="entry-line-card section-card section-tone-product">
-      <table class="entry-inline-table entry-product-table">
-          <tr>
-            <th class="col-no">No</th>
-            <th class="col-item">商品</th>
-            <th class="col-num">売上金額</th>
-            <th class="col-num">原価</th>
-            <th class="col-num">利益</th>
-            <th class="col-action"></th>
-          </tr>
-          ${rowsHtml}
+      <table class="entry-inline-table entry-product-table entry-swipe-table">
+        <tr>
+          <th class="col-item">商品</th>
+          <th class="col-qty">数量</th>
+          <th class="col-num">売上金額</th>
+          <th class="col-num">原価</th>
+          <th class="col-num">利益</th>
+          <th class="col-action"></th>
+        </tr>
+        ${rowsHtml}
       </table>
     </div>
   `;
 }
 
+function toggleSalesRowDeleteMode_() {
+  salesRowDeleteMode_ = !salesRowDeleteMode_;
+  renderSalesRows();
+}
+
 function renderSalesCommonInfo() {
   const currentDate = String((document.getElementById('sales-date') && document.getElementById('sales-date').value) || '').trim();
   const currentPlace = String((document.getElementById('sales-place') && document.getElementById('sales-place').value) || '').trim();
+  const currentPayment = String((document.getElementById('sales-payment') && document.getElementById('sales-payment').value) || '').trim();
   document.getElementById('sales-common-info').innerHTML =
     '<datalist id="sales-place-options"></datalist>' +
+    '<datalist id="sales-payment-options"></datalist>' +
     '<div class="entry-line-card section-card section-tone-common">' +
       '<table class="entry-inline-table entry-common-table">' +
-        '<tr><th>売上日</th><th>販売場所</th></tr>' +
+        '<tr><th>売上日</th><th>販売場所</th><th>決済方法</th></tr>' +
         '<tr class="entry-main-row">' +
           '<td>' +
             '<input type="hidden" id="sales-date">' +
             '<input type="text" id="sales-date-display" class="inline-input entry-stage-trigger common-stage-trigger" inputmode="numeric" pattern="\\d*" value="" readonly onfocus="this.blur(); openSalesCommonInputStage(\'date\', this)" onclick="openSalesCommonInputStage(\'date\', this)" placeholder="YYYYMMDD">' +
           '</td>' +
-          '<td><input type="text" id="sales-place" class="inline-input entry-stage-trigger common-stage-trigger" list="sales-place-options" placeholder="販売場所を入力" readonly onfocus="this.blur(); openSalesCommonInputStage(\'place\', this)" onclick="openSalesCommonInputStage(\'place\', this)"></td>' +
+          '<td><input type="text" id="sales-place" class="inline-input entry-stage-trigger common-stage-trigger" list="sales-place-options" placeholder="販売場所" readonly onfocus="this.blur(); openSalesCommonInputStage(\'place\', this)" onclick="openSalesCommonInputStage(\'place\', this)"></td>' +
+          '<td><input type="text" id="sales-payment" class="inline-input entry-stage-trigger common-stage-trigger" list="sales-payment-options" placeholder="決済方法" readonly onfocus="this.blur(); openSalesCommonInputStage(\'payment\', this)" onclick="openSalesCommonInputStage(\'payment\', this)"></td>' +
         '</tr>' +
       '</table>' +
     '</div>';
   const dateEl = document.getElementById('sales-date');
   const dateDisplayEl = document.getElementById('sales-date-display');
   const placeEl = document.getElementById('sales-place');
+  const paymentEl = document.getElementById('sales-payment');
   if (dateEl) dateEl.value = normalizeDateDigits_(currentDate);
   if (dateDisplayEl) dateDisplayEl.value = normalizeDateDigits_(currentDate);
   if (placeEl) placeEl.value = currentPlace;
+  if (paymentEl) paymentEl.value = currentPayment;
 }
 
 function addSalesPlaceCandidate() {
@@ -991,6 +1101,7 @@ function showSalesFinalConfirm() {
   try {
     const date = normalizeDateDigits_(String((document.getElementById('sales-date') && document.getElementById('sales-date').value) || '').trim());
     const place = String(document.getElementById('sales-place').value || '').trim();
+    const payment = String((document.getElementById('sales-payment') && document.getElementById('sales-payment').value) || '').trim();
     if (!date) {
       alert('売上日を入力してください');
       return;
@@ -1000,34 +1111,37 @@ function showSalesFinalConfirm() {
     const payloadEntries = activeRows.map(row => ([
       String(row.inventoryId || '').trim(),
       roundYen(row.salesAmount),
-      String(row.place || '').trim()
+      String(row.place || '').trim(),
+      Number(row.qty) || 1
     ]));
 
     pendingSalesPayload = {
       entries: payloadEntries,
       commonInfo: {
         date: date,
-        place: place
+        place: place,
+        payment: payment
       }
     };
 
     let bodyRows = '';
     activeRows.forEach((row, idx) => {
       const usePlace = String(row.place || '').trim() || place;
+      const qty = Number(row.qty) || 1;
+      const totalAmount = roundYen(row.salesAmount) * qty;
       bodyRows += `<tr>
         <td>${idx + 1}</td>
         <td>${escapeHtml(row.inventoryId || '')}</td>
-        <td>${escapeHtml(row.productNo || '')}</td>
         <td>${escapeHtml(row.name || '')}</td>
+        <td>${qty}</td>
         <td>${roundYen(row.salesAmount)}</td>
-        <td>${roundYen(row.cost)}</td>
-        <td>${roundYen(row.profit)}</td>
+        <td>${totalAmount}</td>
         <td>${escapeHtml(usePlace || '')}</td>
       </tr>`;
     });
 
-    const totalSales = activeRows.reduce((sum, row) => sum + roundYen(row.salesAmount), 0);
-    const totalCost = activeRows.reduce((sum, row) => sum + roundYen(row.cost), 0);
+    const totalSales = activeRows.reduce((sum, row) => sum + roundYen(row.salesAmount) * (Number(row.qty) || 1), 0);
+    const totalCost = activeRows.reduce((sum, row) => sum + (row.unitPrice || 0) * (Number(row.qty) || 1), 0);
     const totalProfit = activeRows.reduce((sum, row) => sum + roundYen(row.profit), 0);
 
     document.getElementById('sales-confirm-area').innerHTML = `
@@ -1045,7 +1159,7 @@ function showSalesFinalConfirm() {
         <div class="confirm-title">売上明細</div>
         <div class="table-wrap">
           <table>
-            <tr><th>No</th><th>商品個別番号</th><th>商品マスタ番号</th><th>商品名</th><th>売上金額</th><th>原価</th><th>利益</th><th>販売場所</th></tr>
+            <tr><th>No</th><th>商品個別番号</th><th>商品名</th><th>数量</th><th>単価</th><th>売上合計</th><th>販売場所</th></tr>
             ${bodyRows}
           </table>
         </div>
@@ -1057,7 +1171,7 @@ function showSalesFinalConfirm() {
           <table class="summary-table confirm-summary-table">
             <thead><tr><th>明細数</th><th>売上合計</th><th>原価合計</th><th>利益合計</th></tr></thead>
             <tbody><tr class="summary-value-row">
-              <td class="count-cell">${activeRows.length}</td>
+              <td class="count-cell">${activeRows.reduce((s, r) => s + (Number(r.qty) || 1), 0)}個</td>
               <td>${totalSales}</td>
               <td>${totalCost}</td>
               <td class="is-emphasis">${totalProfit}</td>
@@ -1094,11 +1208,50 @@ function submitSalesEntries() {
   btn.disabled = true;
   status.textContent = '登録中...';
 
+  // 登録前にスナップショットを保存（リセット前に参照できるよう）
+  const snapshotRows = salesRows.slice();
+  const snapshotInfo = pendingSalesPayload.commonInfo || {};
+
   google.script.run
     .withSuccessHandler(function(res) {
       const result = (typeof res === 'string') ? { message: res } : (res || {});
+      const totals = result.totals || {};
+
+      let rowsHtml = '';
+      snapshotRows.forEach(function(row) {
+        if (!row.inventoryId) return;
+        const qty = Number(row.qty) || 1;
+        const unitAmt = roundYen(row.salesAmount);
+        const totalAmt = unitAmt * qty;
+        const profit = row.profit || 0;
+        rowsHtml += `<tr>
+          <td>${escapeHtml(row.name || '')}</td>
+          <td style="font-size:0.8em;">${escapeHtml(row.inventoryId)}</td>
+          <td>${qty}</td>
+          <td>¥${totalAmt.toLocaleString()}</td>
+          <td>¥${profit.toLocaleString()}</td>
+        </tr>`;
+      });
+
       document.getElementById('sales-final-result').innerHTML = `
-        <div class="result-success">${escapeHtml(result.message || '売上登録が完了しました')}</div>
+        <div class="result-success">売上登録完了</div>
+        <div class="confirm-block section-card section-tone-common" style="margin-top:0.8em;">
+          <div style="font-size:0.85em;line-height:1.8;">
+            <div>伝票番号：${escapeHtml(result.salesSlipNo || '')}</div>
+            <div>売上日：${escapeHtml(snapshotInfo.date || '')}　販売場所：${escapeHtml(snapshotInfo.place || '')}${snapshotInfo.payment ? '　決済：' + escapeHtml(snapshotInfo.payment) : ''}</div>
+          </div>
+        </div>
+        <div class="confirm-block section-card section-tone-product" style="margin-top:0.5em;">
+          <div class="table-wrap">
+            <table style="width:100%;font-size:0.88em;border-collapse:collapse;">
+              <tr style="background:#f8fafc;"><th style="padding:0.4em;">商品名</th><th>個別番号</th><th>数量</th><th>売上</th><th>利益</th></tr>
+              ${rowsHtml}
+            </table>
+          </div>
+        </div>
+        <div class="confirm-block section-card section-tone-summary" style="margin-top:0.5em;font-size:0.9em;">
+          売上合計：¥${(totals.salesAmount || 0).toLocaleString()}　利益合計：¥${(totals.profit || 0).toLocaleString()}
+        </div>
       `;
 
       salesRows = [createEmptySalesRow()];

@@ -106,20 +106,22 @@
           <span class="entry-bottom-nav-icon">-</span>
           <span class="entry-bottom-nav-label"></span>
         </button>
-        <button type="button" class="entry-bottom-nav-btn" onclick="navigateTo_('settings')">
-          <span class="entry-bottom-nav-icon">設定</span>
-          <span class="entry-bottom-nav-label">設定</span>
+        <button type="button" class="entry-bottom-nav-btn" onclick="openSharedDisplaySettingsModal_()">
+          <span class="entry-bottom-nav-icon">UI</span>
+          <span class="entry-bottom-nav-label">表示</span>
         </button>
       </nav>
     </footer>
   </div>
 
+  <?!= HtmlService.createHtmlOutputFromFile('DisplaySettingsPanel').getContent(); ?>
   <script>
 let dashData_ = null;
 let fiscalOptions_ = [];
 let currentFiscalValue_ = null;
 
 window.onload = function() {
+  initSharedDisplaySettings_();
   initFiscalSelector_();
 };
 
@@ -340,7 +342,10 @@ function navigateTo_(page) {
     var url = new URL(window.location.href);
     url.searchParams.set('page', page);
     window.location.href = url.toString();
-  } catch(e) {}
+  } catch(e) {
+    var base = window.location.href.split('?')[0];
+    window.location.href = base + '?page=' + encodeURIComponent(page);
+  }
 }
   </script>
 </body>

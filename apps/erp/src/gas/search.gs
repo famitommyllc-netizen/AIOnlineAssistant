@@ -4,6 +4,7 @@ var SHEET_EXPENSE = '経費';
 var SHEET_MASTER = 'マスタ';
 var SHEET_MASTER_PAYMENT = '支払い方法候補';
 var SHEET_MASTER_SALES_PLACE = '販売場所候補';
+var SHEET_MASTER_SALES_PAYMENT = '決済方法候補';
 var SHEET_SALES_SLIP = '売上伝票';
 var TZ = 'Asia/Tokyo';
 
@@ -91,6 +92,11 @@ function getSalesPlaceList() {
   return getMasterCandidateList_('sales_place', SHEET_INVENTORY, 15); // O列
 }
 
+// 決済方法候補（売上入力用）
+function getSalesPaymentList() {
+  return getMasterCandidateList_('sales_payment', null, null);
+}
+
 // 未売上在庫候補（売上入力用）
 function getSalesInventoryCandidates() {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_INVENTORY);
@@ -99,7 +105,8 @@ function getSalesInventoryCandidates() {
   ensureInventoryHeaders_(sheet);
   var janMap = buildProductJanMap_();
 
-  var values = sheet.getRange(2, 1, sheet.getLastRow() - 1, 21).getValues();
+  var colCount = Math.min(sheet.getLastColumn(), 22);
+  var values = sheet.getRange(2, 1, sheet.getLastRow() - 1, colCount).getValues();
   var out = [];
 
   values.forEach(function(row, idx) {
@@ -109,21 +116,16 @@ function getSalesInventoryCandidates() {
     var name = String(row[3] || '').trim();
     var jan = String(janMap[productNo] || '').trim();
     var cost = roundYen_(toNumber_(row[7]));
-    var qty = Math.max(1, roundYen_(toNumber_(row[8]) || 1));
-    var salesDate = String(row[12] || '').trim();
-    var salesAmount = roundYen_(toNumber_(row[13]));
+    var stockQty = roundYen_(toNumber_(row[8]));
+    var unitPrice = roundYen_(toNumber_(row[9]));
     var assumedSales = roundYen_(toNumber_(row[16]));
     var purchaseSlipNo = String(row[18] || '').trim();
 
     if (!name) return;
-    if (salesDate || salesAmount > 0) return; // 売上済み除外
-    if (roundYen_(toNumber_(row[8])) <= 0) return; // 在庫ゼロ除外
+    if (stockQty <= 0) return; // 在庫ゼロ（完売）除外
 
     var id = inventoryId || ('ROW' + rowNo);
-    var label = id + '：' + name;
-    if (productNo) label += ' / ' + productNo;
-    if (jan) label += ' / JAN:' + jan;
-    if (qty > 1) label += ' x' + qty;
+    var label = name + '（' + id + '）';
 
     out.push({
       rowNo: rowNo,
@@ -132,7 +134,8 @@ function getSalesInventoryCandidates() {
       jan: jan,
       name: name,
       cost: cost,
-      qty: qty,
+      qty: stockQty,
+      unitPrice: unitPrice,
       assumedSales: assumedSales,
       purchaseSlipNo: purchaseSlipNo,
       label: label
@@ -160,18 +163,11 @@ function getProductCandidates() {
     var name = String(row[2] || '').trim();
     if (!name) return;
 
-    var key = (productNo || '-') + '|' + (jan || '-') + '|' + name;
+    var key = productNo || name; // 商品マスタ番号で重複排除（同じ商品は1件のみ）
     if (seen[key]) return;
     seen[key] = true;
 
-    var label = '';
-    if (jan) {
-      label = jan + '：' + name;
-    } else if (productNo) {
-      label = productNo + '：' + name;
-    } else {
-      label = name;
-    }
+    var label = productNo ? (productNo + '：' + name) : name;
 
     out.push({
       productNo: productNo,
@@ -373,6 +369,7 @@ function registerSalesEntries(salesList, commonInfo) {
   var info = commonInfo || {};
   var salesDate = normalizeDateInput_(info.date);
   var commonPlace = String(info.place || '').trim();
+  var commonPayment = String(info.payment || '').trim();
   if (!salesDate) {
     throw new Error('売上日を入力してください');
   }
@@ -388,7 +385,8 @@ function registerSalesEntries(salesList, commonInfo) {
   var inventoryLast = inventorySheet.getLastRow();
   if (inventoryLast < 2) throw new Error('在庫データがありません');
 
-  var invValues = inventorySheet.getRange(2, 1, inventoryLast - 1, 21).getValues();
+  var invColCount = Math.min(inventorySheet.getLastColumn(), 22);
+  var invValues = inventorySheet.getRange(2, 1, inventoryLast - 1, invColCount).getValues();
   var invMap = {};
   invValues.forEach(function(row, idx) {
     var rowNo = idx + 2;
@@ -419,10 +417,9 @@ function registerSalesEntries(salesList, commonInfo) {
 
     var row = hit.row;
     var rowNo = hit.rowNo;
-    var existedSalesDate = String(row[12] || '').trim();
-    var existedSalesAmount = roundYen_(toNumber_(row[13]));
-    if (existedSalesDate || existedSalesAmount > 0) {
-      throw new Error('既に売上済みです: ' + inventoryId);
+    var currentStockQty = roundYen_(toNumber_(row[8]));
+    if (currentStockQty <= 0) {
+      throw new Error('既に完売済みです: ' + inventoryId);
     }
 
     var place = item.place || commonPlace;
@@ -430,46 +427,77 @@ function registerSalesEntries(salesList, commonInfo) {
       throw new Error('販売場所を入力してください（商品個別番号: ' + inventoryId + '）');
     }
 
-    var cost = roundYen_(toNumber_(row[7]));
-    var salesAmount = item.salesAmount;
-    var profit = salesAmount - cost;
-    var assumedSalesCell = row[16];
-    var assumedProfitCell = row[17];
-    var assumedSalesNum = roundYen_(toNumber_(assumedSalesCell));
-    if ((assumedProfitCell === '' || assumedProfitCell === null) && assumedSalesNum > 0) {
-      assumedProfitCell = assumedSalesNum - cost;
+    var qty = item.qty;
+    if (qty > currentStockQty) {
+      throw new Error('在庫数(' + currentStockQty + '個)を超えています: ' + inventoryId);
     }
 
-    // I:在庫数を0化（売上済み）
-    inventorySheet.getRange(rowNo, 9).setValue(0);
-    // M:売上日 N:売上金額 O:販売場所 P:利益 Q:想定売価 R:想定利益
-    inventorySheet.getRange(rowNo, 13, 1, 6).setValues([[
-      salesDate,
-      salesAmount,
-      place,
-      profit,
-      assumedSalesCell,
-      assumedProfitCell
-    ]]);
+    var currentCost = roundYen_(toNumber_(row[7]));   // H: 残原価
+    var unitPrice = roundYen_(toNumber_(row[9]));       // J: 単価
+    var salesAmount = item.salesAmount;
+    var costReduction = unitPrice * qty;
+    var newStockQty = currentStockQty - qty;
+    var newCost = currentCost - costReduction;
+    var prevSalesAmount = roundYen_(toNumber_(row[13])); // N: 売上金額累計
+    var prevProfit = roundYen_(toNumber_(row[15]));      // P: 利益累計
+    var newSalesTotal = prevSalesAmount + salesAmount;
+    var newProfit = prevProfit + salesAmount - costReduction;
+    var prevSoldQty = invColCount >= 22 ? roundYen_(toNumber_(row[21])) : 0; // V: 累計売上個数
+    var newSoldQty = prevSoldQty + qty;
 
-    salesSlipSheet.appendRow([
-      salesSlipNo,
-      salesDate,
-      place,
-      inventoryId,
-      String(row[2] || '').trim(), // 商品マスタ番号
-      String(row[3] || '').trim(), // 商品名
-      cost,
-      salesAmount,
-      profit,
-      String(row[18] || '').trim(), // 仕入伝票番号
-      formatYmd_(new Date())
-    ]);
+    // H: 残原価を更新
+    inventorySheet.getRange(rowNo, 8).setValue(newCost);
+    // I: 在庫数を更新
+    inventorySheet.getRange(rowNo, 9).setValue(newStockQty);
+    // N: 売上金額累計を更新
+    inventorySheet.getRange(rowNo, 14).setValue(newSalesTotal);
+    // P: 利益累計を更新
+    inventorySheet.getRange(rowNo, 16).setValue(newProfit);
+    // V: 累計売上個数を更新
+    inventorySheet.getRange(rowNo, 22).setValue(newSoldQty);
+
+    // O: 販売場所（追記。すでに同じ場所なら変えない）
+    var existingPlace = String(row[14] || '').trim();
+    var placeValue = existingPlace
+      ? (existingPlace.indexOf(place) >= 0 ? existingPlace : existingPlace + ' / ' + place)
+      : place;
+    inventorySheet.getRange(rowNo, 15).setValue(placeValue);
+
+    // 完売時のみ M:売上日（完売日）を記録
+    if (newStockQty === 0) {
+      inventorySheet.getRange(rowNo, 13).setValue(salesDate);
+    }
+
+    // 売上伝票：1行=1個でループ
+    var perUnitAmount = Math.floor(salesAmount / qty);
+    var productNo = String(row[2] || '').trim();
+    var productName = String(row[3] || '').trim();
+    var purchaseSlipNo = String(row[18] || '').trim();
+    var registeredAt = formatYmd_(new Date());
+    for (var u = 0; u < qty; u++) {
+      var unitAmount = (u === qty - 1) ? salesAmount - perUnitAmount * (qty - 1) : perUnitAmount;
+      var unitProfit = unitAmount - unitPrice;
+      salesSlipSheet.appendRow([
+        salesSlipNo,
+        salesDate,
+        place,
+        inventoryId,
+        productNo,
+        productName,
+        unitPrice,
+        unitAmount,
+        unitProfit,
+        commonPayment,
+        purchaseSlipNo,
+        registeredAt
+      ]);
+    }
 
     upsertMasterValue_('sales_place', place);
-    updatedCount += 1;
+    if (commonPayment) upsertMasterValue_('sales_payment', commonPayment);
+    updatedCount += qty;
     totalSales += salesAmount;
-    totalProfit += profit;
+    totalProfit += salesAmount - costReduction;
   });
 
   return {
@@ -575,15 +603,18 @@ function normalizeSalesEntryItem_(item) {
   var inventoryId = '';
   var salesAmount = 0;
   var place = '';
+  var qty = 1;
 
   if (Array.isArray(item)) {
     inventoryId = String(item[0] || '').trim();
     salesAmount = roundYen_(toNumber_(item[1]));
     place = String(item[2] || '').trim();
+    qty = Math.max(1, Math.round(toNumber_(item[3]) || 1));
   } else {
     inventoryId = String(item.inventoryId || '').trim();
     salesAmount = roundYen_(toNumber_(item.salesAmount));
     place = String(item.place || '').trim();
+    qty = Math.max(1, Math.round(toNumber_(item.qty) || 1));
   }
 
   if (!inventoryId) {
@@ -596,7 +627,8 @@ function normalizeSalesEntryItem_(item) {
   return {
     inventoryId: inventoryId,
     salesAmount: salesAmount,
-    place: place
+    place: place,
+    qty: qty
   };
 }
 
@@ -647,23 +679,27 @@ function ensureSalesSlipSheet_() {
   if (!sheet) {
     sheet = ss.insertSheet(SHEET_SALES_SLIP);
   }
-  if (sheet.getMaxColumns() < 11) {
-    sheet.insertColumnsAfter(sheet.getMaxColumns(), 11 - sheet.getMaxColumns());
-  }
   if (sheet.getLastRow() === 0) {
-    sheet.getRange(1, 1, 1, 11).setValues([[
-      '売上伝票番号',
-      '売上日',
-      '販売場所',
-      '商品個別番号',
-      '商品マスタ番号',
-      '商品名',
-      '原価',
-      '売上金額',
-      '利益',
-      '仕入伝票番号',
-      '登録日'
+    if (sheet.getMaxColumns() < 12) {
+      sheet.insertColumnsAfter(sheet.getMaxColumns(), 12 - sheet.getMaxColumns());
+    }
+    sheet.getRange(1, 1, 1, 12).setValues([[
+      '売上伝票番号', '売上日', '販売場所', '商品個別番号', '商品マスタ番号',
+      '商品名', '原価', '売上金額', '利益', '決済方法', '仕入伝票番号', '登録日'
     ]]);
+  } else {
+    // 既存シート：決済方法列がなければ「利益」列の右に挿入
+    var headerRow = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    var hasPayment = headerRow.some(function(h) { return String(h).trim() === '決済方法'; });
+    if (!hasPayment) {
+      var profitCol = -1;
+      for (var i = 0; i < headerRow.length; i++) {
+        if (String(headerRow[i]).trim() === '利益') { profitCol = i + 1; break; }
+      }
+      var insertAt = profitCol > 0 ? profitCol + 1 : sheet.getLastColumn() + 1;
+      sheet.insertColumnAfter(insertAt - 1);
+      sheet.getRange(1, insertAt).setValue('決済方法');
+    }
   }
   return sheet;
 }
@@ -677,8 +713,16 @@ function ensureInventoryHeaders_(sheet) {
     sheet.insertColumnBefore(7);
   }
 
-  if (sheet.getMaxColumns() < 21) {
-    sheet.insertColumnsAfter(sheet.getMaxColumns(), 21 - sheet.getMaxColumns());
+  // 旧レイアウト（V列=決済方法）ならV列を削除してW=売上個数をVへシフト
+  if (sheet.getMaxColumns() >= 22) {
+    var vHeader = String(sheet.getRange(1, 22).getValue() || '').trim();
+    if (vHeader === '決済方法') {
+      sheet.deleteColumn(22);
+    }
+  }
+
+  if (sheet.getMaxColumns() < 22) {
+    sheet.insertColumnsAfter(sheet.getMaxColumns(), 22 - sheet.getMaxColumns());
   }
 
   var headers = [[
@@ -702,9 +746,10 @@ function ensureInventoryHeaders_(sheet) {
     '想定利益',     // R
     '仕入伝票番号', // S
     'バーコード値一覧', // T（補助列。主キー参照は禁止）
-    'ラベル印刷状態' // U
+    'ラベル印刷状態', // U
+    '売上個数'      // V
   ]];
-  sheet.getRange(1, 1, 1, 21).setValues(headers);
+  sheet.getRange(1, 1, 1, 22).setValues(headers);
   if (sheet.getMaxColumns() >= 20) {
     sheet.hideColumns(20, 1);
   }
@@ -1025,6 +1070,7 @@ function getDedicatedMasterSheetNameByType_(type) {
   var itemType = normalizeMasterType_(type);
   if (itemType === 'payment') return SHEET_MASTER_PAYMENT;
   if (itemType === 'sales_place') return SHEET_MASTER_SALES_PLACE;
+  if (itemType === 'sales_payment') return SHEET_MASTER_SALES_PAYMENT;
   return '';
 }
 
@@ -1284,7 +1330,7 @@ function applyErpSchemaUpdates() {
     settingsPrepared: setupOk,
     inventoryHeaders: inventorySheet.getRange(1, 1, 1, 21).getValues()[0],
     productHeaders: productSheet.getRange(1, 1, 1, 13).getValues()[0],
-    salesSlipHeaders: salesSlipSheet.getRange(1, 1, 1, 11).getValues()[0]
+    salesSlipHeaders: salesSlipSheet.getRange(1, 1, 1, 12).getValues()[0]
   };
 }
 
